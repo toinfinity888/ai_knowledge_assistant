@@ -6,6 +6,28 @@
 
 AI Knowledge Assistant is an intelligent system based on the RAG (Retriever-Augmented Generation) architecture that allows users to ask natural language questions and receive accurate, context-aware answers sourced from their own documents and knowledge base. The project is designed as a learning and research initiative to master the full development cycle of modern AI-powered applications and key tools in the LLMOps ecosystem.
 
+Key Features:
+	•	Document ingestion and chunking
+	•	Embedding generation and vector storage (e.g., Qdrant, pgvector)
+	•	Semantic search and retrieval
+	•	Contextual answer generation using LLMs (OpenAI, HuggingFace, etc.)
+	•	Prompt engineering and customization
+	•	Logging, monitoring, and prompt/version tracking
+	•	Full Dockerization and deployment setup
+	•	CI/CD integration and scalable architecture
+
+⸻
+
+Tech Stack:
+	•	Python, FastAPI
+	•	Qdrant / PostgreSQL + pgvector
+	•	LangChain / Custom RAG
+	•	OpenAI / HuggingFace Transformers
+	•	Docker, Docker Compose
+	•	Git, GitHub Actions
+	•	Helicone / PromptLayer / WandB
+
+
 ## Project Organization
 
 ```
