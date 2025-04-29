@@ -19,7 +19,9 @@ def main():
 
     embeddings = model.encode(texts)
 
-    client = QdrantClient("localhost", port=6333)
+    client = QdrantClient(url="https://94795b07-482f-417e-8e62-b298c5163df0.eu-central-1-0.aws.cloud.qdrant.io:6333",
+                        port=6333,
+                        api_key=)
 
     if not client.collection_exists("docs"):
         client.recreate_collection(
