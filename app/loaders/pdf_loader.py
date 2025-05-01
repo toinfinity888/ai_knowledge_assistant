@@ -6,7 +6,7 @@ from loaders.base import BaseLoader
 from datetime import datetime
 from typing import List
 
-class PDFLoader:
+class PDFLoader(BaseLoader):
     def load(self, path: Path) -> List[TextChunk]:
         chunks = []
         try:
