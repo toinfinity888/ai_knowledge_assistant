@@ -11,7 +11,7 @@ class TextChunk:
     page: Optional[int] = None          # Page in PDF
     chunk_id: Optional[str] = None      # ID unique of chunk
 
-    # Metaadata
+    # Metadata
     file_name: str                      # File name
     last_modified: Optional[datetime] = None    # Time of last change
     file_type: Optional[str] = None             # 'pdf', 'json', etr.
