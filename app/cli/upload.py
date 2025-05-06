@@ -13,7 +13,7 @@ import fitz  # PyMuPDF for reading PDF files
 import typer
 import uuid
 
-from core.config import RAW_DATA_DIR
+from ai_knowledge_assistant.app.config.path_config import RAW_DATA_DIR
 
 app = typer.Typer()
 
