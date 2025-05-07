@@ -1,6 +1,6 @@
-from config.qdrant_config import QdrantConfig
+from app.config.qdrant_config import QdrantSetting
 
 class Config:
-    qdrant = QdrantConfig()
+    qdrant = QdrantSetting()
 
 config = Config()

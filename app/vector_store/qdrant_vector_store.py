@@ -1,21 +1,21 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance, ScoredPoint
-from vector_store.base_vector_store import BaseVectorStore
-from ai_knowledge_assistant.app.embedding.embedded import EmbeddedChunk
-from typing import List, Optional
-from config.qdrant_config import QdrantSetting
-from core.logger import logger
+from app.vector_store.base_vector_store import BaseVectorStore
+from app.embedding.embedded import EmbeddedChunk
+from typing import List, Optional, Dict
+from app.config.qdrant_config import QdrantSetting
+from app.core.logger import logger
 
 class QdrantVectorStore(BaseVectorStore):
     def __init__(self, settings: QdrantSetting):
         self.settings = settings
-        self.collection_name = settings.qdrant_collection_name
+        self.collection_name = settings.collection_name
 
         self.client = QdrantClient(
-                host=settings.qdrant_host,
-                port=settings.qdrant_port,
-                api_key=settings.qdrant_api_key,
-                https=settings.qdrant_https,
+                url=settings.host,
+                port=settings.port,
+                api_key=settings.api_key,
+                https=settings.https,
         )
 
         self._init_collection()
@@ -31,7 +31,7 @@ class QdrantVectorStore(BaseVectorStore):
             self.client.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
-                        size=self.settings.qdrant_vector_size,
+                        size=self.settings.vector_size,
                         distance=self.settings.qdrant_distance
                     )
             )
@@ -39,24 +39,24 @@ class QdrantVectorStore(BaseVectorStore):
         else:
             logger.info(f"Collection '{self.collection_name}' already exists.")
 
-    def _get_existing_hashes(self, chunk_ids: List[str]) -> List[str, str]:
+    def _get_existing_hashes(self, chunk_ids: List[str]) -> Dict[str, str]:
         response = self.client.retrieve(
             collection_name=self.collection_name,
             ids=chunk_ids,
             with_payload=True
         )
-        return{point.id: point.payload.get('text_hash') for point in response}
+        return {point.id: point.payload.get('text_hash') for point in response}
                     
 
     def upsert(self, chunks: List[EmbeddedChunk]) -> None:
-        chunk_id_to_chunk = {chunks.chunk_id: chunk for chunk in chunks}  # New chunks
+        chunk_id_to_chunk = {chunk.qdrant_id(): chunk for chunk in chunks}  # New chunks
         existing_hashes = self._get_existing_hashes(list(chunk_id_to_chunk.keys())) # Dictionary[point.id: 'text_hash']
         chunks_to_upsert = [
-            chunk for chunk_id, chunk in chunk_id_to_chunk.items()
-            if chunk_id not in existing_hashes or existing_hashes[chunk_id] != chunk.text_hash
+            chunk for id, chunk in chunk_id_to_chunk.items()
+            if id not in existing_hashes or existing_hashes[id] != chunk.text_hash
         ]
 
-        if not chunks_to_upsert is None:
+        if not chunks_to_upsert:
             logger.info(f"NO changes detected. Nothing to upsert.")
             return
 
