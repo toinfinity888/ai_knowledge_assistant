@@ -2,7 +2,7 @@ from app.llm.base_llm import BaseLLM
 import requests
 from app.core.logger import logger
 
-class OllamaLLM(BaseLLM):
+class OllamaLlm(BaseLLM):
     def __init__(self, model_name: str = 'mistral:instruct', base_url: str = 'http://localhost:11434'):
         self.model_name = model_name
         self.base_url = base_url

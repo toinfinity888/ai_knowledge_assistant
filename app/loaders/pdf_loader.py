@@ -1,5 +1,6 @@
 from pathlib import Path
 from app.core.logger import logger
+from app.processing.text_splitter import split_text
 import fitz # PyMuPDF
 from app.processing.text_chunk import TextChunk
 from app.loaders.base import BaseLoader
@@ -27,17 +28,18 @@ class PDFLoader(BaseLoader):
                     if not text:
                         continue
 
-                    chunk_id = f"{file_name}_p{page_num}"
-                    chunk = TextChunk(
-                        text=text,
-                        source=pdf_path,
-                        page=page_num,
-                        chunk_id=chunk_id,
-                        file_name=file_name,
-                        last_modified=last_modified,
-                        file_type=file_type
-                    )
-                    chunks.append(chunk)
+                    for i, subtext in enumerate(split_text(text, chunk_size=1000, overlap=100)):
+                        chunk_id = f"{file_name}_p{page_num}_chunk{i}"
+                        chunk = TextChunk(
+                            text=subtext,
+                            source=pdf_path,
+                            page=page_num,
+                            chunk_id=chunk_id,
+                            file_name=file_name,
+                            last_modified=last_modified,
+                            file_type=file_type
+                        )
+                        chunks.append(chunk)
             except Exception as e:
                 logger.error(f"Error while loading PDF file {pdf_path.name}: {e}")
         return chunks
