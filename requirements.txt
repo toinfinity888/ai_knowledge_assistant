@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pandas
+sqlalchemy
+psycopg2-binary
+openai
+sentence-transformers
+qdrant-client
+langchain
+ragas
