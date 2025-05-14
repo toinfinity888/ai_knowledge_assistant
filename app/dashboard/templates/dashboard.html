@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RAG Evaluation Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #121212, #1c1c1c);
+            color: #e0e0e0;
+            margin: 0;
+            padding: 2rem;
+        }
+        h1 {
+            color: #03dac6;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(3, 218, 198, 0.3);
+        }
+        .button-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        button {
+            background-color: #03dac6;
+            color: #000;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #018786;
+        }
+        #status {
+            text-align: center;
+            margin-top: 1rem;
+            color: #ffa500;
+            font-weight: 500;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #2c2c2c;
+        }
+        th {
+            background-color: #272727;
+            color: #ffffff;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        tr:hover {
+            background-color: #2a2a2a;
+        }
+        .progress-container {
+            background-color: #333;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 20px;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #03dac6, #018786);
+            border-radius: 20px 0 0 20px;
+            text-align: center;
+            color: #fff;
+            line-height: 20px;
+            font-size: 0.8rem;
+            transition: width 0.8s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>RAG Evaluation Dashboard</h1>
+
+    <div class="button-container">
+        <button onclick="reEvaluate()">Re-run Evaluation</button>
+        <div id="status"></div>
+    </div>
+
+    {% if not file_found %}
+    <div style="padding: 1rem; background: #ff4444; color: white; border-radius: 8px; margin-bottom: 2rem; text-align:center;">
+        Evaluation result not found or empty. Please run the evaluation pipeline first.
+    </div>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Query</th>
+                <th>Context Recall</th>
+                <th>Faithfulness</th>
+                <th>Factual Correctness</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result %}
+            <tr>
+                <td>{{ row['user_input'] }}</td>
+                <td>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: {{ (row['context_recall'] * 100) | round(1) if row.get('context_recall') is not none else 0 }}%;">
+                            {{ (row['context_recall'] * 100) | round(1) if row.get('context_recall') is not none else 'N/A' }}%
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: {{ (row['faithfulness'] * 100) | round(1) if row.get('faithfulness') is not none else 0 }}%;">
+                            {{ (row['faithfulness'] * 100) | round(1) if row.get('faithfulness') is not none else 'N/A' }}%
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: {{ (row['factual_correctness'] * 100) | round(1) if row.get('factual_correctness') is not none else 0 }}%;">
+                            {{ (row['factual_correctness'] * 100) | round(1) if row.get('factual_correctness') is not none else 'N/A' }}%
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function reEvaluate() {
+            document.getElementById('status').innerText = 'Running evaluation... This may take a few minutes.';
+            fetch('/re-evaluate', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('status').innerText = 'Evaluation complete. Reloading data...';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        document.getElementById('status').innerText = 'Error: ' + data.error;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('status').innerText = 'Failed to run evaluation.';
+                });
+        }
+    </script>
+</body>
+</html>
