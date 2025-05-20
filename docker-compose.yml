@@ -13,7 +13,7 @@ services:
     depends_on:
       - postgres
       - qdrant
-    command: uvicorn app_dash:app_dash --host 0.0.0.0 --port 8001 --reload
+    command: python main.py
 
   postgres:
     image: postgres:14
