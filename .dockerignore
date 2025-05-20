@@ -1,0 +1,6 @@
+__pycache__
+*.pyc
+*.pkl
+*.bin
+ollama_data/
+data/raw

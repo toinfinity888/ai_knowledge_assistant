@@ -9,6 +9,5 @@ embedder = SentenceTransformerEmbedder()
 vector_store = QdrantVectorStore(config.qdrant)
 search_engine = SemanticSearchEngine(embedder, vector_store)
 llm = OllamaLlm()
-llm_model_used = llm.model_name
 
 rag_engine = RAGEngine(search_engine, llm)
