@@ -36,13 +36,13 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
-  ollama:
-    image: ollama/ollama
-    container_name: ollama_mistral
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
+  # ollama:
+  #   image: ollama/ollama
+  #   container_name: ollama_mistral
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
 
 volumes:
   postgres_data:
