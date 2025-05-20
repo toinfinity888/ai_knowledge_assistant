@@ -1,6 +1,6 @@
 from app.loaders.base import BaseLoader
-from app.core.logger import logger
-from app.processing.text_chunk import TextChunk
+from app.logging.logger import logger
+from app.models.text_chunk import TextChunk
 from pathlib import Path
 from datetime import datetime
 from typing import List, Union

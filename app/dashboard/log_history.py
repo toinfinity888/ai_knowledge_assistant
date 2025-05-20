@@ -1,11 +1,10 @@
 import sqlalchemy as sa
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
-from app.core.logger import logger
+from app.logging.logger import logger
 from datetime import datetime
 from app.config.postgresql_config import PostgresqlSettings
 from app.config.path_config import PROCESSED_DATA_DIR
-import uuid
 from datetime import datetime
 from pathlib import Path
 import json

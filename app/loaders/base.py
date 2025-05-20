@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
-from app.processing.text_chunk import TextChunk
+from app.models.text_chunk import TextChunk
 
 class BaseLoader(ABC):
     @abstractmethod

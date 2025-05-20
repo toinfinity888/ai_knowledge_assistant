@@ -1,8 +1,8 @@
 from pathlib import Path
-from app.core.logger import logger
+from app.logging.logger import logger
 from app.processing.text_splitter import split_text
 import fitz # PyMuPDF
-from app.processing.text_chunk import TextChunk
+from ai_knowledge_assistant.app.models.text_chunk import TextChunk
 from app.loaders.base import BaseLoader
 from datetime import datetime
 from typing import List, Union

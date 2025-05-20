@@ -1,28 +1,14 @@
-import pandas as pd
-import matplotlib as plt
-from fastapi import APIRouter, Request, BackgroundTasks
 import subprocess
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from app.config.path_config import DASHBOARD_TEMPLATES, PROCESSED_DATA_DIR, PROJ_ROOT
-from app.core.logger import logger
-import sqlalchemy as sa 
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
+from app.logging.logger import logger
 from app.dashboard.log_history import EvaluationLogs
-from app.config.postgresql_config import PostgresqlSettings
-
-settings = PostgresqlSettings()
-user_name = settings.KEY
-password = settings.PASSWORD
-db_name = settings.DB_NAME
+from app.database.postgresql_session import SessionLocal
 
 json_path: Path = PROCESSED_DATA_DIR
-
-DATABASE_URL = f"postgresql://{user_name}:{password}@localhost:5433/{db_name}"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 dashboard_router = APIRouter()
 templates_path = Path(DASHBOARD_TEMPLATES)

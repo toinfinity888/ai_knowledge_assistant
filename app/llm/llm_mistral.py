@@ -1,6 +1,6 @@
 from app.llm.base_llm import BaseLLM
 import requests
-from app.core.logger import logger
+from app.logging.logger import logger
 
 class OllamaLlm(BaseLLM):
     def __init__(self, model_name: str = 'mistral:instruct', base_url: str = 'http://localhost:11434'):

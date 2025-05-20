@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
-from app.embedding.embedded import EmbeddedChunk
-from app.query.query import Query
+from app.models.embedded import EmbeddedChunk
+from app.models.query import Query
 from qdrant_client.models import ScoredPoint
 
 class BaseVectorStore(ABC):

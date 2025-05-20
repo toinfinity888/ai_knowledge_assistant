@@ -1,10 +1,10 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance, ScoredPoint
 from app.vector_store.base_vector_store import BaseVectorStore
-from app.embedding.embedded import EmbeddedChunk
+from app.models.embedded import EmbeddedChunk
 from typing import List, Optional, Dict
 from app.config.qdrant_config import QdrantSetting
-from app.core.logger import logger
+from app.logging.logger import logger
 
 class QdrantVectorStore(BaseVectorStore):
     def __init__(self, settings: QdrantSetting):

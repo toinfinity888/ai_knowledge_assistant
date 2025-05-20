@@ -1,11 +1,11 @@
-from app.core.base_search_engine import BaseSearchEngine
-from app.core.logger import logger
+from app.retriever.base_search_engine import BaseSearchEngine
+from app.logging.logger import logger
 from app.embedding.base_emedder import BaseEmbedder
-from app.embedding.embedded import EmbeddedChunk
-from app.embedding.embedded import EmbeddedQuery
+from app.models.embedded import EmbeddedChunk
+from app.models.embedded import EmbeddedQuery
 from app.vector_store.qdrant_vector_store import QdrantVectorStore
 from app.vector_store.base_vector_store import BaseVectorStore
-from app.query.query import Query
+from app.models.query import Query
 from typing import List, Optional
 from datetime import datetime
 
@@ -25,9 +25,10 @@ def create_query(
     )
 
 class SemanticSearchEngine(BaseSearchEngine):
-    def __init__(self, embedder: BaseEmbedder, vector_store: BaseVectorStore):
+    def __init__(self, embedder: BaseEmbedder, vector_store: BaseVectorStore, retriever_name: str='SemanticSearch'):
         self.embedder = embedder
         self.vector_store = vector_store
+        self.retriever_name = retriever_name
 
     def search(self, query: Query) -> List[EmbeddedChunk]:
         vector = self.embedder.embed_query(query).embedding # Take embedding from embed_query object

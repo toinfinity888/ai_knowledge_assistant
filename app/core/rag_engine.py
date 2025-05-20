@@ -1,8 +1,8 @@
-from app.query.query import Query
+from app.models.query import Query
 from app.llm.base_llm import BaseLLM
-from app.core.base_search_engine import BaseSearchEngine
-from app.core.logger import logger
-from app.search.search_engine import SemanticSearchEngine
+from app.retriever.base_search_engine import BaseSearchEngine
+from app.logging.logger import logger
+from app.retriever.semantic_search_engine import SemanticSearchEngine
 from typing import List
 
 class RAGEngine:
@@ -10,14 +10,16 @@ class RAGEngine:
         self.search_engine = search_engine
         self.llm = llm
 
-    def ask(self, query: Query) -> str:
+    def ask(self, query: Query) -> tuple[str, List[str]]:
         chunks = self.search_engine.search(query)
         if not chunks:
             logger.info("Search engine no have an answer")
         context = '\n\n'.join(chunk.text for chunk in chunks)
-        return self.llm.generate_answer(query.text, context)
+        answer = self.llm.generate_answer(query.text, context)
+        return answer, [chunk.text for chunk in chunks]
 
-    def get_relevant_docs(self, query_text: str, engine: SemanticSearchEngine) -> List[str]:
-        query = Query(text=query_text, user_id='demo')
-        chunks = engine.search(query)
-        return [chunk.text for chunk in chunks]
+    def get_llm_model_name(self):
+        return self.llm.model_name
+    
+    def get_search_engine_name(self):
+        return self.search_engine.retriever_name

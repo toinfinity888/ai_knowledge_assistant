@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 from qdrant_client.models import PointStruct, ScoredPoint
-from app.query.query import Query
+from app.models.query import Query
 from uuid import uuid5, NAMESPACE_DNS
 
 @dataclass

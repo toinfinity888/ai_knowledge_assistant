@@ -2,7 +2,7 @@ from ragas import EvaluationDataset, evaluate
 from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness
 from ragas.llms import LangchainLLMWrapper
 from langchain_openai import ChatOpenAI
-from app.search.search_engine import SemanticSearchEngine
+from app.retriever.semantic_search_engine import SemanticSearchEngine
 from app.core.rag_engine import RAGEngine
 from app.llm.llm_mistral import OllamaLlm
 from app.llm.base_llm import BaseLLM
@@ -10,8 +10,8 @@ from app.vector_store.qdrant_vector_store import QdrantVectorStore
 from app.config.app_config import config
 from app.config.path_config import PROCESSED_DATA_DIR
 from app.embedding.sentence_transformer_embedder import SentenceTransformerEmbedder
-from app.query.query import Query
-from app.core.logger import logger
+from app.models.query import Query
+from app.logging.logger import logger
 from app.dashboard.log_history import upsert_logs_to_postgresql
 from datetime import datetime
 from dotenv import load_dotenv

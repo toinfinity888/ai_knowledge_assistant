@@ -1,10 +1,10 @@
 from sentence_transformers import SentenceTransformer
-from app.processing.text_chunk import TextChunk
-from app.embedding.embedded import EmbeddedChunk
+from app.models.text_chunk import TextChunk
+from app.models.embedded import EmbeddedChunk
 from app.embedding.base_emedder import BaseEmbedder
 from typing import List
-from app.query.query import Query
-from app.embedding.embedded import EmbeddedQuery
+from app.models.query import Query
+from app.models.embedded import EmbeddedQuery
 
 class SentenceTransformerEmbedder(BaseEmbedder):
     def embed_text(self, chunks: List[TextChunk]) -> List[EmbeddedChunk]:
