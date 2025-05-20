@@ -1,16 +1,16 @@
-__pycache__/
+ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.db
-*.sqlite3
 .venv/
 .env
+*.db
+*.log
 .git/
-models/
-ollama/
-*.bin
-*.pt
-*.safetensors
-*.jsonl
+.gitignore
+tests/
+*.md
 data/
+ollama_data/
+qdrant_data/
+postgres_data/

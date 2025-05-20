@@ -11,3 +11,4 @@ search_engine = SemanticSearchEngine(embedder, vector_store)
 llm = OllamaLlm()
 
 rag_engine = RAGEngine(search_engine, llm)
+
