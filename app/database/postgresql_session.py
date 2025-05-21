@@ -6,10 +6,6 @@ from app.config.postgresql_config import PostgresqlSettings
 
 settings = PostgresqlSettings()
 
-user_name = settings.KEY
-password = settings.PASSWORD
-db_name = settings.DB_NAME
-
 DATABASE_URL = os.environ('DATABASE_URL')
 engine = create_engine(DATABASE_URL)
 
