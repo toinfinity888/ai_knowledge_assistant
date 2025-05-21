@@ -6,7 +6,6 @@ class PostgresqlSettings(BaseSettings):
 
     class Config:
         env_file = '.env'
-        env_prefix = 'POSTGRESQL_'
         extra = 'ignore'
     
 
