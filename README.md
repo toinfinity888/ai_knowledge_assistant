@@ -23,14 +23,19 @@ Key Features:
 
 ⸻
 
-Tech Stack:
-	•	Python, FastAPI
-	•	Qdrant / PostgreSQL + pgvector
-	•	LangChain / Custom RAG
-	•	OpenAI / HuggingFace Transformers
-	•	Docker, Docker Compose
-	•	Git, GitHub Actions
-	•	Helicone / PromptLayer / WandB
+🛠️ Tech Stack
+	 • Python 3.12
+	 • Flask
+	 • Gunicorn
+	 • Docker
+	 • OpenAI GPT-4o
+	 • Retrieval-Augmented Generation (RAG)
+	 • Qdrant
+	 • PostgreSQL
+	 • SQLAlchemy
+	 • Pydantic
+	 • Railway
+	 • GitHub
 
 
 ## Project Organization
