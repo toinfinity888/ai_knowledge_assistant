@@ -2,10 +2,11 @@ from app.llm.base_llm import BaseLLM
 import requests
 from app.logging.logger import logger
 import os 
-import openai
+from openai import OpenAI
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+client = OpenAI(
+    api_key=os.environ['OPENAI_API_KEY'],
+)
 class OpenAI(BaseLLM):
     def __init__(self, model_name: str = 'gpt-4o'):
         self.model_name = model_name
@@ -18,7 +19,7 @@ class OpenAI(BaseLLM):
             f"Question: {question}\n\n"
             "Answer:")
         
-        response = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model=self.model_name,
             messages=[
                 {'role': 'system', 'content': "You are a helpful AI assistant. Use the context below to answer the user's question clearly and naturally."},
@@ -26,4 +27,4 @@ class OpenAI(BaseLLM):
             ],
             temperature=0.2
         )
-        return response.choices[0].message["content"]
+        return completion.choices[0].message.content
