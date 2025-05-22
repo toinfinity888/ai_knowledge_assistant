@@ -1,7 +1,7 @@
 fastapi
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.7.0+cpu 
-uvicorn
+gunicorn
 pandas
 sqlalchemy
 psycopg2-binary
