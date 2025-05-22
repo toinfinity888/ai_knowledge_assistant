@@ -4,6 +4,8 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
+![Demo screenshot](docs/images/demo/screenshot.png)
+
 AI Knowledge Assistant is an intelligent system based on the RAG (Retriever-Augmented Generation) architecture that allows users to ask natural language questions and receive accurate, context-aware answers sourced from their own documents and knowledge base. The project is designed as a learning and research initiative to master the full development cycle of modern AI-powered applications and key tools in the LLMOps ecosystem.
 
 Key Features:
@@ -31,52 +33,51 @@ Tech Stack:
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         ai_knowledge_assistant and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── ai_knowledge_assistant   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes ai_knowledge_assistant a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+.
+├── app                      <- Main application package containing all modules and logic
+│   ├── api                 <- API routes (e.g., FastAPI endpoints)
+│   ├── cli                 <- Command-line interface scripts and commands
+│   ├── config              <- Configuration files and environment settings
+│   ├── core                <- Core logic of the app (pipelines, orchestration, etc.)
+│   ├── dashboard           <- Interactive dashboards or visualization panels
+│   ├── database            <- Database models, sessions, and connections
+│   ├── embedding           <- Text embedding generation logic
+│   ├── evaluation          <- Evaluation scripts (e.g., for RAG or model quality)
+│   ├── frontend            <- Frontend code (if any, e.g., templates or static assets)
+│   ├── llm                 <- Large Language Model handling (OpenAI, Mistral, etc.)
+│   ├── loaders             <- Data/document loading and ingestion utilities
+│   ├── logging             <- Logging configuration and custom loggers
+│   ├── models              <- Structure of data
+│   ├── processing          <- Data preprocessing, cleaning, or transformation logic
+│   ├── retriever           <- Vector search and document retrieval logic
+│   └── vector_store        <- Integration with vector databases (e.g., Qdrant, FAISS)
+
+├── app_d.py                <- Dashboard app
+├── backup.sql              <- SQL backup file of the database
+├── data                    <- Data directory with subfolders for pipeline stages
+│   ├── add_info           <- Additional manually added information
+│   ├── external           <- Third-party data sources
+│   ├── interim            <- Intermediate transformed data
+│   ├── processed          <- Final, clean data ready for use
+│   └── raw                <- Raw, unprocessed original data
+
+├── docker-compose.yml      <- Docker Compose configuration for multi-container setups
+├── Dockerfile              <- Docker build instructions for the project
+├── docs                    <- Documentation files (e.g., for mkdocs or Sphinx)
+├── environment.yml         <- Conda environment definition file
+├── ingest_pipeline.py      <- Script to orchestrate data/document ingestion
+├── LICENSE                 <- License file for the project (e.g., MIT, Apache)
+├── main.py                 <- Main application entry point (e.g., app = create_app())
+├── Makefile                <- Utility commands for development tasks
+├── notebooks               <- Jupyter notebooks for experimentation and exploration
+├── pyproject.toml          <- Project metadata and tool configuration (e.g., black, isort)
+├── ragas_evaluator.py      <- Script for evaluating RAG responses using RAGAS or similar
+├── README.md               <- Project overview and usage instructions
+├── references              <- Manuals, glossaries, and related reference material
+├── reports                 <- Generated reports (PDF, HTML, etc.)
+├── requirements.txt        <- Python dependency list (pip-based)
+├── tests                   <- Unit and integration tests
+└── venv                    <- Local virtual environment (usually excluded from version control)
 ```
 
 --------
