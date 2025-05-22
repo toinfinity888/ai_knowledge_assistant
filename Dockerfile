@@ -20,4 +20,4 @@
     
     EXPOSE 8080
 
-    CMD ["sh", "-c", "gunicorn main:app --bind 0.0.0.0:8080"]
+    CMD ["gunicorn", "wsgi:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "1"]
