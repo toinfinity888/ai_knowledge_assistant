@@ -4,6 +4,9 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
+### 🚀 Live Preview
+**URL:** https://ai-assistant-rag.up.railway.app/
+
 ![Demo screenshot](docs/images/demo/screenshot.png)
 
 AI Knowledge Assistant is an intelligent system based on the RAG (Retriever-Augmented Generation) architecture that allows users to ask natural language questions and receive accurate, context-aware answers sourced from their own documents and knowledge base. The project is designed as a learning and research initiative to master the full development cycle of modern AI-powered applications and key tools in the LLMOps ecosystem.
