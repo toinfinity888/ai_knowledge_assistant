@@ -1,0 +1,47 @@
+.
+├── app
+│   ├── api
+│   ├── cli
+│   ├── config
+│   ├── core
+│   ├── dashboard
+│   ├── database
+│   ├── embedding
+│   ├── evaluation
+│   ├── frontend
+│   ├── llm
+│   ├── loaders
+│   ├── logging
+│   ├── models
+│   ├── processing
+│   ├── retriever
+│   └── vector_store
+├── app_d.py
+├── backup.sql
+├── data
+│   ├── add_info
+│   ├── external
+│   ├── interim
+│   ├── processed
+│   └── raw
+│
+├── docker-compose.yml
+├── Dockerfile
+├── docs
+├── environment.yml
+├── ingest_pipeline.py
+├── LICENSE
+├── main.py
+├── Makefile
+├── notebooks
+├── pyproject.toml
+├── ragas_evaluator.py
+├── README.md
+├── references
+├── reports
+├── requirements.txt
+├── tests
+└── venv
+    
+
+41 directories, 203 files

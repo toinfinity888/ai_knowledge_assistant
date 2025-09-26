@@ -14,8 +14,11 @@ class RAGEngine:
         chunks = self.search_engine.search(query)
         if not chunks:
             logger.info("Search engine no have an answer")
+        source = []
+        for chunk in chunks:
+            source.append(chunk.source)
         context = '\n\n'.join(chunk.text for chunk in chunks)
-        answer = self.llm.generate_answer(query.text, context)
+        answer = self.llm.generate_answer(query.text, context, source)
         return answer, [chunk.text for chunk in chunks]
 
     def get_llm_model_name(self):

@@ -1,135 +1,138 @@
-from sentence_transformers import SentenceTransformer
-import dotenv
-import json
-from loguru import logger
-import os
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-
+import os, json, asyncio, aiohttp, uuid, math
+from typing import List
+from dotenv import load_dotenv
+from tqdm.asyncio import tqdm
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct 
-import fitz  # PyMuPDF for reading PDF files
-import typer
-import uuid
+from qdrant_client.models import PointStruct, VectorParams, Distance
 
-from ai_knowledge_assistant.app.config.path_config import RAW_DATA_DIR
+# ───────────────────────────────
+# 1. ПОДГОТОВКА
+# ───────────────────────────────
+load_dotenv()
+QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
+QDRANT_HOST = os.getenv('QDRANT_HOST')
+QDRANT_PORT = os.getenv('QDRANT_PORT')
+API_KEY   = os.getenv("OPENAI_API_KEY")
+assert API_KEY, "OPENAI_API_KEY не найден"
 
-app = typer.Typer()
+INPUT_PATH  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/external/arxiv_filtered.json"      # входной JSON (list[dict])
+JSONL_PATH  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/external/new3.jsonl"   # будем дописывать построчно
+JSONL_PATH2  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/external/new2.jsonl"   # будем дописывать построчно
+COLLECTION  = "arxiv"
+BATCH       = 64                         # сколько точек грузить в Qdrant за раз
+MAX_CONC    = 10                         # параллельные запросы в OpenAI
+EMB_MODEL   = "text-embedding-3-small"
+EMB_SIZE    = 1536                       # размерность этой модели
 
-# Load environment variables from .env file
-project_dir = os.path.join(os.path.dirname(__file__), os.pardir)
-dotenv_path = os.path.join(project_dir, '.env')
-dotenv.load_dotenv(dotenv_path)
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type":  "application/json"
+}
 
-raw_path = Path(RAW_DATA_DIR)
+# ───────────────────────────────
+# 2. ЧТЕНИЕ ФИЛЬТРОВАННОГО JSON
+# ───────────────────────────────
+def load_entries(path: str) -> List[dict]:
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
-# Get required Qdrant credentials from environment
-qdrant_key = os.getenv('QDRANT_CLOUD_KEY')
-qdrant_url = os.getenv('QDRANT_CLOUD_URL')
+# ───────────────────────────────
+# 3. АСИНХРОННЫЙ EMBEDDING
+# ───────────────────────────────
+async def fetch_emb(session, abstract):
+    url = "https://api.openai.com/v1/embeddings"
+    payload = {"input": abstract, "model": EMB_MODEL}
+    async with session.post(url, headers=headers, json=payload) as resp:
+        data = await resp.json()
+        if resp.status != 200:
+            raise RuntimeError(data)
+        return data["data"][0]["embedding"]
 
-# Validate that required environment variables exist
-env_var = ['QDRANT_CLOUD_KEY', 'QDRANT_CLOUD_URL']
-missing_env = [var for var in env_var if os.getenv(var) is None]
-if missing_env:
-    logger.error(f"Missing environment variables: {', '.join(missing_env)}")
-    raise SystemExit(1)
+async def embed_all(entries: List[dict]):
+    sem   = asyncio.Semaphore(MAX_CONC)
+    conn  = aiohttp.TCPConnector(limit=MAX_CONC)
+    async with aiohttp.ClientSession(connector=conn) as sess:
+        async def one(entry):
+            async with sem:
+                emb = await fetch_emb(sess, entry["abstract"])
+                out = {"id": str(uuid.uuid4()),
+                       "title": entry["title"],
+                       "abstract": entry["abstract"],
+                       "embedding": emb}
+                # пишем построчно, чтобы не потерять при сбое
+                with open(JSONL_PATH, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(out, ensure_ascii=False) + "\n")
+        tasks = [one(e) for e in entries]
+        for coro in tqdm(asyncio.as_completed(tasks),
+                         total=len(tasks), desc="Embedding"):
+            await coro
 
-# Initialize Qdrant client
-qdrant_client = QdrantClient(
-    url=qdrant_url,
-    api_key=qdrant_key
-)
-
-def extract_text_from_pdf(path: Path) -> str | None:
-    """
-    Extract text content from a PDF file.
-    Returns None if an error occurs.
-    """
-    try:
-        with fitz.open(path) as doc:
-            return "\n".join(page.get_text() for page in doc)
-    except Exception as e:
-        logger.error(f"Error opening {path}: {e}")
-        return None
-    
-def load_question_from_json(json_path: Path) -> list[str]:
-    """
-    Load a list of question strings from a JSON file.
-    Assumes each item in JSON is a dict with a 'text' field.
-    """
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return [entry['text'] for entry in data if 'text' in entry]
-
-def load_all_documents(folder: Path) -> list[str]:
-    """
-    Load text content from all supported documents (PDF and JSON).
-    Returns a list of text strings ready for embedding.
-    """
-    texts = []
-
-    # Load text from PDF files
-    for pdf in folder.glob("*.pdf"):
-        text = extract_text_from_pdf(pdf)
-        if text and text.strip():
-            texts.append(text)
-
-    # Load questions from JSON files
-    for js in folder.glob("*.json"):
-        try:
-            questions = load_question_from_json(js)
-            texts.extend(questions)
-        except Exception as e:
-            logger.warning(f"Could not load {js.name}: {e}")
-
-    return texts
-
-def prepare_points(documents: list[str], embeddings) -> list[PointStruct]:
-    """
-    Prepare PointStruct objects for uploading to Qdrant.
-    Also (re)creates the 'docs' collection if it does not exist.
-    """
-    if not qdrant_client.collection_exists('docs'):
-        qdrant_client.recreate_collection(
-            collection_name='docs',
-            vectors_config=VectorParams(size=embeddings.shape[1], distance=Distance.COSINE)
+# ───────────────────────────────
+# 4. ЗАГРУЗКА В QDRANT
+# ───────────────────────────────
+def upload_to_qdrant(jsonl_path: str):
+    client = QdrantClient(url=QDRANT_HOST,
+                          port=QDRANT_PORT,
+                          api_key=QDRANT_API_KEY)        
+    if not client.collection_exists(COLLECTION):
+        client.recreate_collection(
+            collection_name=COLLECTION,
+            vectors_config=VectorParams(size=EMB_SIZE,
+                                        distance=Distance.COSINE)
         )
 
-    points = [
-        PointStruct(
-            id=uuid.uuid4().int >> 64,
-            vector=vector.tolist(),
-            payload={"text": doc},
-        )
-        for doc, vector in zip(documents, embeddings)
-    ]
-    return points
+    def gen_batches():
+        batch = []
+        with open(jsonl_path, encoding="utf-8") as f:
+            for line in f:
+                obj = json.loads(line)
+                batch.append(
+                    PointStruct(
+                        id=obj["id"],
+                        vector=obj["embedding"],
+                        payload={
+                            "title": obj["title"],
+                            "abstract": obj["abstract"]
+                        }
+                    )
+                )
+                if len(batch) == BATCH:
+                    yield batch
+                    batch = []
+            if batch:
+                yield batch
 
-@app.command(help="Upload the document database to Qdrant Cloud")
-def main():
-    # Load embedding model
-    model = SentenceTransformer('BAAI/bge-base-en-v1.5')
+    total_uploaded = 0
+    for b in tqdm(gen_batches(), desc="Upload to Qdrant"):
+        client.upload_points(collection_name=COLLECTION, points=b)
+        total_uploaded += len(b)
+    print(f"✅ Загружено в Qdrant: {total_uploaded} точек")
 
-    # Load all documents (PDF + JSON)
-    documents = load_all_documents(raw_path)
+def load_already_embedded(path: str):
+    embedded_titles = set()
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    record = json.loads(line)
+                    embedded_titles.add(record.get("title", ""))
+                except json.JSONDecodeError:
+                    continue
+    return embedded_titles
 
-    if not documents:
-        logger.warning("No documents found to embed.")
-        raise SystemExit(0)
 
-    # Generate embeddings
-    embeddings = model.encode(documents, show_progress_bar=True)
 
-    if len(embeddings) == 0:
-        logger.warning("No embeddings were generated.")
-        raise SystemExit(0)
-
-    # Prepare and upload points to Qdrant
-    points = prepare_points(documents, embeddings)
-    qdrant_client.upload_points(collection_name='docs', points=points)
-
-    logger.success(f"Uploaded {len(points)} documents to Qdrant successfully.")
-
+# ───────────────────────────────
+# 5. ГЛАВНЫЙ ЗАПУСК
+# ───────────────────────────────
 if __name__ == "__main__":
-    app()
+
+    # entries = load_entries(INPUT_PATH)
+    # embedded_titles = load_already_embedded(JSONL_PATH)
+    # remaining_entries = [e for e in entries if e["title"] not in embedded_titles]
+
+    # # 5.1 Генерируем и сохраняем эмбеддинги
+    # asyncio.run(embed_all(remaining_entries))
+
+    # 5.2 Грузим всё в Qdrant
+    upload_to_qdrant(JSONL_PATH)

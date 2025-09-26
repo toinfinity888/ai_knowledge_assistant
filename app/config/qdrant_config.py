@@ -7,8 +7,8 @@ class QdrantSetting(BaseSettings):
     host: str
     port: int = 6333
     api_key: Optional[str] = None
-    collection_name: str = 'enterprise docs'
-    vector_size: int = 384
+    collection_name: str = 'mvp_support'
+    vector_size: int = 3075
     https: bool = False
     recreate: bool = False
     distance: Distance = Distance.COSINE

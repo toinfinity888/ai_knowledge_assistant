@@ -11,13 +11,13 @@ class EmbeddedChunk:
     id: str
     embedding: List[float]
     text: str
-    file_name: str
+    #file_name: str
     source: Path
-    page: Optional[int]
-    file_type: Optional[str]
-    last_modified: Optional[datetime]
-    text_hash: str
-    score: Optional[float]
+    # page: Optional[int]
+    # file_type: Optional[str]
+    # last_modified: Optional[datetime]
+    # text_hash: str
+    # score: Optional[float]
 
     def qdrant_id(self) -> str:
         return str(uuid5(NAMESPACE_DNS, self.id))
@@ -47,14 +47,14 @@ class EmbeddedChunk:
         return cls(
             id=point.id,
             embedding=point.vector,
-            text=payload.get('text', ''),
-            file_name=payload.get('file_name'),
-            source=payload.get('source'),
-            page=payload.get('page'),
-            file_type=payload.get('file_type'),
-            last_modified=payload.get('last_modified'),
-            text_hash=payload.get('text_hash'),
-            score=payload.get('score')
+            text=payload.get('abstract', ''),
+            #file_name=payload.get('file_name'),
+            source=payload.get('title'),
+            # page=payload.get('page'),
+            # file_type=payload.get('file_type'),
+            # last_modified=payload.get('last_modified'),
+            # text_hash=payload.get('text_hash'),
+            # score=payload.get('score')
         )
     
 @dataclass
