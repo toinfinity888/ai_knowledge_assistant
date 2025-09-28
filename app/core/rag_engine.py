@@ -19,7 +19,7 @@ class RAGEngine:
             source.append(chunk.source)
         context = '\n\n'.join(chunk.content for chunk in chunks)
         answer = self.llm.generate_answer(query.text, context, source)
-        return answer, [chunk.content for chunk in chunks]
+        return answer, [chunk.text for chunk in chunks]
 
     def get_llm_model_name(self):
         return self.llm.model_name
