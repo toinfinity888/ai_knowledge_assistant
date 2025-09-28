@@ -37,4 +37,4 @@ def index():
             retrieved_context=retrieved_context,
         )
         
-    return render_template('index.html', answer=answer)
+    return render_template('index.html', answer=answer, retrieved_context=retrieved_context)

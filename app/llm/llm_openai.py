@@ -29,4 +29,4 @@ class OpenAI(BaseLLM):
             ],
             temperature=0.2
         )
-        return completion.choices[0].message.content + source
+        return completion.choices[0].message.content

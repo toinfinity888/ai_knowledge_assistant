@@ -77,6 +77,7 @@
         max-width: 600px;
         width: 100%;
         line-height: 1.6;
+        white-space: pre-wrap; /* чтобы сохранялись переносы строк */
       }
 
       @media (max-width: 600px) {
@@ -104,6 +105,11 @@
     {% if answer %}
       <h3>Answer:</h3>
       <p>{{ answer }}</p>
+    {% endif %}
+
+    {% if retrieved_context %}
+      <h3>Retrieved context:</h3>
+      <p>{{ retrieved_context }}</p>
     {% endif %}
   </body>
 </html>
