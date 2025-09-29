@@ -7,7 +7,7 @@ import hashlib
 @dataclass
 class TextChunkForMvp:
     text: str
-    source: Optional[Path]                      # Path to the file
+    source: Optional[Path] = None               # Path to the file
     file_name: Optional[str] = None     # File name
     page: Optional[int] = None          # Page in PDF
     chunk_id: Optional[str] = None      # ID unique of chunk
