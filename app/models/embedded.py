@@ -5,6 +5,7 @@ from pathlib import Path
 from qdrant_client.models import PointStruct, ScoredPoint
 from app.models.query import Query
 from uuid import uuid5, NAMESPACE_DNS
+from app.models.text_chunk_for_mvp import TextChunkForMvp
 
 @dataclass
 class EmbeddedChunk:
@@ -41,21 +42,18 @@ class EmbeddedChunk:
         )
     
     @classmethod
-    def from_point(cls, point: ScoredPoint) -> "EmbeddedChunk":
+    def from_point(cls, point: ScoredPoint) -> TextChunkForMvp:
         payload = point.payload or {}
+        if "posts" in payload:
+            chunk_from_point = TextChunkForMvp(
+                text=str("posts")
+            )
+        elif "content" in payload:
+            chunk_from_point = TextChunkForMvp(
+                text="content"
+            )
 
-        return cls(
-            id=point.id,
-            embedding=point.vector,
-            text=payload.get('abstract', ''),
-            #file_name=payload.get('file_name'),
-            source=payload.get('title'),
-            # page=payload.get('page'),
-            # file_type=payload.get('file_type'),
-            # last_modified=payload.get('last_modified'),
-            # text_hash=payload.get('text_hash'),
-            # score=payload.get('score')
-        )
+        return chunk_from_point
     
 @dataclass
 class EmbeddedQuery:

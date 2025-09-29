@@ -13,7 +13,7 @@ class OpenAI(BaseLLM):
     def __init__(self, model_name: str = 'gpt-4o'):
         self.model_name = model_name
 
-    def generate_answer(self, question: str, context: str, source: str) -> str:
+    def generate_answer(self, question: str, context: str) -> str:
         prompt = ("You are a helpful AI assistant. Use the context below to answer the user's question clearly and naturally. "
             "If the context contains enough information, give a concise and informative answer. "
             "If the context is insufficient or irrelevant, politely say that you don’t have enough data to answer.\n\n"
@@ -25,7 +25,7 @@ class OpenAI(BaseLLM):
             model=self.model_name,
             messages=[
                 {'role': 'system', 'content': "You are a helpful AI assistant. Use the context below to answer the user's question clearly and naturally. Provide a text exacte of the source in your answer"},
-                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}, \n\nSource: {source}"}
+                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
             ],
             temperature=0.2
         )
