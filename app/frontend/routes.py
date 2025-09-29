@@ -12,6 +12,7 @@ front = Blueprint("front", __name__, template_folder=template_dir)
 @front.route("/", methods=['GET', 'POST'])
 def index():
     answer = ''
+    retrieved_context = []
     if request.method == 'POST':
         query_text = request.form['query']
         
