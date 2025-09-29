@@ -44,17 +44,14 @@ class EmbeddedChunk:
     @classmethod
     def from_point(cls, point: ScoredPoint) -> TextChunkForMvp:
         payload = point.payload or {}
-        if "posts" in payload:
-            chunk_from_point = TextChunkForMvp(
-                text=str("posts")
-            )
-        elif "content" in payload:
-            chunk_from_point = TextChunkForMvp(
-                text="content"
-            )
 
-        return chunk_from_point
-    
+        if "posts" in payload:
+            return TextChunkForMvp(text=str(payload["posts"]))
+        elif "content" in payload:
+            return TextChunkForMvp(text=payload["content"])
+        else:
+            return TextChunkForMvp(text="")
+        
 @dataclass
 class EmbeddedQuery:
     query: Query
