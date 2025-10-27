@@ -7,5 +7,5 @@ def split_text(text: str, chunk_size=1000, overlap: int=100) -> List[str]:
         end = start + chunk_size
         chunks.append(text[start:end])
         start = end - overlap
-        return chunks
+    return chunks
 

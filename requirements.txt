@@ -1,6 +1,6 @@
 fastapi
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.7.0+cpu 
+torch
 gunicorn
 pandas
 sqlalchemy
@@ -11,5 +11,11 @@ qdrant-client
 langchain
 ragas
 flask
+flask-sock
 pydantic>=2.0
 pydantic-settings>=2.0
+
+# Optional integrations (uncomment if needed)
+# twilio  # For Twilio Flex ACD integration
+# zenpy  # For Zendesk CRM integration
+# simple-salesforce  # For Salesforce CRM integration

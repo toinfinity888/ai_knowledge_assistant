@@ -21,19 +21,12 @@ class SentenceTransformerEmbedder(BaseEmbedder):
         vectors = response.data[0].embedding
 
         embedded = []
-        for chunk, vector in zip(chunks, vectors):
+        for i, (chunk, vec_data) in enumerate(zip(chunks, response.data)):
             embedded.append(EmbeddedChunk(
-                id=chunk.chunk_id,
-                embedding=vector,
+                id=chunk.chunk_id if chunk.chunk_id else f"chunk_{i}",
+                embedding=vec_data.embedding,
                 text=chunk.text,
-                #file_name=chunk.file_name,
-            #     source=chunk.source,
-            #     page=chunk.page,
-            #     file_type=chunk.file_type,
-            #     last_modified=chunk.last_modified,
-            #     text_hash=chunk.text_hash,
-            #     score=chunk.score
-            # 
+                source=chunk.source
             ))
         return embedded
     

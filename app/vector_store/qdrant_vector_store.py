@@ -32,7 +32,7 @@ class QdrantVectorStore(BaseVectorStore):
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
                         size=self.settings.vector_size,
-                        distance=self.settings.qdrant_distance
+                        distance=self.settings.distance
                     )
             )
 

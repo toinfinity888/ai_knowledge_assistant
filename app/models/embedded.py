@@ -49,6 +49,8 @@ class EmbeddedChunk:
             return TextChunkForMvp(text=str(payload["posts"]))
         elif "content" in payload:
             return TextChunkForMvp(text=payload["content"])
+        elif "text" in payload:
+            return TextChunkForMvp(text=payload["text"])
         else:
             return TextChunkForMvp(text="")
         

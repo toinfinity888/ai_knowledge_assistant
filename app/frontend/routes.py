@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-from app.core.rag_singelton import rag_engine
+from app.core.rag_singleton import rag_engine
 from app.models.query import Query
 import os
 from app.logging.logger import logger
