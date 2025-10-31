@@ -16,6 +16,7 @@ pydantic>=2.0
 pydantic-settings>=2.0
 
 # Optional integrations (uncomment if needed)
-# twilio  # For Twilio Flex ACD integration
+twilio  # For Twilio Flex ACD integration and two-way calling
+pyannote.audio  # For speaker diarization
 # zenpy  # For Zendesk CRM integration
 # simple-salesforce  # For Salesforce CRM integration

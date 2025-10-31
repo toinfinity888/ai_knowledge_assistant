@@ -253,6 +253,68 @@
             margin-bottom: 20px;
             opacity: 0.5;
         }
+
+        /* Section Headers for Solutions and Questions */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin: 20px 0 10px 0;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .section-header.solutions-header {
+            background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+            border-left: 5px solid #4caf50;
+        }
+
+        .section-header.questions-header {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-left: 5px solid #ff9800;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .section-description {
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Adjust suggestions containers for sections */
+        .suggestions.solutions {
+            border-top: 3px solid #4caf50;
+        }
+
+        .suggestions.questions {
+            border-top: 3px solid #ff9800;
+        }
+
+        /* Solution items styling */
+        .suggestion-item.solution {
+            border-left: 5px solid #4caf50;
+            background: linear-gradient(to right, #e8f5e9 0%, white 10%);
+        }
+
+        .suggestion-item.solution h3 {
+            color: #2e7d32;
+        }
+
+        /* Question items styling - keep existing */
+        .suggestion-item.question {
+            border-left-color: #ff9800;
+            background: linear-gradient(to right, #fff3e0 0%, white 10%);
+        }
+
+        .suggestion-item.question h3 {
+            color: #e65100;
+        }
     </style>
 </head>
 <body>
@@ -655,34 +717,63 @@
         }
 
         function displaySuggestions(suggestions) {
-            const suggestionsDiv = document.getElementById('suggestions');
-
             if (!suggestions || suggestions.length === 0) {
                 return;
             }
 
-            // Remove empty state
-            if (suggestionsDiv.querySelector('.empty-state')) {
-                suggestionsDiv.innerHTML = '';
+            // Separate suggestions by type
+            const solutions = suggestions.filter(s => s.type === 'knowledge_base');
+            const questions = suggestions.filter(s => s.type === 'clarification_question');
+
+            // Display solutions in solutions section
+            if (solutions.length > 0) {
+                const solutionsDiv = document.getElementById('solutions');
+
+                // Remove empty state on first solution
+                if (solutionsDiv.querySelector('.empty-state')) {
+                    solutionsDiv.innerHTML = '';
+                }
+
+                solutions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item solution';
+
+                    item.innerHTML = `
+                        <h3>✅ ${suggestion.title}</h3>
+                        <p>${suggestion.content}</p>
+                        ${suggestion.confidence ?
+                            `<span class="confidence">Confidence: ${(suggestion.confidence * 100).toFixed(0)}%</span>`
+                            : ''}
+                    `;
+
+                    solutionsDiv.insertBefore(item, solutionsDiv.firstChild);
+                });
             }
 
-            suggestions.forEach(suggestion => {
-                const item = document.createElement('div');
-                item.className = suggestion.type === 'clarification_question' ?
-                    'suggestion-item question' : 'suggestion-item';
+            // Display questions in questions section
+            if (questions.length > 0) {
+                const questionsDiv = document.getElementById('questions');
 
-                const icon = suggestion.type === 'clarification_question' ? '❓' : '💡';
+                // Remove empty state on first question
+                if (questionsDiv.querySelector('.empty-state')) {
+                    questionsDiv.innerHTML = '';
+                }
 
-                item.innerHTML = `
-                    <h3>${icon} ${suggestion.title}</h3>
-                    <p>${suggestion.content}</p>
-                    ${suggestion.confidence ?
-                        `<span class="confidence">Confidence: ${(suggestion.confidence * 100).toFixed(0)}%</span>`
-                        : ''}
-                `;
+                questions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item question';
 
-                suggestionsDiv.insertBefore(item, suggestionsDiv.firstChild);
-            });
+                    item.innerHTML = `
+                        <h3>❓ ${suggestion.title}</h3>
+                        <p>${suggestion.content}</p>
+                        ${suggestion.confidence ?
+                            `<span class="confidence">Confidence: ${(suggestion.confidence * 100).toFixed(0)}%</span>`
+                            : ''}
+                    `;
+
+                    questionsDiv.insertBefore(item, questionsDiv.firstChild);
+                });
+            }
         }
 
         function updateUI() {

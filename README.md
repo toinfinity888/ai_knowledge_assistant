@@ -1,83 +1,89 @@
-# ai_knowledge_assistant
+# 🤖 AI Support Assistant - Système d'Assistance en Temps Réel
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
+Assistant IA intelligent pour support technique avec appels téléphoniques bidirectionnels, transcription en temps réel, et solutions automatiques basées sur une base de connaissances vectorielle.
 
-AI Knowledge Assistant is an intelligent system based on the RAG (Retriever-Augmented Generation) architecture that allows users to ask natural language questions and receive accurate, context-aware answers sourced from their own documents and knowledge base. The project is designed as a learning and research initiative to master the full development cycle of modern AI-powered applications and key tools in the LLMOps ecosystem.
+## ✨ Fonctionnalités Principales
 
-Key Features:
-	•	Document ingestion and chunking
-	•	Embedding generation and vector storage (e.g., Qdrant, pgvector)
-	•	Semantic search and retrieval
-	•	Contextual answer generation using LLMs (OpenAI, HuggingFace, etc.)
-	•	Prompt engineering and customization
-	•	Logging, monitoring, and prompt/version tracking
-	•	Full Dockerization and deployment setup
-	•	CI/CD integration and scalable architecture
+### 🎯 Nouveautés v2.0
 
-⸻
+- **📞 Appels Bidirectionnels Twilio** - Communication téléphonique naturelle
+- **🎤 Speaker Diarization** - Identification automatique des locuteurs
+- **🧠 Priorisation Intelligente** - Focus sur la parole du technicien
+- **🌍 Support Multi-Langue** - 15 langues supportées
+- **📊 Interfaces Multiples** - 3 interfaces web professionnelles
 
-Tech Stack:
-	•	Python, FastAPI
-	•	Qdrant / PostgreSQL + pgvector
-	•	LangChain / Custom RAG
-	•	OpenAI / HuggingFace Transformers
-	•	Docker, Docker Compose
-	•	Git, GitHub Actions
-	•	Helicone / PromptLayer / WandB
-
-
-## Project Organization
+### 🔄 Workflow Complet
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         ai_knowledge_assistant and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── ai_knowledge_assistant   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes ai_knowledge_assistant a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+Appel Téléphone → Streaming Audio → Transcription → Analyse IA → Solutions
+     Twilio           WebSocket        Whisper         GPT-4o        RAG
 ```
 
---------
+## 🚀 Démarrage Rapide
 
+### 1. Installation
+
+```bash
+git clone [votre-repo]
+cd ai_knowledge_assistant
+pip install -r requirements.txt
+```
+
+### 2. Configuration
+
+Créer un fichier `.env` avec vos credentials:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+**Variables requises:**
+```bash
+OPENAI_API_KEY=sk-proj-xxxxx
+QDRANT_URL=https://xxxxx.cloud.qdrant.io:6333
+QDRANT_API_KEY=xxxxx
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+```
+
+### 3. Démarrer le Serveur
+
+```bash
+PORT=8000 python main.py
+```
+
+Serveur disponible sur `http://localhost:8000`
+
+### 4. Interfaces Disponibles
+
+- **Twilio:** http://localhost:8000/demo/twilio-technician
+- **3 Colonnes:** http://localhost:8000/demo/technician
+- **Simple:** http://localhost:8000/demo/
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [START_SERVER.md](START_SERVER.md) | Guide démarrage serveur |
+| [SYSTEM_FEATURES_SUMMARY.md](SYSTEM_FEATURES_SUMMARY.md) | Résumé fonctionnalités complètes |
+| [TWILIO_BIDIRECTIONAL_CALLING_GUIDE.md](TWILIO_BIDIRECTIONAL_CALLING_GUIDE.md) | Guide Twilio complet |
+| [TWILIO_SETUP_QUICKSTART.md](TWILIO_SETUP_QUICKSTART.md) | Setup Twilio en 5 minutes |
+
+## 📊 Composants
+
+- **Agents IA:** 4 (Context Analyzer, Query Formulator, Clarification, Orchestrator)
+- **Services:** 6 (Twilio Audio, Speaker Diarization, Transcription, etc.)
+- **Interfaces:** 3 (Twilio, 3 Colonnes, Simple)
+- **Endpoints API:** 15+
+- **Langues:** 15
+
+## 🔧 Stack Technique
+
+**Backend:** Python, Flask, Twilio SDK, OpenAI API, SQLAlchemy, Qdrant
+**Frontend:** HTML5/CSS3/JavaScript, WebSocket, Web Speech API
+**Infrastructure:** PostgreSQL, Qdrant Cloud, Twilio Cloud
+
+---
+
+**Version:** 2.0
+**Status:** ✅ Production Ready

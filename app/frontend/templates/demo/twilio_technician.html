@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Technicien - Appel Twilio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .call-control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .call-info {
+            margin-bottom: 30px;
+        }
+
+        .call-info h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .tech-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e3e8ef;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+
+        .info-value {
+            color: #2c3e50;
+        }
+
+        .call-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: none;
+            font-size: 60px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .call-button.start {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        }
+
+        .call-button.start:hover {
+            transform: scale(1.05);
+        }
+
+        .call-button.end {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .call-button.end:hover {
+            transform: scale(1.05);
+        }
+
+        .call-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .status.idle {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.calling {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status.connected {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .transcription-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transcription-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .transcription-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .transcription-item .speaker {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .transcription-item.technician {
+            border-left-color: #4caf50;
+        }
+
+        .transcription-item.technician .speaker {
+            color: #4caf50;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #95a5a6;
+            padding: 40px;
+        }
+
+        input[type="tel"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e3e8ef;
+            border-radius: 10px;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e3e8ef;
+            border-radius: 10px;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📞 Support Technicien - Appel Twilio</h1>
+        <p>Système d'appel bidirectionnel avec analyse IA en temps réel</p>
+    </div>
+
+    <div class="container">
+        <div class="call-control-panel">
+            <div class="call-info">
+                <h2>Informations du Technicien</h2>
+
+                <div class="tech-info">
+                    <div style="margin-bottom: 15px;">
+                        <label class="info-label">Nom du technicien:</label>
+                        <input type="text" id="technicianName" value="Jean Dupont" />
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label class="info-label">ID Technicien:</label>
+                        <input type="text" id="technicianId" value="TECH001" />
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label class="info-label">Numéro de téléphone:</label>
+                        <input type="tel" id="phoneNumber" placeholder="+33612345678" />
+                    </div>
+
+                    <div class="info-row">
+                        <span class="info-label">Session ID:</span>
+                        <span class="info-value" id="sessionId">-</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span class="info-label">Call SID:</span>
+                        <span class="info-value" id="callSid">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status idle" id="status">
+                Prêt à initier l'appel
+            </div>
+
+            <div>
+                <button class="call-button start" id="startCallBtn" onclick="initiateCall()">
+                    📞
+                </button>
+                <button class="call-button end" id="endCallBtn" onclick="endCall()" disabled>
+                    ✖️
+                </button>
+            </div>
+        </div>
+
+        <div class="transcription-panel">
+            <h3>📝 Transcription en Temps Réel</h3>
+            <div id="transcriptions">
+                <div class="empty-state">
+                    <p>Les transcriptions apparaîtront ici pendant l'appel...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let callSid = null;
+        let transcriptionPolling = null;
+
+        async function initiateCall() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const technicianName = document.getElementById('technicianName').value;
+            const technicianId = document.getElementById('technicianId').value;
+
+            if (!phoneNumber) {
+                alert('Veuillez entrer un numéro de téléphone');
+                return;
+            }
+
+            // Validate phone number format
+            if (!phoneNumber.startsWith('+')) {
+                alert('Le numéro doit commencer par + (format international)');
+                return;
+            }
+
+            try {
+                updateStatus('calling', 'Appel en cours...');
+                document.getElementById('startCallBtn').disabled = true;
+
+                // Generate session ID
+                sessionId = `session-${Date.now()}`;
+                document.getElementById('sessionId').textContent = sessionId;
+
+                // Initiate call via backend
+                const response = await fetch('/twilio/initiate-call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        technician_id: technicianId,
+                        technician_name: technicianName,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    callSid = data.call_sid;
+                    document.getElementById('callSid').textContent = callSid;
+
+                    updateStatus('connected', '✓ Appel connecté - En écoute...');
+                    document.getElementById('endCallBtn').disabled = false;
+
+                    // Start polling for transcriptions
+                    startTranscriptionPolling();
+
+                    console.log('Call initiated:', data);
+                } else {
+                    throw new Error(data.error || 'Failed to initiate call');
+                }
+
+            } catch (error) {
+                console.error('Error initiating call:', error);
+                updateStatus('error', `Erreur: ${error.message}`);
+                document.getElementById('startCallBtn').disabled = false;
+            }
+        }
+
+        async function endCall() {
+            if (!callSid) return;
+
+            try {
+                updateStatus('calling', 'Fin de l\'appel...');
+
+                // Stop polling
+                if (transcriptionPolling) {
+                    clearInterval(transcriptionPolling);
+                    transcriptionPolling = null;
+                }
+
+                const response = await fetch('/twilio/end-call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        call_sid: callSid,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateStatus('idle', 'Appel terminé');
+                    document.getElementById('startCallBtn').disabled = false;
+                    document.getElementById('endCallBtn').disabled = true;
+
+                    // Show stats if available
+                    if (data.session_stats) {
+                        console.log('Session stats:', data.session_stats);
+                    }
+
+                } else {
+                    throw new Error(data.error || 'Failed to end call');
+                }
+
+            } catch (error) {
+                console.error('Error ending call:', error);
+                updateStatus('error', `Erreur: ${error.message}`);
+            }
+        }
+
+        function startTranscriptionPolling() {
+            // Poll for new suggestions/transcriptions every 2 seconds
+            transcriptionPolling = setInterval(async () => {
+                try {
+                    const response = await fetch(`/demo/get-session-suggestions?session_id=${sessionId}&limit=20`);
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            displayTranscriptions(data.suggestions);
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Error polling transcriptions:', error);
+                }
+            }, 2000);
+        }
+
+        function displayTranscriptions(suggestions) {
+            const transcriptionsDiv = document.getElementById('transcriptions');
+
+            // Remove empty state
+            if (transcriptionsDiv.querySelector('.empty-state')) {
+                transcriptionsDiv.innerHTML = '';
+            }
+
+            // Display recent suggestions
+            suggestions.slice(0, 10).reverse().forEach(suggestion => {
+                // Check if already displayed
+                if (!document.getElementById(`sugg-${suggestion.id}`)) {
+                    const item = document.createElement('div');
+                    item.id = `sugg-${suggestion.id}`;
+                    item.className = 'transcription-item technician';
+
+                    const icon = suggestion.type === 'clarification_question' ? '❓' : '✅';
+
+                    item.innerHTML = `
+                        <div class="speaker">Technicien • ${formatTime(suggestion.created_at)}</div>
+                        <div>${icon} ${suggestion.content}</div>
+                    `;
+
+                    transcriptionsDiv.insertBefore(item, transcriptionsDiv.firstChild);
+                }
+            });
+
+            // Limit to 10 items
+            while (transcriptionsDiv.children.length > 10) {
+                transcriptionsDiv.removeChild(transcriptionsDiv.lastChild);
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('fr-FR');
+        }
+
+        function updateStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (callSid) {
+                // Attempt to end call (may not complete before page closes)
+                navigator.sendBeacon('/twilio/end-call', JSON.stringify({
+                    call_sid: callSid,
+                    session_id: sessionId
+                }));
+            }
+        });
+    </script>
+</body>
+</html>

@@ -32,6 +32,39 @@ def agent_ui():
     return render_template('demo/agent_ui.html')
 
 
+@demo_bp.route('/technician')
+def technician_support():
+    """Technician support interface with 3-column layout"""
+    return render_template('demo/technician_support.html')
+
+
+@demo_bp.route('/twilio-technician')
+def twilio_technician():
+    """Twilio-based two-way calling interface"""
+    return render_template('demo/twilio_technician.html')
+
+
+@demo_bp.route('/get-session-suggestions', methods=['GET'])
+def get_session_suggestions():
+    """Get suggestions for a session (for polling)"""
+    from app.services.realtime_transcription_service import get_transcription_service
+
+    session_id = request.args.get('session_id')
+    limit = request.args.get('limit', 10, type=int)
+
+    if not session_id:
+        return jsonify({'error': 'Missing session_id'}), 400
+
+    transcription_service = get_transcription_service()
+
+    result = run_async(transcription_service.get_session_suggestions(
+        session_id=session_id,
+        limit=limit
+    ))
+
+    return jsonify(result), 200
+
+
 @demo_bp.route('/start-demo-call', methods=['POST'])
 def start_demo_call():
     """Start a demo call session"""
