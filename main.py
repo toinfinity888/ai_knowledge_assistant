@@ -1,6 +1,6 @@
 from app import create_app
 from app.api.realtime_routes import realtime_bp, setup_websocket, broadcast_to_session
-from app.demo.web_demo_routes import demo_bp
+from app.demo.web_demo_routes import demo_bp, register_demo_websocket_routes
 from app.init_realtime_system import initialize_realtime_system
 from flask_sock import Sock
 import os
@@ -17,6 +17,10 @@ app.register_blueprint(realtime_bp)
 # Register demo routes
 app.register_blueprint(demo_bp)
 
+# Register demo WebSocket routes
+register_demo_websocket_routes(sock)
+print("✓ Demo WebSocket routes registered")
+
 # Register Twilio routes
 try:
     from app.api.twilio_routes import twilio_bp, register_websocket_routes
@@ -25,6 +29,23 @@ try:
     print("✓ Twilio routes registered")
 except ImportError as e:
     print(f"⚠ Twilio routes not available: {e}")
+
+# Register configuration routes
+try:
+    from app.api.config_routes import config_bp
+    app.register_blueprint(config_bp)
+    print("✓ Configuration routes registered")
+except ImportError as e:
+    print(f"⚠ Configuration routes not available: {e}")
+
+# Register configuration test routes and WebSocket
+try:
+    from app.api.config_test_routes import config_test_bp, register_config_websocket_routes
+    app.register_blueprint(config_test_bp)
+    register_config_websocket_routes(sock)
+    print("✓ Configuration test routes registered")
+except ImportError as e:
+    print(f"⚠ Configuration test routes not available: {e}")
 
 # Setup WebSocket routes
 setup_websocket(sock)

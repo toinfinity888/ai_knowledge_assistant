@@ -5,9 +5,16 @@ Simple web interface for testing the system with microphone
 from flask import Blueprint, render_template, request, jsonify
 import asyncio
 import time
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create blueprint for demo
 demo_bp = Blueprint('demo', __name__, url_prefix='/demo')
+
+# Store active suggestion WebSocket connections
+_suggestion_connections = {}
 
 
 def run_async(coro):
@@ -102,13 +109,13 @@ def send_demo_transcription():
     transcription_service = get_transcription_service()
 
     # Extract language code (e.g., 'fr-FR' -> 'fr', 'en-US' -> 'en')
-    language_code = data.get('language', 'en-US')
+    language_code = data.get('language', 'fr-FR')
     language = language_code.split('-')[0]  # Get just the language part
 
     # Run async function in sync context
     result = run_async(transcription_service.process_transcription_segment(
         session_id=data['session_id'],
-        speaker=data.get('speaker', 'customer'),
+        speaker=data.get('speaker', 'technician'),  # Default to 'technician' (phone caller)
         text=data['text'],
         start_time=data.get('start_time', 0.0),
         end_time=data.get('end_time', 0.0),
@@ -144,3 +151,89 @@ def end_demo_call():
     ))
 
     return jsonify(result), 200
+
+
+def register_demo_websocket_routes(sock):
+    """
+    Register WebSocket routes for demo functionality
+
+    Args:
+        sock: Flask-Sock instance
+    """
+
+    @sock.route('/demo/suggestions-stream/<session_id>')
+    def suggestions_stream_handler(ws, session_id):
+        """
+        WebSocket endpoint for streaming suggestions to frontend
+        The frontend connects here to receive real-time suggestions
+        """
+        try:
+            logger.info(f"✅ Suggestions WebSocket connected for session {session_id}")
+
+            # Store connection
+            _suggestion_connections[session_id] = ws
+
+            # Send connection confirmation
+            ws.send(json.dumps({
+                'type': 'connected',
+                'session_id': session_id,
+                'message': 'Connected to suggestions stream'
+            }))
+
+            # Keep connection alive and handle messages
+            while True:
+                message = ws.receive()
+                if message is None:
+                    break
+
+                # Handle ping/pong for keep-alive
+                try:
+                    data = json.loads(message)
+                    if data.get('type') == 'ping':
+                        ws.send(json.dumps({'type': 'pong'}))
+                    elif data.get('type') == 'get_suggestions':
+                        # Client requesting suggestions
+                        from app.services.realtime_transcription_service import get_transcription_service
+                        transcription_service = get_transcription_service()
+
+                        result = run_async(transcription_service.get_session_suggestions(
+                            session_id=session_id,
+                            limit=10
+                        ))
+
+                        ws.send(json.dumps({
+                            'type': 'suggestions',
+                            'suggestions': result.get('suggestions', [])
+                        }))
+                except json.JSONDecodeError:
+                    pass
+
+        except Exception as e:
+            logger.error(f"❌ Suggestions WebSocket error for session {session_id}: {e}")
+        finally:
+            # Clean up
+            if session_id in _suggestion_connections:
+                del _suggestion_connections[session_id]
+            logger.info(f"Suggestions WebSocket closed for session {session_id}")
+
+
+def broadcast_suggestion(session_id: str, suggestion: dict):
+    """
+    Broadcast a suggestion to connected WebSocket client
+
+    Args:
+        session_id: Session identifier
+        suggestion: Suggestion data to send
+    """
+    if session_id in _suggestion_connections:
+        try:
+            ws = _suggestion_connections[session_id]
+            ws.send(json.dumps({
+                'type': 'suggestion',
+                **suggestion
+            }))
+            logger.info(f"📤 Broadcasted suggestion to session {session_id}")
+        except Exception as e:
+            logger.error(f"Error broadcasting suggestion to {session_id}: {e}")
+            # Remove dead connection
+            del _suggestion_connections[session_id]

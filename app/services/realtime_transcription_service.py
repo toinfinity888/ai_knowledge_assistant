@@ -289,17 +289,17 @@ class RealtimeTranscriptionService:
 
     async def get_session_suggestions(self, session_id: str, limit: int = 10) -> Dict[str, Any]:
         """
-        Get all suggestions for a session
+        Get all suggestions and transcriptions for a session
 
         Args:
             session_id: Session identifier
             limit: Max number of suggestions to return
 
         Returns:
-            Dict with suggestions list
+            Dict with suggestions list and transcriptions list
         """
         try:
-            from app.models.call_session import CallSession, Suggestion
+            from app.models.call_session import CallSession, Suggestion, TranscriptionSegment
             from app.database.postgresql_session import get_db_session
 
             with get_db_session() as db:
@@ -310,11 +310,21 @@ class RealtimeTranscriptionService:
                 if not session:
                     return {"status": "error", "error": "Session not found"}
 
+                # Get suggestions
                 suggestions = (
                     db.query(Suggestion)
                     .filter(Suggestion.session_id == session.id)
                     .order_by(Suggestion.created_at.desc())
                     .limit(limit)
+                    .all()
+                )
+
+                # Get transcriptions
+                transcriptions = (
+                    db.query(TranscriptionSegment)
+                    .filter(TranscriptionSegment.session_id == session.id)
+                    .order_by(TranscriptionSegment.start_time.desc())
+                    .limit(limit * 2)  # Get more transcriptions than suggestions
                     .all()
                 )
 
@@ -331,6 +341,19 @@ class RealtimeTranscriptionService:
                             "clicked": s.agent_clicked,
                         }
                         for s in suggestions
+                    ],
+                    "transcriptions": [
+                        {
+                            "id": t.id,
+                            "text": t.text,
+                            "speaker": t.speaker,
+                            "speaker_label": "Technicien" if t.speaker == "technician" else "Agent",
+                            "start_time": t.start_time,
+                            "end_time": t.end_time,
+                            "confidence": t.confidence,  # TranscriptionSegment uses 'confidence', not 'confidence_score'
+                            "timestamp": t.timestamp.isoformat() if t.timestamp else None,
+                        }
+                        for t in transcriptions
                     ],
                 }
 

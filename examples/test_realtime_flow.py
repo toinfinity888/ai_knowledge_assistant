@@ -6,6 +6,8 @@ import sys
 import os
 import asyncio
 import json
+import uuid
+from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -29,8 +31,12 @@ async def simulate_call_session():
     print("\n[STEP 1] Starting call session...")
     print("-" * 80)
 
+    # Generate unique call_id to avoid database constraint violations
+    unique_call_id = f"acd-call-{uuid.uuid4().hex[:8]}-{int(datetime.utcnow().timestamp())}"
+    print(f"Generated unique call_id: {unique_call_id}")
+
     call_result = await transcription_service.handle_call_start(
-        call_id="acd-call-12345",
+        call_id=unique_call_id,
         agent_id="agent-john-smith",
         agent_name="John Smith",
         customer_id="cust-999",

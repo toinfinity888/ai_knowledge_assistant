@@ -1,0 +1,17 @@
+{
+  "min_rms_8k": 150.0,
+  "min_rms_16k": 150.0,
+  "max_amplitude_silence": 300.0,
+  "vad_threshold": 0.6,
+  "vad_min_speech_duration_ms": 500,
+  "vad_min_silence_duration_ms": 500,
+  "buffer_duration": 7.0,
+  "max_buffer_duration": 15.0,
+  "min_bytes_8k": 96000,
+  "min_bytes_16k": 320000,
+  "frontend_pause_threshold": 2000,
+  "backend_segment_pause": 1500,
+  "bypass_vad": false,
+  "bypass_min_duration": false,
+  "debug_show_hallucinations": true
+}

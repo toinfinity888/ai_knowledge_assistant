@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Field Support Solution</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0066FF 0%, #00D4FF 50%, #00F5D4 100%);
+            --accent-blue: #0066FF;
+            --accent-cyan: #00D4FF;
+            --accent-mint: #00F5D4;
+            --text-dark: #0A1628;
+            --text-muted: #4A5568;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F0F7FF 30%, #E6F4FF 60%, #D6EFFF 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            pointer-events: none;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #00D4FF 0%, transparent 70%);
+            top: -200px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #00F5D4 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation-delay: -10s;
+        }
+
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #0066FF 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 40px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+            margin-bottom: 24px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Main title */
+        .main-title {
+            font-family: 'Sora', sans-serif;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--text-dark) 0%, #1a365d 50%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            max-width: 900px;
+            animation: fadeInDown 0.8s ease-out 0.2s both;
+        }
+
+        .title-highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Screenshot Section */
+        .screenshot-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .screenshot-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 
+                0 25px 80px rgba(0, 102, 255, 0.2),
+                0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .screenshot-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 2px;
+            background: var(--primary-gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            display: block;
+            border-radius: 18px;
+        }
+
+        .screenshot-glow {
+            position: absolute;
+            bottom: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 100%;
+            background: radial-gradient(ellipse, rgba(0, 212, 255, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Cards Grid - 2x2 layout */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            animation: fadeInUp 0.8s ease-out 0.5s both;
+        }
+
+        /* Thesis cards */
+        .thesis-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 
+                0 4px 24px rgba(0, 102, 255, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .thesis-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .thesis-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 12px 40px rgba(0, 102, 255, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .thesis-card:hover::before {
+            opacity: 1;
+        }
+
+        .thesis-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .thesis-card h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .thesis-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* Special card styles */
+        .thesis-1 {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.08) 0%, rgba(0, 212, 255, 0.05) 100%);
+            border-color: rgba(0, 102, 255, 0.2);
+        }
+
+        .thesis-3 {
+            background: linear-gradient(135deg, rgba(0, 245, 212, 0.1) 0%, rgba(0, 212, 255, 0.08) 100%);
+            border-color: rgba(0, 245, 212, 0.3);
+        }
+
+        .thesis-4 {
+            background: linear-gradient(135deg, rgba(102, 0, 255, 0.08) 0%, rgba(0, 102, 255, 0.05) 100%);
+            border-color: rgba(102, 0, 255, 0.2);
+        }
+
+        /* KPI List */
+        .kpi-list {
+            list-style: none;
+            margin-top: 8px;
+        }
+
+        .kpi-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .kpi-icon {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            background: var(--primary-gradient);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .kpi-icon svg {
+            width: 12px;
+            height: 12px;
+            stroke: white;
+            stroke-width: 2.5;
+        }
+
+        .kpi-value {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        /* Integration card icons */
+        .integration-icons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .crm-icon {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            font-weight: 700;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+        }
+
+        .crm-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .crm-icon.sf { background: linear-gradient(135deg, #00A1E0 0%, #1798c1 100%); color: white; }
+        .crm-icon.hub { background: linear-gradient(135deg, #FF7A59 0%, #e5684a 100%); color: white; }
+        .crm-icon.zen { background: linear-gradient(135deg, #03363D 0%, #17494f 100%); color: white; }
+        .crm-icon.dy { background: linear-gradient(135deg, #002050 0%, #0037a5 100%); color: white; }
+
+        .plug-play-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .container {
+                padding: 24px 20px 40px;
+            }
+
+            .main-title {
+                font-size: 1.8rem;
+                margin-bottom: 30px;
+            }
+
+            .thesis-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background orbs -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="container">
+        <!-- Badge -->
+        <div class="badge">Solution IA pour le Support Technique</div>
+
+        <!-- Main Title -->
+        <h1 class="main-title">
+            Résolvez les problèmes sur le terrain <span class="title-highlight">instantanément</span> grâce à l'IA et au RAG
+        </h1>
+
+        <!-- Screenshot - Centered -->
+        <div class="screenshot-section">
+            <div class="screenshot-container">
+                <img src="https://github.com/toinfinity888/twinkly-assets/blob/2a9a71f81dc048f07c7669585f8e494049885271/Capture%20d’écran%202025-12-15%20à%2015.03.35.png?raw=true" alt="Interface Service Cloud avec IA">
+                <div class="screenshot-glow"></div>
+            </div>
+        </div>
+
+        <!-- Cards Grid - 2x2 in order -->
+        <div class="cards-grid">
+            <!-- Card 1 - Top Left -->
+            <div class="thesis-card thesis-1">
+                <div class="thesis-number">1</div>
+                <h3>Support technique augmenté</h3>
+                <p>Nous aidons les équipes de support technique à résoudre les problèmes plus rapidement et avec plus de précision.</p>
+            </div>
+
+            <!-- Card 2 - Top Right -->
+            <div class="thesis-card">
+                <div class="thesis-number">2</div>
+                <h3>Analyse conversationnelle intelligente</h3>
+                <p>La conversation est analysée en temps réel. Si le problème est formulé, le RAG trouve l'information et le LLM élabore une solution. Si le contexte est insuffisant, le système pose des questions complémentaires.</p>
+            </div>
+
+            <!-- Card 3 - KPI - Bottom Left -->
+            <div class="thesis-card thesis-3">
+                <div class="thesis-number">3</div>
+                <h3>Résultats mesurables</h3>
+                <ul class="kpi-list">
+                    <li>
+                        <span class="kpi-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        </span>
+                        <span>Temps de recherche de documentation : <span class="kpi-value">quasi instantané</span></span>
+                    </li>
+                    <li>
+                        <span class="kpi-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </span>
+                        <span>Résolution au premier appel : <span class="kpi-value">+40%</span> plus fréquente</span>
+                    </li>
+                    <li>
+                        <span class="kpi-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                        </span>
+                        <span>Satisfaction des techniciens : <span class="kpi-value">en hausse</span></span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card 4 - Integration - Bottom Right -->
+            <div class="thesis-card thesis-4">
+                <div class="thesis-number">4</div>
+                <div class="integration-icons">
+                    <div class="crm-icon sf">SF</div>
+                    <div class="crm-icon hub">HS</div>
+                    <div class="crm-icon zen">ZD</div>
+                    <div class="crm-icon dy">DY</div>
+                </div>
+                <span class="plug-play-badge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 8v6m6-12h6M0 12h6"/></svg>
+                    Plug & Play
+                </span>
+                <h3>Intégration avec tous les principaux CRM</h3>
+                <p>Utilisation de la fiche client et de la fiche technicien dans le contexte pour une vision plus complète.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

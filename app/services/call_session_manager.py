@@ -51,7 +51,10 @@ class CallSessionManager:
         Returns:
             Created CallSession object
         """
-        session_id = str(uuid.uuid4())
+        # Use call_id as session_id to maintain consistency across all components
+        # The frontend generates session_id and passes it as call_id
+        # We want to use the same ID everywhere for proper lookup
+        session_id = call_id
 
         session = CallSession(
             call_id=call_id,
@@ -321,7 +324,7 @@ class CallSessionManager:
 
             context_lines = []
             for seg in segments:
-                speaker_label = "Customer" if seg.speaker == "customer" else "Agent"
+                speaker_label = "Technicien" if seg.speaker == "technician" else "Agent"
                 context_lines.append(f"{speaker_label}: {seg.text}")
 
             return "\n".join(context_lines)

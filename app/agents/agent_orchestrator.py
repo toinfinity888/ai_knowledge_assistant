@@ -58,8 +58,8 @@ class AgentOrchestrator:
         Args:
             session_id: Call session identifier
             new_transcription: New transcribed text
-            speaker: Who spoke ('customer' or 'agent')
-            language: Language code (e.g., 'en', 'fr', 'es') for response generation
+            speaker: Who spoke ('technician' or 'agent')
+            language: Language code (e.g., 'fr', 'en', 'es') for response generation
 
         Returns:
             Dict with suggestions, questions, and processing metadata
@@ -74,10 +74,10 @@ class AgentOrchestrator:
         # Build context for agents
         agent_context = {
             "conversation_text": conversation_context,
-            "customer_last_message": new_transcription if speaker == "customer" else "",
+            "customer_last_message": new_transcription if speaker == "technician" else "",
             "session_id": session_id,
             "timestamp": datetime.utcnow().isoformat(),
-            "language": language or "en",  # Default to English if not specified
+            "language": language or "fr",  # Default to French for technical support calls
         }
 
         result = {

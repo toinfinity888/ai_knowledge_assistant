@@ -3,1402 +3,902 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support Technicien en Temps Réel</title>
-    <!-- Twilio Voice JavaScript SDK via unpkg CDN -->
+    <title>Support Technicien | Service Cloud</title>
     <script src="https://unpkg.com/@twilio/voice-sdk@2.11.0/dist/twilio.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --sf-blue: #0176d3;
+            --sf-blue-dark: #014486;
+            --sf-blue-light: #1b96ff;
+            --sf-nav-blue: #032d60;
+            --sf-white: #ffffff;
+            --sf-gray-1: #f3f3f3;
+            --sf-gray-2: #e5e5e5;
+            --sf-gray-3: #c9c9c9;
+            --sf-gray-4: #969492;
+            --sf-text: #181818;
+            --sf-text-secondary: #444444;
+            --sf-text-muted: #706e6b;
+            --sf-success: #2e844a;
+            --sf-success-light: #cdefc4;
+            --sf-warning: #dd7a01;
+            --sf-error: #ba0517;
+            --sf-border: #e5e5e5;
+            --sf-card-shadow: 0 2px 2px rgba(0,0,0,0.1);
+            --sf-border-radius: 0.25rem;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--sf-gray-1);
             height: 100vh;
             overflow: hidden;
+            color: var(--sf-text);
+            font-size: 13px;
         }
 
-        .main-container {
-            display: grid;
-            grid-template-columns: 320px 450px 1fr;
-            gap: 20px;
-            height: 100vh;
-            padding: 20px;
-        }
-
-        /* ============================================
-           COLUMN 1: CUSTOMER & WORKSITE INFO
-           ============================================ */
-        .column-1 {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Customer Section (Top) */
-        .customer-section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            min-height: 200px;
-        }
-
-        .customer-header {
+        .global-header {
+            background: var(--sf-nav-blue);
+            height: 45px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            padding: 0 1rem;
+            gap: 1rem;
         }
 
-        .customer-avatar {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            border: 3px solid #e3e8ef;
-        }
-
-        .customer-info h2 {
-            font-size: 1.3em;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .customer-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .customer-details {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e3e8ef;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 0.95em;
-        }
-
-        .detail-label {
-            color: #7f8c8d;
-            font-weight: 500;
-        }
-
-        .detail-value {
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        /* Worksite Section (Bottom - Larger) */
-        .worksite-section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .worksite-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e3e8ef;
-        }
-
-        .worksite-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-        }
-
-        .worksite-info h3 {
-            font-size: 1.2em;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .worksite-meta {
-            font-size: 0.85em;
-            color: #7f8c8d;
-        }
-
-        .equipment-list {
-            margin-top: 20px;
-        }
-
-        .equipment-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .equipment-name {
-            color: #2c3e50;
-            font-weight: 500;
-        }
-
-        .equipment-qty {
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .subscription-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-            color: white;
-            border-radius: 20px;
-            font-weight: 600;
-            margin-top: 15px;
-        }
-
-        /* ============================================
-           COLUMN 2: CALL CONTROLS & CHATBOT
-           ============================================ */
-        .column-2 {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Call Controls Section (Top) */
-        .call-controls-section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            min-height: 200px;
-        }
-
-        .call-status {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .call-duration {
-            font-size: 2em;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .call-state {
-            color: #27ae60;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-
-        .call-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .call-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
-        .call-btn.mute {
-            background: #95a5a6;
-            color: white;
-        }
-
-        .call-btn.mute:hover {
-            background: #7f8c8d;
-        }
-
-        .call-btn.mute.active {
-            background: #e74c3c;
-        }
-
-        .call-btn.end-call {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .call-btn.end-call:hover {
-            background: #c0392b;
-            transform: scale(1.05);
-        }
-
-        /* Audio Waveform */
-        .audio-waveform {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 4px;
-            height: 60px;
-        }
-
-        .waveform-bar {
-            width: 6px;
-            background: linear-gradient(to top, #667eea, #764ba2);
-            border-radius: 3px;
-            animation: wave 1s ease-in-out infinite;
-        }
-
-        .waveform-bar:nth-child(1) { animation-delay: 0s; }
-        .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
-        .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
-        .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
-        .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
-        .waveform-bar:nth-child(6) { animation-delay: 0.3s; }
-        .waveform-bar:nth-child(7) { animation-delay: 0.2s; }
-        .waveform-bar:nth-child(8) { animation-delay: 0.1s; }
-
-        @keyframes wave {
-            0%, 100% { height: 20px; }
-            50% { height: 50px; }
-        }
-
-        /* Chatbot Section (Bottom - Larger) */
-        .chatbot-section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chatbot-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e3e8ef;
-        }
-
-        .chatbot-title {
-            font-size: 1.3em;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chatbot-status {
+        .sf-logo {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.9em;
-            color: #27ae60;
+            color: var(--sf-white);
+            font-weight: 700;
+            font-size: 16px;
         }
 
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            background: #27ae60;
-            border-radius: 50%;
-            animation: pulse-dot 2s infinite;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        .chat-message {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-message.bot {
-            flex-direction: row;
-        }
-
-        .chat-message.user {
-            flex-direction: row-reverse;
-        }
-
-        .message-avatar {
-            width: 35px;
-            height: 35px;
+        .sf-logo-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--sf-white);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .header-search {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .header-search input {
+            width: 100%;
+            padding: 6px 12px 6px 36px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            color: var(--sf-white);
+            font-size: 13px;
+        }
+
+        .header-search input::placeholder { color: rgba(255,255,255,0.6); }
+
+        .header-search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.6);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .header-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: var(--sf-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .header-btn:hover { background: rgba(255,255,255,0.1); }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--sf-blue-light);
+            color: var(--sf-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .page-header {
+            background: var(--sf-white);
+            border-bottom: 1px solid var(--sf-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .page-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--sf-white);
             font-size: 18px;
+        }
+
+        .page-title-group { flex: 1; }
+
+        .page-pretitle {
+            font-size: 11px;
+            color: var(--sf-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--sf-text);
+        }
+
+        .page-actions { display: flex; gap: 8px; }
+
+        .sf-btn {
+            padding: 8px 16px;
+            border-radius: var(--sf-border-radius);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .sf-btn-neutral {
+            background: var(--sf-white);
+            border-color: var(--sf-gray-3);
+            color: var(--sf-text);
+        }
+
+        .sf-btn-neutral:hover { background: var(--sf-gray-1); }
+
+        .sf-btn-success {
+            background: var(--sf-success);
+            color: var(--sf-white);
+        }
+
+        .sf-btn-success:hover { background: #236b3b; }
+
+        .sf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 380px 1fr;
+            height: calc(100vh - 45px - 57px);
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .sf-card {
+            background: var(--sf-white);
+            border-radius: var(--sf-border-radius);
+            box-shadow: var(--sf-card-shadow);
+            border: 1px solid var(--sf-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sf-card-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--sf-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--sf-white);
             flex-shrink: 0;
         }
 
-        .message-avatar.bot {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .sf-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--sf-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .message-avatar.user {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
+        .sf-card-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--sf-white);
+            font-size: 12px;
         }
 
-        .message-bubble {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            line-height: 1.5;
+        .sf-card-body {
+            padding: 1rem;
+            flex: 1;
+            overflow-y: auto;
         }
 
-        .message-bubble.bot {
-            background: white;
-            color: #2c3e50;
-            border-bottom-left-radius: 4px;
+        .column-1 {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow: hidden;
         }
 
-        .message-bubble.user {
-            background: #667eea;
-            color: white;
-            border-bottom-right-radius: 4px;
+        .record-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--sf-border);
+            margin-bottom: 1rem;
         }
+
+        .record-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
+            color: var(--sf-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .record-info h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--sf-text);
+            margin-bottom: 2px;
+        }
+
+        .record-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--sf-success-light);
+            color: var(--sf-success);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .detail-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .detail-item { display: flex; flex-direction: column; gap: 2px; }
+
+        .detail-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--sf-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value { font-size: 13px; color: var(--sf-text); }
+        .detail-value a { color: var(--sf-blue); text-decoration: none; }
+        .detail-value a:hover { text-decoration: underline; }
+
+        .phone-input-group {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--sf-border);
+        }
+
+        .phone-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .phone-input-row .sf-input {
+            flex: 1;
+        }
+
+        .call-btn-inline {
+            width: 36px;
+            height: 36px;
+            background: var(--sf-success);
+            color: var(--sf-white);
+            border: none;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .call-btn-inline:hover { background: #236b3b; }
+        .call-btn-inline:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .sf-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--sf-gray-3);
+            border-radius: var(--sf-border-radius);
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .sf-input:focus {
+            outline: none;
+            border-color: var(--sf-blue);
+            box-shadow: 0 0 3px var(--sf-blue);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sf-text-muted);
+            margin-bottom: 4px;
+        }
+
+        .call-status {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--sf-border-radius);
+            font-size: 12px;
+            display: none;
+        }
+
+        .call-status.success { background: #cdefc4; color: var(--sf-success); }
+        .call-status.error { background: #fdd; color: var(--sf-error); }
+        .call-status.progress { background: #fef3cd; color: var(--sf-warning); }
+
+        .related-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--sf-gray-2);
+        }
+
+        .related-item:last-child { border-bottom: none; }
+
+        .related-item-name {
+            font-size: 13px;
+            color: var(--sf-blue);
+            cursor: pointer;
+        }
+
+        .related-item-name:hover { text-decoration: underline; }
+
+        .related-item-qty {
+            background: var(--sf-gray-1);
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sf-text-secondary);
+        }
+
+        .column-2 {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        .transcription-content { flex: 1; overflow-y: auto; padding: 0; }
+
+        .transcription-empty {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--sf-text-muted);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .transcription-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+
+        .transcript-line { padding: 10px 1rem; border-bottom: 1px solid var(--sf-gray-2); }
+        .transcript-line:last-child { border-bottom: none; }
+
+        .transcript-speaker {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .transcript-line.agent .transcript-speaker { color: var(--sf-blue); }
+        .transcript-line.technician .transcript-speaker { color: var(--sf-success); }
+
+        .transcript-text { font-size: 13px; color: var(--sf-text); line-height: 1.5; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--sf-gray-1);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--sf-text-muted);
+        }
+
+        .status-badge.active { background: var(--sf-success-light); color: var(--sf-success); }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sf-gray-4); }
+        .status-badge.active .status-dot { background: var(--sf-success); animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .chat-messages { flex: 1; overflow-y: auto; padding: 0; }
+
+        .chat-message { padding: 10px 1rem; display: flex; gap: 10px; }
+        .chat-message.user { flex-direction: row-reverse; background: var(--sf-gray-1); }
+
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: var(--sf-gray-2);
+        }
+
+        .chat-message.bot .message-avatar {
+            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
+            color: var(--sf-white);
+        }
+
+        .message-bubble { flex: 1; font-size: 13px; line-height: 1.5; color: var(--sf-text); }
 
         .chat-input-container {
+            padding: 1rem;
+            border-top: 1px solid var(--sf-border);
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            background: var(--sf-gray-1);
         }
 
         .chat-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #e3e8ef;
-            border-radius: 25px;
-            font-size: 1em;
-            outline: none;
-            transition: border-color 0.3s;
+            padding: 8px 12px;
+            border: 1px solid var(--sf-gray-3);
+            border-radius: var(--sf-border-radius);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--sf-white);
         }
 
         .chat-input:focus {
-            border-color: #667eea;
+            outline: none;
+            border-color: var(--sf-blue);
+            box-shadow: 0 0 3px var(--sf-blue);
         }
 
         .chat-send-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
+            padding: 8px 16px;
+            background: var(--sf-blue);
+            color: var(--sf-white);
             border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 20px;
+            border-radius: var(--sf-border-radius);
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s;
         }
 
-        .chat-send-btn:hover {
-            transform: scale(1.05);
-        }
+        .chat-send-btn:hover { background: var(--sf-blue-dark); }
 
-        /* ============================================
-           COLUMN 3: SOLUTION OUTPUT
-           ============================================ */
-        .column-3 {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            overflow-y: auto;
-        }
-
-        .solution-header {
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #e3e8ef;
-        }
-
-        .solution-title {
-            font-size: 1.5em;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .solution-subtitle {
-            color: #7f8c8d;
-            font-size: 0.95em;
-        }
-
-        .solution-content {
-            margin-top: 20px;
-        }
-
-        .solution-card {
-            background: linear-gradient(to right, #e8f5e9 0%, white 5%);
-            border-left: 5px solid #4caf50;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .solution-card h3 {
-            color: #2e7d32;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .solution-card p {
-            color: #2c3e50;
-            line-height: 1.7;
-            margin-bottom: 10px;
-        }
-
-        .solution-steps {
-            margin-top: 15px;
-        }
-
-        .solution-step {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e3e8ef;
-        }
-
-        .step-number {
-            width: 30px;
-            height: 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        .step-content {
-            flex: 1;
-            color: #2c3e50;
-            line-height: 1.6;
-        }
-
-        .confidence-indicator {
-            display: inline-block;
-            padding: 6px 14px;
-            background: #4caf50;
-            color: white;
-            border-radius: 15px;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-top: 10px;
-        }
+        .solutions-content { flex: 1; overflow-y: auto; padding: 0; }
 
         .empty-solution {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--sf-text-muted);
             text-align: center;
-            padding: 60px 20px;
-            color: #95a5a6;
+            padding: 2rem;
         }
 
-        .empty-solution-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
+        .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+        .solution-card { padding: 1rem; border-bottom: 1px solid var(--sf-border); }
+        .solution-card:last-child { border-bottom: none; }
+
+        .solution-card h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--sf-blue);
+            margin-bottom: 8px;
+            cursor: pointer;
         }
 
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .solution-card h3:hover { text-decoration: underline; }
+
+        .solution-card p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--sf-text-secondary);
+            margin-bottom: 10px;
         }
 
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
+        .confidence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--sf-success-light);
+            color: var(--sf-success);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 10px;
-        }
+        .hidden-controls { display: none; }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--sf-gray-1); }
+        ::-webkit-scrollbar-thumb { background: var(--sf-gray-3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--sf-gray-4); }
+
+        @media (max-width: 1200px) { .main-container { grid-template-columns: 280px 340px 1fr; } }
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; height: auto; overflow-y: auto; }
+            body { overflow-y: auto; }
+            .sf-card { min-height: 350px; }
         }
     </style>
 </head>
 <body>
+    <header class="global-header">
+        <div class="sf-logo">
+            <div class="sf-logo-icon">☁️</div>
+            Service Cloud
+        </div>
+        <div class="header-search">
+            <span class="header-search-icon">🔍</span>
+            <input type="text" placeholder="Search...">
+        </div>
+        <div class="header-actions">
+            <button class="header-btn">🔔</button>
+            <button class="header-btn">⚙️</button>
+            <div class="user-avatar">AG</div>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div class="page-icon">📞</div>
+        <div class="page-title-group">
+            <div class="page-pretitle">Support Technique</div>
+            <div class="page-title">Console Service</div>
+        </div>
+        <div class="page-actions"></div>
+    </div>
+
     <div class="main-container">
-        <!-- ============================================
-             COLUMN 1: CUSTOMER & WORKSITE INFO
-             ============================================ -->
         <div class="column-1">
-            <!-- Customer Section (Top) -->
-            <div class="customer-section">
-                <div class="customer-header">
-                    <div class="customer-avatar" id="customerAvatar">JD</div>
-                    <div class="customer-info">
-                        <h2 id="customerName">Jean Dupont</h2>
-                        <span class="customer-badge" id="customerLevel">Expert • 5 ans</span>
-                    </div>
+            <div class="sf-card" style="flex: 0 0 auto;">
+                <div class="sf-card-header">
+                    <div class="sf-card-title"><span class="sf-card-icon">👤</span>Contact</div>
                 </div>
-                <div class="customer-details">
-                    <div class="detail-row">
-                        <span class="detail-label">📍 Localisation</span>
-                        <span class="detail-value" id="customerLocation">Paris 15ème</span>
+                <div class="sf-card-body">
+                    <div class="record-header">
+                        <div class="record-avatar" id="customerAvatar">JD</div>
+                        <div class="record-info">
+                            <h2 id="customerName">Jean Dupont</h2>
+                            <span class="record-badge" id="customerLevel">✓ Expert · 5 ans</span>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">🏢 Chantier assigné</span>
-                        <span class="detail-value" id="assignedWorksite">Résidence Étoile</span>
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <span class="detail-label">Localisation</span>
+                            <span class="detail-value" id="customerLocation">Paris 15ème</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Chantier Assigné</span>
+                            <span class="detail-value"><a href="#" id="assignedWorksite">Résidence Étoile</a></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Arrivée Prévue</span>
+                            <span class="detail-value" id="arrivalTime">14:30</span>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">⏰ Arrivée prévue</span>
-                        <span class="detail-value" id="arrivalTime">14:30</span>
+                    <div class="phone-input-group">
+                        <label class="input-label">Téléphone</label>
+                        <div class="phone-input-row">
+                            <input type="tel" id="technicianPhone" class="sf-input" placeholder="+33 6 12 34 56 78">
+                            <button class="call-btn-inline" id="initiateCallBtn" onclick="initiateTwilioCall()" title="Appeler">📞</button>
+                        </div>
+                        <div id="callStatus" class="call-status"></div>
                     </div>
-                    <div class="detail-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e3e8ef;">
-                        <span class="detail-label">📞 Téléphone</span>
-                        <input type="tel" id="technicianPhone" placeholder="+33612345678"
-                               style="padding: 6px 10px; border: 2px solid #e3e8ef; border-radius: 6px; font-size: 0.9em; width: 150px;">
-                    </div>
-                    <button id="initiateCallBtn" onclick="initiateTwilioCall()"
-                            style="width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-                        📞 Appeler le Technicien
-                    </button>
-                    <div id="callStatus" style="margin-top: 10px; padding: 8px; border-radius: 6px; font-size: 0.85em; text-align: center; display: none;"></div>
                 </div>
             </div>
 
-            <!-- Worksite Section (Bottom - Larger) -->
-            <div class="worksite-section">
-                <div class="worksite-header">
-                    <div class="worksite-avatar">🏢</div>
-                    <div class="worksite-info">
-                        <h3 id="worksiteName">Résidence Étoile</h3>
-                        <div class="worksite-meta">
-                            <span id="worksiteCustomerSince">Client depuis: 3 ans</span> •
-                            <span id="worksiteInstaller">Installation: M. Bernard</span>
+            <div class="sf-card" style="flex: 1; min-height: 0;">
+                <div class="sf-card-header">
+                    <div class="sf-card-title"><span class="sf-card-icon">🏢</span>Compte</div>
+                </div>
+                <div class="sf-card-body">
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <span class="detail-label">Nom du Compte</span>
+                            <span class="detail-value"><a href="#" id="worksiteName">Résidence Étoile</a></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Client Depuis</span>
+                            <span class="detail-value" id="worksiteCustomerSince">3 ans</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Abonnement</span>
+                            <span class="detail-value" id="subscriptionType">Premium - 10 Caméras</span>
                         </div>
                     </div>
-                </div>
-
-                <div class="subscription-badge" id="subscriptionType">
-                    Abonnement Premium - 10 Caméras
-                </div>
-
-                <div class="equipment-list">
-                    <h4 style="margin-bottom: 15px; color: #2c3e50;">📦 Équipement installé</h4>
-                    <div class="equipment-item">
-                        <span class="equipment-name">🎥 Caméra extérieure HD</span>
-                        <span class="equipment-qty">6</span>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--sf-border);">
+                        <div class="detail-label" style="margin-bottom: 8px;">Équipements (4)</div>
+                        <div class="related-item"><span class="related-item-name">Caméra extérieure HD</span><span class="related-item-qty">6</span></div>
+                        <div class="related-item"><span class="related-item-name">Caméra intérieure 360°</span><span class="related-item-qty">4</span></div>
+                        <div class="related-item"><span class="related-item-name">Enregistreur NVR</span><span class="related-item-qty">1</span></div>
+                        <div class="related-item"><span class="related-item-name">Alimentation PoE</span><span class="related-item-qty">2</span></div>
                     </div>
-                    <div class="equipment-item">
-                        <span class="equipment-name">🎥 Caméra intérieure 360°</span>
-                        <span class="equipment-qty">4</span>
-                    </div>
-                    <div class="equipment-item">
-                        <span class="equipment-name">📡 Enregistreur NVR</span>
-                        <span class="equipment-qty">1</span>
-                    </div>
-                    <div class="equipment-item">
-                        <span class="equipment-name">🔌 Alimentation PoE</span>
-                        <span class="equipment-qty">2</span>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
-                    <div style="font-weight: 600; color: #e65100; margin-bottom: 5px;">ℹ️ Note importante</div>
-                    <div style="font-size: 0.9em; color: #2c3e50;">Dernier incident: Problème d'enregistrement résolu le 15/10/2025</div>
                 </div>
             </div>
         </div>
 
-        <!-- ============================================
-             COLUMN 2: CALL CONTROLS & CHATBOT
-             ============================================ -->
         <div class="column-2">
-            <!-- Call Controls Section (Top) -->
-            <div class="call-controls-section">
-                <div class="call-status">
-                    <div class="call-duration" id="callDuration">00:00</div>
-                    <div class="call-state" id="callState">● En ligne</div>
+            <div class="sf-card" style="flex: 1; min-height: 0;">
+                <div class="sf-card-header">
+                    <div class="sf-card-title"><span class="sf-card-icon">🎙️</span>Transcription</div>
+                    <div class="status-badge" id="transcriptionBadge">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="transcriptionStatus">Inactif</span>
+                    </div>
                 </div>
-
-                <div class="call-buttons">
-                    <button class="call-btn mute" id="muteBtn" onclick="toggleMute()" disabled>
-                        🎤
-                    </button>
-                    <button class="call-btn end-call" id="endCallBtn" onclick="endCall()" disabled>
-                        📞
-                    </button>
-                </div>
-
-                <div class="audio-waveform" id="waveform">
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
-                    <div class="waveform-bar"></div>
+                <div class="sf-card-body transcription-content" id="transcriptionContent">
+                    <div class="transcription-empty">
+                        <div class="transcription-empty-icon">🎧</div>
+                        <div>La transcription apparaîtra ici pendant l'appel</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Chatbot Section (Bottom - Larger) -->
-            <div class="chatbot-section">
-                <div class="chatbot-header">
-                    <div class="chatbot-title">
-                        🤖 Assistant IA
-                    </div>
-                    <div class="chatbot-status">
-                        <span class="status-indicator"></span>
-                        <span>Écoute active</span>
-                    </div>
+            <div class="sf-card" style="flex: 1; min-height: 0;">
+                <div class="sf-card-header">
+                    <div class="sf-card-title"><span class="sf-card-icon">🤖</span>Einstein Assistant</div>
+                    <div class="status-badge active"><span class="status-dot"></span><span>En ligne</span></div>
                 </div>
-
-                <div class="chat-messages" id="chatMessages">
+                <div class="sf-card-body chat-messages" id="chatMessages">
                     <div class="chat-message bot">
-                        <div class="message-avatar bot">🤖</div>
-                        <div class="message-bubble bot">
-                            Bonjour! Je vous écoute et je vais vous aider à résoudre le problème. N'hésitez pas à me poser des questions.
-                        </div>
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-bubble">Bonjour! Je suis Einstein, votre assistant IA. Je vais analyser la conversation et vous suggérer des solutions.</div>
                     </div>
                 </div>
-
                 <div class="chat-input-container">
-                    <input
-                        type="text"
-                        class="chat-input"
-                        id="chatInput"
-                        placeholder="Tapez votre question..."
-                        onkeypress="handleChatKeyPress(event)"
-                    />
-                    <button class="chat-send-btn" onclick="sendChatMessage()">
-                        ➤
-                    </button>
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Posez une question..." onkeypress="handleChatKeyPress(event)">
+                    <button class="chat-send-btn" onclick="sendChatMessage()">Envoyer</button>
                 </div>
             </div>
         </div>
 
-        <!-- ============================================
-             COLUMN 3: SOLUTION OUTPUT
-             ============================================ -->
-        <div class="column-3">
-            <div class="solution-header">
-                <div class="solution-title">
-                    ✅ Diagnostic et Solutions
-                </div>
-                <div class="solution-subtitle">
-                    Basé sur l'analyse en temps réel de la conversation
-                </div>
+        <div class="sf-card">
+            <div class="sf-card-header">
+                <div class="sf-card-title"><span class="sf-card-icon">💡</span>Articles de Connaissance</div>
             </div>
-
-            <div class="solution-content" id="solutionContent">
+            <div class="sf-card-body solutions-content" id="solutionContent">
                 <div class="empty-solution">
-                    <div class="empty-solution-icon">🔍</div>
-                    <p>En attente d'informations...</p>
-                    <p style="font-size: 0.9em; margin-top: 10px;">Les solutions apparaîtront ici au fur et à mesure de la conversation.</p>
+                    <div class="empty-icon">📚</div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Aucune suggestion</div>
+                    <div style="font-size: 12px;">Les articles pertinents apparaîtront ici</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="hidden-controls">
+        <button id="muteBtn"></button>
+        <button id="endCallBtn"></button>
+    </div>
+
     <script>
-        // State management
-        let sessionId = null;
-        let callSid = null;
-        let isMuted = false;
-        let callStartTime = null;
-        let callTimer = null;
-        let suggestionPollingTimer = null;
-        let currentLanguage = 'fr';
-        let isCallActive = false;
-        let statusWebSocket = null;
-        let callStatusPoller = null;  // Fallback polling for call status
-        let audioContext = null;
-        let audioStream = null;
-        let twilioDevice = null;  // Twilio Client Device for browser audio
-        let activeConnection = null;  // Active Twilio connection
+        let sessionId = null, callSid = null, isMuted = false, callStartTime = null, callTimer = null;
+        let suggestionPollingTimer = null, currentLanguage = 'fr', isCallActive = false, callStatusPoller = null;
+        let twilioDevice = null, activeConnection = null, transcriptionEnabledByUser = true;
+        let agentAudioContext = null, agentAudioWorkletNode = null, agentAudioWebSocket = null;
+        let agentMediaStream = null, isAgentAudioMuted = false;
+        let suggestionsWebSocket = null, technicianTranscriptionWebSocket = null;
 
-        // Wait for Twilio SDK to load before initializing
         window.addEventListener('load', () => {
-            // Check if Twilio SDK is loaded
-            if (typeof Twilio === 'undefined') {
-                console.error('Twilio SDK not loaded');
-                showCallStatus('Erreur: Twilio SDK non chargé', 'error');
-
-                // Retry after a delay
-                setTimeout(() => {
-                    if (typeof Twilio !== 'undefined') {
-                        initializeSession();
-                    } else {
-                        showCallStatus('Erreur: Impossible de charger Twilio SDK', 'error');
-                    }
-                }, 2000);
-            } else {
-                initializeSession();
-            }
+            if (typeof Twilio === 'undefined') { showCallStatus('Erreur: Twilio SDK', 'error'); setTimeout(() => { if (typeof Twilio !== 'undefined') initializeSession(); }, 2000); }
+            else initializeSession();
         });
 
-        // Initialize session without calling
         async function initializeSession() {
             try {
-                // Generate session ID for when call starts
                 sessionId = `session-${Date.now()}`;
-                console.log('✓ Session initialized:', sessionId);
-
-                // Initialize Twilio Device for browser-based calling
+                await fetch('/twilio/start-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, technician_name: document.getElementById('customerName')?.textContent || 'Technicien', agent_name: 'Agent Support' }) });
                 await initializeTwilioDevice();
-
-            } catch (error) {
-                console.error('Error initializing session:', error);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // Initialize Twilio Device for browser audio
         async function initializeTwilioDevice() {
             try {
-                // Request access token from server
-                // Use consistent identity "support-agent" to receive incoming calls
-                const response = await fetch('/twilio/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identity: 'support-agent' })
-                });
-
+                const response = await fetch('/twilio/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: 'support-agent' }) });
                 const data = await response.json();
-
-                if (!data.token) {
-                    throw new Error('Failed to get access token');
-                }
-
-                // Initialize Twilio Device (SDK 2.x - namespace is Twilio.Device)
+                if (!data.token) throw new Error('No token');
                 const { Device } = Twilio;
-                twilioDevice = new Device(data.token, {
-                    codecPreferences: ['opus', 'pcmu'],
-                    logLevel: 1  // 0=trace, 1=debug, 2=info, 3=warn, 4=error
-                });
-
-                // Register device
+                twilioDevice = new Device(data.token, { codecPreferences: ['opus', 'pcmu'], logLevel: 1 });
                 await twilioDevice.register();
-
-                // Setup event listeners (SDK 2.x)
-                twilioDevice.on('registered', () => {
-                    console.log('✓ Twilio Device registered');
-                    console.log('Device identity:', data.identity);
-                    showCallStatus('✓ En ligne - Prêt à recevoir des appels', 'success');
-                });
-
-                twilioDevice.on('error', (error) => {
-                    console.error('Twilio Device error:', error);
-                    showCallStatus(`Erreur audio: ${error.message}`, 'error');
-                });
-
-                twilioDevice.on('incoming', (call) => {
-                    const fromNumber = call.parameters.From;
-                    console.log('Incoming call from:', fromNumber);
-                    showIncomingCallNotification(call, fromNumber);
-                });
-
-                twilioDevice.on('tokenWillExpire', async () => {
-                    console.log('Token expiring, refreshing...');
-                    const response = await fetch('/twilio/token', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ identity: 'support-agent' })
-                    });
-                    const refreshData = await response.json();
-                    twilioDevice.updateToken(refreshData.token);
-                });
-
-                console.log('Twilio Device initialized successfully');
-
-            } catch (error) {
-                console.error('Failed to initialize Twilio Device:', error);
-                showCallStatus('Échec d\'initialisation audio', 'error');
-            }
+                twilioDevice.on('registered', () => showCallStatus('Prêt', 'success'));
+                twilioDevice.on('error', (e) => showCallStatus(`Erreur: ${e.message}`, 'error'));
+                twilioDevice.on('incoming', (call) => showIncomingCallNotification(call, call.parameters.From));
+                twilioDevice.on('tokenWillExpire', async () => { const r = await fetch('/twilio/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: 'support-agent' }) }); twilioDevice.updateToken((await r.json()).token); });
+            } catch (e) { showCallStatus('Échec init', 'error'); }
         }
 
-        // Show incoming call notification and allow accept/reject
-        function showIncomingCallNotification(connection, fromNumber) {
-            // Play ringtone (browser notification sound)
-            playRingtone();
-
-            // Update UI
-            const callStatus = document.getElementById('callStatus');
-            callStatus.style.display = 'block';
-            callStatus.style.background = '#e3f2fd';
-            callStatus.style.color = '#1976d2';
-            callStatus.style.padding = '20px';
-            callStatus.style.borderRadius = '10px';
-            callStatus.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 24px; margin-bottom: 10px;">📞</div>
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-                        Appel entrant
-                    </div>
-                    <div style="font-size: 16px; margin-bottom: 20px;">
-                        De: ${fromNumber}
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="acceptIncomingCall()"
-                                style="padding: 12px 30px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                            ✓ Accepter
-                        </button>
-                        <button onclick="rejectIncomingCall()"
-                                style="padding: 12px 30px; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                            ✗ Refuser
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            // Store connection for accept/reject
-            window.incomingConnection = connection;
+        function showIncomingCallNotification(conn, from) {
+            const s = document.getElementById('callStatus');
+            s.style.display = 'block'; s.className = 'call-status progress';
+            s.innerHTML = `Appel: ${from}<br><button onclick="acceptIncomingCall()" class="sf-btn sf-btn-success" style="margin-top:8px;margin-right:8px;">Accepter</button><button onclick="rejectIncomingCall()" class="sf-btn sf-btn-neutral">Refuser</button>`;
+            window.incomingConnection = conn;
         }
 
-        // Accept incoming call (SDK 2.x)
         function acceptIncomingCall() {
             if (window.incomingConnection) {
-                console.log('Accepting incoming call');
-                const call = window.incomingConnection;
-                call.accept();
-                stopRingtone();
-
-                // Store as active connection
-                activeConnection = call;
-                isCallActive = true;
-
-                // Update customer name with caller number
-                const fromNumber = call.parameters.From;
-                document.getElementById('customerName').textContent = fromNumber;
-
-                // Setup call event listeners
-                call.on('accept', () => {
-                    console.log('Call accepted');
-                    // Start call timer
-                    callStartTime = Date.now();
-                    callTimer = setInterval(updateCallDuration, 1000);
-
-                    // Start polling for suggestions
-                    startSuggestionPolling();
-
-                    // Update UI
-                    document.getElementById('callState').textContent = '● Appel en cours';
-                    document.getElementById('muteBtn').disabled = false;
-                    document.getElementById('endCallBtn').disabled = false;
-                    document.getElementById('initiateCallBtn').disabled = true;
-                    showCallStatus('Appel connecté - Conversation en cours', 'success');
-                });
-
-                call.on('disconnect', () => {
-                    console.log('Call disconnected');
-                    handleRemoteCallTermination({ status: 'completed' });
-                });
-
+                const call = window.incomingConnection; call.accept(); activeConnection = call; isCallActive = true;
+                document.getElementById('customerName').textContent = call.parameters.From;
+                call.on('accept', () => { callStartTime = Date.now(); callTimer = setInterval(updateCallDuration, 1000); document.getElementById('initiateCallBtn').disabled = true; showCallStatus('Connecté', 'success'); document.getElementById('statusDot').classList.add('active'); document.getElementById('transcriptionBadge').classList.add('active'); document.getElementById('transcriptionStatus').textContent = 'En cours'; setTimeout(() => { if (isCallActive && transcriptionEnabledByUser) startTranscription(); startSuggestionPolling(); }, 2000); });
+                call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
                 window.incomingConnection = null;
             }
         }
 
-        // Reject incoming call
-        function rejectIncomingCall() {
-            if (window.incomingConnection) {
-                console.log('Rejecting incoming call');
-                window.incomingConnection.reject();
-                stopRingtone();
-                showCallStatus('Appel refusé', 'progress');
-                window.incomingConnection = null;
+        function rejectIncomingCall() { if (window.incomingConnection) { window.incomingConnection.reject(); showCallStatus('Refusé', 'progress'); window.incomingConnection = null; setTimeout(() => document.getElementById('callStatus').style.display = 'none', 3000); } }
 
-                // Hide notification after 3 seconds
-                setTimeout(() => {
-                    document.getElementById('callStatus').style.display = 'none';
-                }, 3000);
-            }
-        }
-
-        // Ringtone functions
-        let ringtoneAudio = null;
-        function playRingtone() {
-            // Use browser's built-in beep or create audio context
-            try {
-                // Simple beep using Audio API
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.value = 440; // A4 note
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-
-                oscillator.start();
-
-                // Ring pattern: beep for 0.5s, pause 0.5s, repeat
-                ringtoneAudio = {
-                    context: audioContext,
-                    oscillator: oscillator,
-                    interval: setInterval(() => {
-                        oscillator.stop();
-                        const newOsc = audioContext.createOscillator();
-                        newOsc.connect(gainNode);
-                        newOsc.frequency.value = 440;
-                        newOsc.start();
-                        oscillator = newOsc;
-                    }, 1000)
-                };
-            } catch (e) {
-                console.error('Failed to play ringtone:', e);
-            }
-        }
-
-        function stopRingtone() {
-            if (ringtoneAudio) {
-                try {
-                    ringtoneAudio.oscillator.stop();
-                    clearInterval(ringtoneAudio.interval);
-                    ringtoneAudio.context.close();
-                    ringtoneAudio = null;
-                } catch (e) {
-                    console.error('Failed to stop ringtone:', e);
-                }
-            }
-        }
-
-        // Initiate Twilio call
         async function initiateTwilioCall() {
-            const phoneNumber = document.getElementById('technicianPhone').value.trim();
-            const technicianName = document.getElementById('customerName').textContent;
-            const technicianId = 'TECH' + Date.now();
-
-            // Validate phone number
-            if (!phoneNumber) {
-                showCallStatus('Veuillez entrer un numéro de téléphone', 'error');
-                return;
-            }
-
-            if (!phoneNumber.startsWith('+')) {
-                showCallStatus('Le numéro doit commencer par + (format international)', 'error');
-                return;
-            }
-
+            const phone = document.getElementById('technicianPhone').value.trim();
+            if (!phone) { showCallStatus('Entrez un numéro', 'error'); return; }
+            if (!phone.startsWith('+')) { showCallStatus('Format: +33...', 'error'); return; }
             try {
-                // Disable button and show progress
                 document.getElementById('initiateCallBtn').disabled = true;
-                document.getElementById('initiateCallBtn').textContent = '📞 Appel en cours...';
-                showCallStatus('Initiation de l\'appel via navigateur...', 'progress');
-
-                // Check if Twilio Device is ready (SDK 1.x)
-                if (!twilioDevice || twilioDevice.status() !== 'ready') {
-                    throw new Error('Twilio Device n\'est pas prêt. Rechargez la page.');
-                }
-
-                // Make call through browser using Twilio Device (SDK 1.x)
-                const params = {
-                    To: phoneNumber
-                };
-
-                // Connect call - SDK 1.x
-                activeConnection = twilioDevice.connect(params);
-                isCallActive = true;
-
-                // Start call timer
-                callStartTime = Date.now();
-                callTimer = setInterval(updateCallDuration, 1000);
-
-                // Start polling for transcriptions/suggestions
-                startSuggestionPolling();
-
-                // Update UI
-                document.getElementById('initiateCallBtn').textContent = '✓ Appel connecté';
-                showCallStatus('Appel connecté - Vous pouvez parler', 'success');
-
-                console.log('✓ Browser call initiated to:', phoneNumber);
-
-            } catch (error) {
-                console.error('Error initiating call:', error);
-                showCallStatus(`Erreur: ${error.message}`, 'error');
-                document.getElementById('initiateCallBtn').disabled = false;
-                document.getElementById('initiateCallBtn').textContent = '📞 Appeler le Technicien';
-            }
+                showCallStatus('Connexion...', 'progress');
+                if (!twilioDevice || twilioDevice.state !== 'registered') throw new Error('Twilio non prêt');
+                await connectTranscriptionWebSockets();
+                const call = await twilioDevice.connect({ params: { To: phone, session_id: sessionId } });
+                activeConnection = call; isCallActive = true;
+                call.on('accept', () => { callStartTime = Date.now(); callTimer = setInterval(updateCallDuration, 1000); showCallStatus('Connecté', 'success'); document.getElementById('statusDot').classList.add('active'); document.getElementById('transcriptionBadge').classList.add('active'); document.getElementById('transcriptionStatus').textContent = 'En cours'; setTimeout(() => { if (isCallActive && transcriptionEnabledByUser) startTranscription(); startSuggestionPolling(); }, 2000); });
+                call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
+                call.on('error', (e) => { showCallStatus(`Erreur: ${e.message}`, 'error'); handleRemoteCallTermination({ status: 'failed' }); });
+            } catch (e) { showCallStatus(`Erreur: ${e.message}`, 'error'); document.getElementById('initiateCallBtn').disabled = false; }
         }
 
-        // Show call status message
-        function showCallStatus(message, type) {
-            const statusDiv = document.getElementById('callStatus');
-            statusDiv.style.display = 'block';
-            statusDiv.textContent = message;
+        function showCallStatus(msg, type) { const s = document.getElementById('callStatus'); s.style.display = 'block'; s.textContent = msg; s.className = `call-status ${type}`; }
 
-            // Set color based on type
-            if (type === 'success') {
-                statusDiv.style.background = '#e8f5e9';
-                statusDiv.style.color = '#2e7d32';
-            } else if (type === 'error') {
-                statusDiv.style.background = '#ffebee';
-                statusDiv.style.color = '#c62828';
-            } else if (type === 'progress') {
-                statusDiv.style.background = '#fff3e0';
-                statusDiv.style.color = '#e65100';
-            }
-        }
-
-        // Poll Twilio call status to detect when customer hangs up
-        function startCallStatusPolling() {
-            if (callStatusPoller) {
-                clearInterval(callStatusPoller);
-            }
-
-            callStatusPoller = setInterval(async () => {
-                if (!callSid || !isCallActive) return;
-
-                try {
-                    const response = await fetch(`/twilio/call-status/${callSid}`);
-                    const data = await response.json();
-
-                    console.log('Call status:', data.status);
-
-                    // Check if call has ended
-                    if (data.status && ['completed', 'failed', 'busy', 'no-answer', 'canceled'].includes(data.status)) {
-                        console.log('Call ended on Twilio side:', data.status);
-                        handleRemoteCallTermination({ status: data.status });
-                    }
-                } catch (error) {
-                    console.error('Error checking call status:', error);
-                }
-            }, 2000); // Check every 2 seconds
-        }
-
-        // Handle call termination from customer side
         function handleRemoteCallTermination(data) {
-            if (!isCallActive) return; // Already ended
-
-            // Stop all timers and polling
-            isCallActive = false;
-            clearInterval(callTimer);
-            clearInterval(suggestionPollingTimer);
-            clearInterval(callStatusPoller);
-
-            // Update UI
-            document.getElementById('callState').textContent = '○ Appel terminé';
-            document.getElementById('muteBtn').disabled = true;
-            document.getElementById('endCallBtn').disabled = true;
+            if (!isCallActive) return; isCallActive = false; clearInterval(callTimer); clearInterval(suggestionPollingTimer); clearInterval(callStatusPoller);
             document.getElementById('initiateCallBtn').disabled = false;
-            document.getElementById('initiateCallBtn').textContent = '📞 Appeler le Technicien';
-
-            // Show termination message
-            const statusMessages = {
-                'completed': 'Le client a raccroché',
-                'failed': 'Appel échoué',
-                'busy': 'Ligne occupée',
-                'no-answer': 'Pas de réponse',
-                'canceled': 'Appel annulé'
-            };
-            const reason = statusMessages[data.status] || `Appel terminé: ${data.status}`;
-            showCallStatus(reason, 'progress');
-
-            // Add system message to chat
-            const duration = document.getElementById('callDuration').textContent;
-            addChatMessage(`Appel terminé. Durée: ${duration}`, 'system');
-
-            console.log('Call terminated by customer:', data);
+            document.getElementById('statusDot').classList.remove('active');
+            document.getElementById('transcriptionBadge').classList.remove('active'); document.getElementById('transcriptionStatus').textContent = 'Inactif';
+            showCallStatus({ completed: 'Terminé', failed: 'Échec', busy: 'Occupé', 'no-answer': 'Pas de réponse', canceled: 'Annulé' }[data.status] || 'Terminé', 'progress');
         }
 
-        // Start polling for suggestions/transcriptions
-        function startSuggestionPolling() {
-            suggestionPollingTimer = setInterval(async () => {
-                if (!sessionId || !isCallActive) return;
-
-                try {
-                    const response = await fetch(`/demo/get-session-suggestions?session_id=${sessionId}&limit=20`);
-
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        if (data.suggestions && data.suggestions.length > 0) {
-                            displaySolutions(data.suggestions);
-
-                            // Show clarification questions in chat
-                            const questions = data.suggestions.filter(s => s.type === 'clarification_question');
-                            questions.forEach((q, index) => {
-                                // Only show new questions (not already in chat)
-                                if (!document.querySelector(`[data-suggestion-id="${q.id}"]`)) {
-                                    setTimeout(() => {
-                                        addChatMessage(q.content, 'bot', q.id);
-                                    }, index * 500);
-                                }
-                            });
-                        }
-                    }
-
-                } catch (error) {
-                    console.error('Error polling suggestions:', error);
-                }
-            }, 3000); // Poll every 3 seconds
+        function startSuggestionsWebSocket() {
+            const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            suggestionsWebSocket = new WebSocket(`${ws}//${window.location.host}/demo/suggestions-stream/${sessionId}`);
+            suggestionsWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.type === 'suggestion' || d.type === 'knowledge_base') displaySolutions([d]); else if (d.type === 'clarification_question' && !document.querySelector(`[data-suggestion-id="${d.id}"]`)) addChatMessage(d.content, 'bot', d.id); else if (d.type === 'suggestions_batch' && d.suggestions?.length) displaySolutions(d.suggestions); } catch {} };
+            suggestionsWebSocket.onerror = () => startSuggestionPollingFallback();
         }
 
-        // Update call duration display
-        function updateCallDuration() {
-            if (!callStartTime) return;
+        function startSuggestionPollingFallback() { if (suggestionPollingTimer) return; suggestionPollingTimer = setInterval(async () => { if (!sessionId || !isCallActive) return; try { const r = await fetch(`/demo/get-session-suggestions?session_id=${sessionId}&limit=20`); if (r.ok) { const d = await r.json(); if (d.suggestions?.length) displaySolutions(d.suggestions); } } catch {} }, 3000); }
 
-            const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
+        function startSuggestionPolling() { startSuggestionsWebSocket(); }
 
-            document.getElementById('callDuration').textContent =
-                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
+        function updateCallDuration() { if (!callStartTime) return; const e = Math.floor((Date.now() - callStartTime) / 1000); const d = document.getElementById('callDuration'); d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`; d.style.display = 'inline'; }
 
-        // Toggle mute
-        function toggleMute() {
-            if (!activeConnection) return;
-
-            isMuted = !isMuted;
-            const muteBtn = document.getElementById('muteBtn');
-
-            // Mute/unmute the Twilio connection
-            activeConnection.mute(isMuted);
-
-            if (isMuted) {
-                muteBtn.classList.add('active');
-                muteBtn.textContent = '🔇';
-                document.getElementById('callState').textContent = '● En sourdine';
-            } else {
-                muteBtn.classList.remove('active');
-                muteBtn.textContent = '🎤';
-                document.getElementById('callState').textContent = '● En ligne';
-            }
-        }
-
-        // End call
-        async function endCall() {
-            if (!confirm('Voulez-vous vraiment terminer l\'appel?')) {
-                return;
-            }
-
-            isCallActive = false;
-
-            // Stop all timers and polling
-            if (callTimer) {
-                clearInterval(callTimer);
-            }
-            if (suggestionPollingTimer) {
-                clearInterval(suggestionPollingTimer);
-            }
-            if (callStatusPoller) {
-                clearInterval(callStatusPoller);
-            }
-
-            // Disconnect Twilio Device connection
-            if (activeConnection) {
-                try {
-                    showCallStatus('Fin de l\'appel...', 'progress');
-
-                    // Disconnect the call
-                    activeConnection.disconnect();
-                    activeConnection = null;
-
-                    const response = await fetch('/twilio/end-call', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            call_sid: callSid,
-                            session_id: sessionId
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        showCallStatus('Appel terminé', 'success');
-                        console.log('✓ Call ended:', data);
-
-                        // Show statistics if available
-                        if (data.session_stats) {
-                            console.log('Session statistics:', data.session_stats);
-                        }
-                    }
-
-                } catch (error) {
-                    console.error('Error ending call:', error);
-                    showCallStatus(`Erreur: ${error.message}`, 'error');
-                }
-            }
-
-            // Update UI
-            document.getElementById('callState').textContent = '● Terminé';
-            document.getElementById('endCallBtn').disabled = true;
-            document.getElementById('initiateCallBtn').disabled = false;
-            document.getElementById('initiateCallBtn').textContent = '📞 Appeler le Technicien';
-
-            // Reset state
-            callSid = null;
-            callStartTime = null;
-        }
-
-        // Chat functionality
-        function handleChatKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendChatMessage();
-            }
-        }
+        function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
 
         async function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-
-            if (!message || !sessionId) return;
-
-            // Add user message to chat
-            addChatMessage(message, 'user');
-            input.value = '';
-
-            // Send to backend
+            const input = document.getElementById('chatInput'), msg = input.value.trim();
+            if (!msg || !sessionId) return; addChatMessage(msg, 'user'); input.value = '';
             try {
-                const response = await fetch('/demo/send-demo-transcription', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        speaker: 'customer',
-                        text: message,
-                        start_time: (Date.now() - callStartTime) / 1000,
-                        end_time: (Date.now() - callStartTime) / 1000,
-                        confidence: 1.0,
-                        language: currentLanguage
-                    })
-                });
-
-                const data = await response.json();
-
-                // Update solutions
-                if (data.suggestions && data.suggestions.length > 0) {
-                    displaySolutions(data.suggestions);
-                }
-
-                // Show bot response in chat if there are clarification questions
-                const questions = data.suggestions.filter(s => s.type === 'clarification_question');
-                if (questions.length > 0) {
-                    setTimeout(() => {
-                        addChatMessage(questions[0].content, 'bot');
-                    }, 500);
-                }
-
-            } catch (error) {
-                console.error('Error sending message:', error);
-                addChatMessage('Erreur de communication avec le serveur.', 'bot');
-            }
+                const r = await fetch('/demo/send-demo-transcription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, speaker: 'customer', text: msg, start_time: (Date.now() - callStartTime) / 1000, end_time: (Date.now() - callStartTime) / 1000, confidence: 1.0, language: currentLanguage }) });
+                const d = await r.json();
+                if (d.suggestions?.length) { displaySolutions(d.suggestions); const q = d.suggestions.filter(s => s.type === 'clarification_question'); if (q.length) setTimeout(() => addChatMessage(q[0].content, 'bot'), 500); }
+            } catch { addChatMessage('Erreur de communication.', 'bot'); }
         }
 
         function addChatMessage(text, sender, suggestionId = null) {
-            const messagesDiv = document.getElementById('chatMessages');
+            const m = document.getElementById('chatMessages'), div = document.createElement('div');
+            div.className = `chat-message ${sender}`; if (suggestionId) div.setAttribute('data-suggestion-id', suggestionId);
+            div.innerHTML = `<div class="message-avatar">${sender === 'bot' ? '🤖' : '👤'}</div><div class="message-bubble">${text}</div>`;
+            m.appendChild(div); m.scrollTop = m.scrollHeight;
+        }
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${sender}`;
+        const audioWorkletCode = `class AudioStreamProcessor extends AudioWorkletProcessor { constructor() { super(); this.bufferSize = 4096; this.buffer = new Float32Array(this.bufferSize); this.bufferIndex = 0; } process(inputs) { const input = inputs[0]; if (!input || !input[0]) return true; const ch = input[0]; for (let i = 0; i < ch.length; i++) { this.buffer[this.bufferIndex++] = ch[i]; if (this.bufferIndex >= this.bufferSize) { this.port.postMessage({ type: 'audio', buffer: this.buffer.slice() }); this.bufferIndex = 0; } } return true; } } registerProcessor('audio-stream-processor', AudioStreamProcessor);`;
 
-            // Add data attribute for tracking
-            if (suggestionId) {
-                messageDiv.setAttribute('data-suggestion-id', suggestionId);
-            }
+        async function connectTranscriptionWebSockets() {
+            return new Promise((resolve) => {
+                const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                technicianTranscriptionWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
+                agentAudioWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
+                let t = false, a = false; const check = () => { if (t && a) resolve(); };
+                technicianTranscriptionWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.event === 'connected' && d.type === 'technician_transcription') { t = true; check(); } else if (d.type === 'transcription') addTranscriptionBubble(d.text, d.speaker_label || 'Technicien', d.speaker_role || 'technician'); } catch {} };
+                agentAudioWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.event === 'connected' && d.type === 'agent_audio') { a = true; check(); } else if (d.type === 'transcription') addTranscriptionBubble(d.text, d.speaker_label || 'Agent', d.speaker_role || 'agent'); } catch {} };
+                setTimeout(resolve, 5000);
+            });
+        }
 
-            const avatarDiv = document.createElement('div');
-            avatarDiv.className = `message-avatar ${sender}`;
-            // Different avatars for different senders
-            if (sender === 'bot') {
-                avatarDiv.textContent = '🤖';
-            } else if (sender === 'system') {
-                avatarDiv.textContent = 'ℹ️';
-            } else {
-                avatarDiv.textContent = '👤';
-            }
+        async function startTranscription() {
+            try {
+                agentMediaStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                agentAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const blob = new Blob([audioWorkletCode], { type: 'application/javascript' }), url = URL.createObjectURL(blob);
+                try { await agentAudioContext.audioWorklet.addModule(url); } catch { await startTranscriptionFallback(); return; } finally { URL.revokeObjectURL(url); }
+                agentAudioWorkletNode = new AudioWorkletNode(agentAudioContext, 'audio-stream-processor');
+                agentAudioWorkletNode.port.onmessage = (e) => { if (e.data.type !== 'audio' || isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.data.buffer, i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 2.5)) * 32767); agentAudioWebSocket.send(i.buffer); };
+                const src = agentAudioContext.createMediaStreamSource(agentMediaStream); src.connect(agentAudioWorkletNode); agentAudioWorkletNode.connect(agentAudioContext.destination);
+            } catch { alert('Erreur de transcription. Autorisez le microphone.'); }
+        }
 
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = `message-bubble ${sender}`;
-            bubbleDiv.textContent = text;
+        async function startTranscriptionFallback() {
+            const src = agentAudioContext.createMediaStreamSource(agentMediaStream), proc = agentAudioContext.createScriptProcessor(4096, 1, 1);
+            proc.onaudioprocess = (e) => { if (isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.inputBuffer.getChannelData(0), i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 2.5)) * 32767); agentAudioWebSocket.send(i.buffer); };
+            src.connect(proc); proc.connect(agentAudioContext.destination); agentAudioWorkletNode = proc;
+        }
 
-            // System messages have different styling
-            if (sender === 'system') {
-                bubbleDiv.style.background = '#f5f5f5';
-                bubbleDiv.style.color = '#666';
-                bubbleDiv.style.fontStyle = 'italic';
-            }
-
-            messageDiv.appendChild(avatarDiv);
-            messageDiv.appendChild(bubbleDiv);
-
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        function addTranscriptionBubble(text, label, role) {
+            const c = document.getElementById('transcriptionContent'), empty = c.querySelector('.transcription-empty');
+            if (empty) empty.remove();
+            const line = document.createElement('div'); line.className = `transcript-line ${role}`;
+            line.innerHTML = `<div class="transcript-speaker">${label}</div><div class="transcript-text">${text}</div>`;
+            c.appendChild(line); c.scrollTop = c.scrollHeight;
         }
 
         function displaySolutions(suggestions) {
-            const solutionContent = document.getElementById('solutionContent');
-
-            // Filter knowledge base solutions
-            const solutions = suggestions.filter(s => s.type === 'knowledge_base');
-
-            if (solutions.length === 0) return;
-
-            // Clear empty state
-            solutionContent.innerHTML = '';
-
-            solutions.forEach(solution => {
-                const card = document.createElement('div');
-                card.className = 'solution-card';
-
-                card.innerHTML = `
-                    <h3>${solution.title}</h3>
-                    <p>${solution.content}</p>
-                    ${solution.confidence ?
-                        `<span class="confidence-indicator">Confiance: ${(solution.confidence * 100).toFixed(0)}%</span>`
-                        : ''}
-                `;
-
-                solutionContent.insertBefore(card, solutionContent.firstChild);
-            });
+            const c = document.getElementById('solutionContent'), sols = suggestions.filter(s => s.type === 'knowledge_base');
+            if (!sols.length) return; c.innerHTML = '';
+            sols.forEach(s => { const card = document.createElement('div'); card.className = 'solution-card'; card.innerHTML = `<h3>${s.title || 'Article'}</h3><p>${s.content}</p>${s.confidence ? `<span class="confidence-badge">✓ ${(s.confidence * 100).toFixed(0)}%</span>` : ''}`; c.insertBefore(card, c.firstChild); });
         }
     </script>
 </body>

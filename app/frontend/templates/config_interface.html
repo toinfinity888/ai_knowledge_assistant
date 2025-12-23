@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcription Config</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0b;
+            --surface: #141416;
+            --surface-hover: #1a1a1d;
+            --border: #252528;
+            --text: #e4e4e7;
+            --text-muted: #71717a;
+            --accent: #22d3ee;
+            --accent-dim: rgba(34, 211, 238, 0.15);
+            --red: #f43f5e;
+            --green: #10b981;
+            --yellow: #fbbf24;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #06b6d4 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Buttons */
+        .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: #06b6d4;
+            border-color: #06b6d4;
+        }
+
+        .btn-danger {
+            color: var(--red);
+            border-color: rgba(244, 63, 94, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(244, 63, 94, 0.1);
+            border-color: var(--red);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-icon {
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+
+        /* Main Layout */
+        .main {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            overflow: hidden;
+        }
+
+        /* Config Panel */
+        .config-panel {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .config-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .config-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .config-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+        }
+
+        .config-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .config-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .config-scroll::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* Parameter Groups */
+        .param-group {
+            margin-bottom: 16px;
+        }
+
+        .param-group-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .param-group-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Slider Parameters */
+        .param {
+            margin-bottom: 12px;
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .param-label {
+            font-size: 12px;
+            color: var(--text);
+        }
+
+        .param-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Checkboxes */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: var(--text-muted);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            font-size: 11px;
+            color: var(--text-muted);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .checkbox-item:has(input:checked) {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .checkbox-item:has(input:checked) label {
+            color: var(--text);
+        }
+
+        /* Testing Panel */
+        .test-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .test-header {
+            padding: 10px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .test-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .test-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-badge.ready {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+        }
+
+        .status-badge.recording {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--red);
+        }
+
+        .status-badge.error {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--yellow);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.recording .status-dot {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Visualizer */
+        .visualizer {
+            height: 120px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #visualizerCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .audio-metrics {
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .metric-card {
+            background: rgba(10, 10, 11, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 10px;
+            min-width: 120px;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .metric-value.pass {
+            color: var(--green);
+        }
+
+        .metric-value.fail {
+            color: var(--red);
+        }
+
+        .metric-unit {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .metric-threshold {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .detection-status {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .detection-badge {
+            background: rgba(10, 10, 11, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .detection-badge.speech {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .detection-badge.silence {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .detection-badge .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Pause Counter Styles */
+        .pause-counter-card {
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
+        }
+
+        .pause-counter {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            min-height: 28px;
+        }
+
+        #pauseNumber {
+            font-weight: 700;
+            color: var(--accent);
+            transition: font-size 0.2s ease, color 0.2s ease;
+            line-height: 1;
+        }
+
+        /* Font sizes based on pause thresholds */
+        .pause-size-none {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .pause-size-small {
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .pause-size-medium {
+            font-size: 20px;
+            color: var(--yellow);
+        }
+
+        .pause-size-large {
+            font-size: 28px;
+            color: var(--green);
+            text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+
+        #pauseInfo {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            font-style: italic;
+        }
+
+        /* Transcription Area */
+        .transcription-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+        }
+
+        .transcription-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .transcription-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .transcription-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .transcription-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            gap: 8px;
+        }
+
+        .transcription-empty-icon {
+            font-size: 32px;
+            opacity: 0.3;
+        }
+
+        .transcription-empty-text {
+            font-size: 12px;
+        }
+
+        .transcription-entry {
+            padding: 10px 12px;
+            background: var(--surface);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 2px solid var(--accent);
+        }
+
+        .transcription-entry.interim {
+            background: var(--bg);
+            border-left: 2px solid var(--yellow);
+            opacity: 0.8;
+        }
+
+        .transcription-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .transcription-time.interim {
+            color: var(--yellow);
+        }
+
+        .transcription-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+        }
+
+        .transcription-text.interim {
+            font-style: italic;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        .test-footer {
+            padding: 8px 16px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+
+            .config-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">🎙</div>
+                <h1>Transcription Config</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="applyBtn">Apply</button>
+                <button class="btn btn-danger" id="resetBtn">Reset</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Configuration Panel -->
+            <aside class="config-panel">
+                <div class="config-header">
+                    <h2>Parameters</h2>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                        💾 Changes are saved to <code style="background: var(--surface); padding: 2px 4px; border-radius: 2px;">app/config/transcription_config.json</code> and persist across server restarts
+                    </div>
+                </div>
+                <div class="config-scroll">
+                    <!-- Audio Parameters -->
+                    <div class="param-group">
+                        <div class="param-group-title">Audio</div>
+                        
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min RMS (8kHz)</span>
+                                <span class="param-value" id="min_rms_8k_value">50</span>
+                            </div>
+                            <input type="range" class="slider" id="min_rms_8k" min="10" max="500" step="10" value="50">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                📞 Phone audio (Twilio) loudness threshold. Lower = more sensitive to quiet speech
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min RMS (16kHz)</span>
+                                <span class="param-value" id="min_rms_16k_value">150</span>
+                            </div>
+                            <input type="range" class="slider" id="min_rms_16k" min="50" max="1000" step="10" value="150">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                🎤 Browser audio average loudness. Increase if background noise triggers transcription
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Max Silence Amplitude</span>
+                                <span class="param-value" id="max_amplitude_silence_value">300</span>
+                            </div>
+                            <input type="range" class="slider" id="max_amplitude_silence" min="100" max="1000" step="50" value="300">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                🔊 Peak volume threshold (0-32767). Audio below this + low RMS = silence
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VAD Parameters -->
+                    <div class="param-group">
+                        <div class="param-group-title">Voice Detection</div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">VAD Threshold</span>
+                                <span class="param-value" id="vad_threshold_value">0.50</span>
+                            </div>
+                            <input type="range" class="slider" id="vad_threshold" min="0.1" max="0.9" step="0.05" value="0.5">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                🤖 AI confidence for speech detection (0-1). Higher = stricter, fewer false positives
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min Speech Duration</span>
+                                <span class="param-value" id="vad_min_speech_duration_ms_value">250ms</span>
+                            </div>
+                            <input type="range" class="slider" id="vad_min_speech_duration_ms" min="100" max="1000" step="50" value="250">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                ⏱️ Minimum speech length to process. Filters out quick noises/pops
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min Silence Duration</span>
+                                <span class="param-value" id="vad_min_silence_duration_ms_value">1000ms</span>
+                            </div>
+                            <input type="range" class="slider" id="vad_min_silence_duration_ms" min="500" max="3000" step="100" value="1000">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                🔇 Pause between speech segments. Shorter = splits sentences faster
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buffer Parameters -->
+                    <div class="param-group">
+                        <div class="param-group-title">Buffer</div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Frontend Pause Threshold</span>
+                                <span class="param-value" id="frontend_pause_threshold_value">1500ms</span>
+                            </div>
+                            <input type="range" class="slider" id="frontend_pause_threshold" min="500" max="5000" step="100" value="1500">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                ⏱️ Wait time after last speech before finalizing (Web Speech only)
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Backend Segment Pause</span>
+                                <span class="param-value" id="backend_segment_pause_value">3000ms</span>
+                            </div>
+                            <input type="range" class="slider" id="backend_segment_pause" min="500" max="10000" step="100" value="3000">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                ⏸️ Frontend grouping: Append to same frame if transcriptions arrive within this window
+                            </div>
+                            <div style="font-size: 9px; color: var(--yellow); margin-top: 4px; padding: 4px; background: rgba(251, 191, 36, 0.1); border-radius: 3px; border-left: 2px solid var(--yellow);">
+                                ⚠️ To group transcriptions, ensure backend sends them faster than this! Lower "Max Buffer Duration" or enable "Bypass VAD"
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Buffer Duration</span>
+                                <span class="param-value" id="buffer_duration_value">3.0s</span>
+                            </div>
+                            <input type="range" class="slider" id="buffer_duration" min="1" max="10" step="0.5" value="3">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                📦 Default time to buffer audio before transcribing (used with VAD)
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Max Buffer Duration</span>
+                                <span class="param-value" id="max_buffer_duration_value">10.0s</span>
+                            </div>
+                            <input type="range" class="slider" id="max_buffer_duration" min="5" max="30" step="1" value="10">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                ⚠️ Force transcription after this time. Keep lower than "Backend Segment Pause" for proper grouping!
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min Bytes (8kHz)</span>
+                                <span class="param-value" id="min_bytes_8k_value">48000</span>
+                            </div>
+                            <input type="range" class="slider" id="min_bytes_8k" min="8000" max="160000" step="8000" value="48000">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                📞 Phone audio chunk size. Higher = longer phrases (16000 bytes ≈ 1 second)
+                            </div>
+                        </div>
+
+                        <div class="param">
+                            <div class="param-header">
+                                <span class="param-label">Min Bytes (16kHz)</span>
+                                <span class="param-value" id="min_bytes_16k_value">96000</span>
+                            </div>
+                            <input type="range" class="slider" id="min_bytes_16k" min="16000" max="320000" step="16000" value="96000">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                🎤 Browser audio chunk size (ONLY when "Bypass VAD" enabled). 32000 bytes ≈ 1 second
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature Flags -->
+                    <div class="param-group">
+                        <div class="param-group-title">Flags</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bypass_vad" checked>
+                                <label for="bypass_vad">Bypass VAD</label>
+                            </div>
+                            <div style="font-size: 9px; color: var(--text-muted); margin-left: 30px; margin-top: -2px; margin-bottom: 4px;">
+                                ✅ Use simple byte-count triggering (Min Bytes) for predictable, frequent transcriptions. Recommended for proper frame grouping!
+                            </div>
+
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bypass_min_duration">
+                                <label for="bypass_min_duration">Bypass min duration</label>
+                            </div>
+                            <div style="font-size: 9px; color: var(--text-muted); margin-left: 30px; margin-top: -2px; margin-bottom: 4px;">
+                                ⚡ Skip minimum duration checks. Enable to transcribe very short utterances.
+                            </div>
+
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="debug_show_hallucinations">
+                                <label for="debug_show_hallucinations">Show hallucinations</label>
+                            </div>
+                            <div style="font-size: 9px; color: var(--text-muted); margin-left: 30px; margin-top: -2px; margin-bottom: 4px;">
+                                🐛 Debug mode: Display Whisper hallucinations (normally filtered out). For testing only.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Testing Panel -->
+            <section class="test-panel">
+                <div class="test-header">
+                    <div class="test-header-left">
+                        <h2>Live Test</h2>
+                        <div class="status-badge ready" id="statusBadge">
+                            <span class="status-dot"></span>
+                            <span id="statusText">Ready</span>
+                        </div>
+                        <select class="btn" id="transcriptionMode" style="cursor: pointer;">
+                            <option value="backend">Backend (Whisper)</option>
+                            <option value="frontend">Frontend (Web Speech)</option>
+                        </select>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="startRecordingBtn">● Record</button>
+                        <button class="btn" id="stopRecordingBtn" disabled>■ Stop</button>
+                        <button class="btn btn-icon" id="clearTranscriptionsBtn" title="Clear">✕</button>
+                    </div>
+                </div>
+
+                <div class="visualizer">
+                    <canvas id="visualizerCanvas"></canvas>
+                    <div class="audio-metrics">
+                        <div class="metric-card">
+                            <div class="metric-label">RMS Level</div>
+                            <div class="metric-value" id="rmsValue">
+                                <span id="rmsNumber">0</span>
+                                <span class="metric-unit">dB</span>
+                            </div>
+                            <div class="metric-threshold" id="rmsThreshold">Threshold: --</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Max Amplitude</div>
+                            <div class="metric-value" id="amplitudeValue">
+                                <span id="amplitudeNumber">0</span>
+                                <span class="metric-unit">/ 32767</span>
+                            </div>
+                            <div class="metric-threshold" id="amplitudeThreshold">Threshold: --</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Buffer Size</div>
+                            <div class="metric-value" id="bufferValue">
+                                <span id="bufferNumber">0</span>
+                                <span class="metric-unit">bytes</span>
+                            </div>
+                            <div class="metric-threshold" id="bufferThreshold">Target: --</div>
+                        </div>
+                        <div class="metric-card pause-counter-card">
+                            <div class="metric-label">Pause Duration</div>
+                            <div class="pause-counter" id="pauseCounter">
+                                <span id="pauseNumber" class="pause-size-none">0</span>
+                                <span class="metric-unit">ms</span>
+                            </div>
+                            <div class="metric-threshold" id="pauseInfo">Waiting...</div>
+                        </div>
+                        <div class="detection-status">
+                            <div class="detection-badge silence" id="detectionBadge">
+                                <span class="status-dot"></span>
+                                <span id="detectionText">SILENCE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="transcription-area" id="transcriptionArea">
+                    <div class="transcription-empty">
+                        <div class="transcription-empty-icon">🎤</div>
+                        <div class="transcription-empty-text">Transcriptions will appear here</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Configuration state
+        let currentConfig = {};
+        let ws = null;
+        let audioContext = null;
+        let analyser = null;
+        let animationId = null;
+        let audioWorkletNode = null;
+        let mediaStream = null;
+
+        // Web Speech API
+        let recognition = null;
+        let isRecognitionActive = false;
+        let currentInterimElement = null;
+
+        // Smart pause detection (Frontend mode)
+        let pauseTimer = null;
+        let accumulatedInterimText = '';
+        let lastInterimTime = 0;
+
+        // Backend accumulation tracking
+        let lastBackendTranscriptionTime = 0;
+        let currentBackendEntry = null;
+
+        // Audio metrics tracking
+        let currentRMS = 0;
+        let currentMaxAmplitude = 0;
+        let currentBufferSize = 0;
+
+        // Pause tracking
+        let pauseStartTime = null;
+        let currentPauseDuration = 0;
+        let lastPauseDuration = 0;
+        let pauseUpdateInterval = null;
+        let isSpeechActive = false;
+
+        // Parameter IDs
+        const parameters = [
+            'min_rms_8k', 'min_rms_16k', 'max_amplitude_silence',
+            'vad_threshold', 'vad_min_speech_duration_ms', 'vad_min_silence_duration_ms',
+            'buffer_duration', 'max_buffer_duration', 'min_bytes_8k', 'min_bytes_16k',
+            'frontend_pause_threshold', 'backend_segment_pause',
+            'bypass_vad', 'bypass_min_duration', 'debug_show_hallucinations'
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfiguration();
+            setupEventListeners();
+            setupVisualizer();
+        });
+
+        // Load current configuration from server
+        async function loadConfiguration() {
+            try {
+                const response = await fetch('/api/config/transcription');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentConfig = data.config;
+                    updateUIFromConfig(data.config);
+                }
+            } catch (error) {
+                console.error('Error loading configuration:', error);
+                setStatus('Config load failed', 'error');
+            }
+        }
+
+        // Update UI elements from configuration
+        function updateUIFromConfig(config) {
+            parameters.forEach(param => {
+                const element = document.getElementById(param);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = config[param];
+                    } else {
+                        element.value = config[param];
+                        updateValueDisplay(param, config[param]);
+                    }
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Slider value updates for backend parameters
+            parameters.forEach(param => {
+                const element = document.getElementById(param);
+                if (element && element.type === 'range') {
+                    element.addEventListener('input', (e) => {
+                        updateValueDisplay(param, e.target.value);
+                    });
+                }
+            });
+
+            document.getElementById('applyBtn').addEventListener('click', applyConfiguration);
+            document.getElementById('resetBtn').addEventListener('click', resetConfiguration);
+            document.getElementById('startRecordingBtn').addEventListener('click', startRecording);
+            document.getElementById('stopRecordingBtn').addEventListener('click', stopRecording);
+            document.getElementById('clearTranscriptionsBtn').addEventListener('click', clearTranscriptions);
+        }
+
+        // Update value display
+        function updateValueDisplay(param, value) {
+            const display = document.getElementById(param + '_value');
+            if (display) {
+                let displayValue = value;
+                if (param === 'frontend_pause_threshold' || param === 'backend_segment_pause') {
+                    // Pause thresholds are in milliseconds
+                    displayValue = value + 'ms';
+                } else if (param.includes('threshold')) {
+                    // VAD threshold is a float (0-1)
+                    displayValue = parseFloat(value).toFixed(2);
+                } else if (param.includes('duration') && !param.includes('ms')) {
+                    displayValue = parseFloat(value).toFixed(1) + 's';
+                } else if (param.includes('ms')) {
+                    displayValue = value + 'ms';
+                } else if (param.includes('bytes')) {
+                    // Format bytes with thousands separator
+                    displayValue = parseInt(value).toLocaleString() + ' bytes';
+                }
+                display.textContent = displayValue;
+            }
+        }
+
+        // Apply configuration to server
+        async function applyConfiguration() {
+            const updates = {};
+            parameters.forEach(param => {
+                const element = document.getElementById(param);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        updates[param] = element.checked;
+                    } else if (element.type === 'range') {
+                        let value = parseFloat(element.value);
+                        if (param.includes('ms') || param === 'min_bytes_8k' || param === 'min_bytes_16k' ||
+                            param === 'frontend_pause_threshold' || param === 'backend_segment_pause') {
+                            value = parseInt(value);
+                        }
+                        updates[param] = value;
+                    }
+                }
+            });
+
+            try {
+                const response = await fetch('/api/config/transcription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentConfig = data.config;
+                    setStatus('✓ Saved to disk', 'ready');
+                    setTimeout(() => setStatus('Ready', 'ready'), 3000);
+                } else {
+                    setStatus('Apply failed: ' + (data.error || 'unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error applying configuration:', error);
+                setStatus('Apply failed', 'error');
+            }
+        }
+
+        // Reset configuration to defaults
+        async function resetConfiguration() {
+            if (!confirm('Reset all parameters to defaults?')) return;
+
+            try {
+                const response = await fetch('/api/config/transcription/reset', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentConfig = data.config;
+                    updateUIFromConfig(data.config);
+                    setStatus('✓ Reset & saved', 'ready');
+                    setTimeout(() => setStatus('Ready', 'ready'), 3000);
+                }
+            } catch (error) {
+                console.error('Error resetting configuration:', error);
+                setStatus('Reset failed', 'error');
+            }
+        }
+
+        // Set status
+        function setStatus(text, type) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            badge.className = 'status-badge ' + type;
+            statusText.textContent = text;
+        }
+
+        // AudioWorklet processor code
+        const audioWorkletCode = `
+            class AudioStreamProcessor extends AudioWorkletProcessor {
+                constructor() {
+                    super();
+                    this.bufferSize = 4096;
+                    this.buffer = new Float32Array(this.bufferSize);
+                    this.bufferIndex = 0;
+                }
+
+                process(inputs) {
+                    const input = inputs[0];
+                    if (!input || !input[0]) return true;
+
+                    const channelData = input[0];
+                    for (let i = 0; i < channelData.length; i++) {
+                        this.buffer[this.bufferIndex++] = channelData[i];
+                        if (this.bufferIndex >= this.bufferSize) {
+                            this.port.postMessage({
+                                type: 'audio',
+                                buffer: this.buffer.slice()
+                            });
+                            this.bufferIndex = 0;
+                        }
+                    }
+                    return true;
+                }
+            }
+            registerProcessor('audio-stream-processor', AudioStreamProcessor);
+        `;
+
+        // Start recording
+        async function startRecording() {
+            const mode = document.getElementById('transcriptionMode').value;
+
+            if (mode === 'frontend') {
+                startWebSpeechRecognition();
+            } else {
+                startBackendRecording();
+            }
+        }
+
+        // Start Web Speech API recognition (frontend)
+        async function startWebSpeechRecognition() {
+            try {
+                // Check browser support
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    setStatus('Not supported', 'error');
+                    alert('Web Speech API is not supported in this browser. Please use Chrome/Edge or switch to Backend mode.');
+                    return;
+                }
+
+                // Get microphone for visualizer
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                // Setup audio visualizer
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+                visualize();
+
+                // Initialize Web Speech API
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;  // Enable streaming interim results
+                recognition.maxAlternatives = 1;
+                recognition.lang = 'fr-FR'; // French language for transcription
+
+                recognition.onstart = () => {
+                    isRecognitionActive = true;
+                    setStatus('Recording', 'recording');
+                    console.log('Web Speech Recognition started');
+                };
+
+                recognition.onresult = (event) => {
+                    // Get the pause threshold from the slider
+                    const pauseThresholdMs = parseInt(document.getElementById('frontend_pause_threshold').value);
+
+                    // Accumulate all text (both interim and final)
+                    let currentText = '';
+                    let latestConfidence = 0;
+
+                    for (let i = 0; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        currentText += transcript;
+
+                        if (event.results[i].isFinal) {
+                            latestConfidence = event.results[i][0].confidence;
+                        }
+                    }
+
+                    // Update accumulated text
+                    accumulatedInterimText = currentText;
+                    lastInterimTime = Date.now();
+
+                    // Show the interim text immediately
+                    updateInterimTranscription(currentText);
+
+                    // Clear existing pause timer
+                    if (pauseTimer) {
+                        clearTimeout(pauseTimer);
+                    }
+
+                    // Start new pause timer - finalize only after significant pause
+                    pauseTimer = setTimeout(() => {
+                        const timeSinceLastSpeech = Date.now() - lastInterimTime;
+
+                        console.log(`⏱️ Pause detected: ${timeSinceLastSpeech}ms since last speech (threshold: ${pauseThresholdMs}ms)`);
+
+                        if (accumulatedInterimText.trim().length > 0) {
+                            console.log('✅ Finalizing accumulated text:', accumulatedInterimText);
+
+                            // Remove interim element
+                            if (currentInterimElement) {
+                                currentInterimElement.remove();
+                                currentInterimElement = null;
+                            }
+
+                            // Add final transcription
+                            addTranscription(
+                                accumulatedInterimText,
+                                new Date().toISOString(),
+                                latestConfidence
+                            );
+
+                            // Clear accumulated text
+                            accumulatedInterimText = '';
+                        }
+                    }, pauseThresholdMs);
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    setStatus('Error: ' + event.error, 'error');
+                };
+
+                recognition.onend = () => {
+                    console.log('Speech recognition ended');
+                    if (isRecognitionActive) {
+                        // Auto-restart if still supposed to be active
+                        recognition.start();
+                    }
+                };
+
+                recognition.start();
+
+                document.getElementById('startRecordingBtn').disabled = true;
+                document.getElementById('stopRecordingBtn').disabled = false;
+
+            } catch (error) {
+                console.error('Error starting Web Speech recognition:', error);
+                setStatus('Mic error', 'error');
+            }
+        }
+
+        // Start backend recording (original Whisper API method)
+        async function startBackendRecording() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                visualize();
+
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${protocol}//${window.location.host}/ws/config/test-audio`);
+
+                ws.onopen = () => {
+                    setStatus('Recording', 'recording');
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'transcription') {
+                        // Get the backend segment pause threshold
+                        const segmentPauseMs = parseInt(document.getElementById('backend_segment_pause').value);
+
+                        // Use actual pause duration from VAD (sent by backend)
+                        const pauseDurationMs = data.pause_duration_ms || 0;
+
+                        console.log(`⏱️ Backend: pause_duration=${pauseDurationMs}ms (threshold: ${segmentPauseMs}ms)`);
+                        console.log(`📝 Transcription text: "${data.text}"`);
+
+                        // Decide whether to append or create new entry based on ACTUAL pause duration from VAD
+                        // Short pause (< threshold) → append to current frame
+                        // Long pause (>= threshold) → create new frame
+                        if (pauseDurationMs < segmentPauseMs && currentBackendEntry) {
+                            // Short pause - append to existing entry
+                            console.log(`➕ SHORT pause (${pauseDurationMs}ms < ${segmentPauseMs}ms) - Appending to existing frame`);
+                            appendToBackendEntry(data.text);
+                        } else {
+                            // Long pause - create new entry
+                            console.log(`🆕 LONG pause (${pauseDurationMs}ms >= ${segmentPauseMs}ms) - Creating new frame`);
+                            addTranscription(data.text, data.timestamp, data.confidence);
+                            // Track this entry for future appends
+                            currentBackendEntry = document.querySelector('.transcription-entry:first-child');
+                        }
+
+                        // Reset buffer size after transcription (backend processed it)
+                        currentBufferSize = 0;
+                    } else if (data.type === 'audio_metrics') {
+                        // Backend can optionally send calculated metrics
+                        if (data.rms !== undefined) currentRMS = data.rms;
+                        if (data.max_amplitude !== undefined) currentMaxAmplitude = data.max_amplitude;
+                        if (data.buffer_size !== undefined) currentBufferSize = data.buffer_size;
+                        updateAudioMetrics();
+                    } else if (data.type === 'error') {
+                        setStatus('Error', 'error');
+                    }
+                };
+
+                ws.onerror = () => setStatus('WS Error', 'error');
+                ws.onclose = () => {};
+
+                const blob = new Blob([audioWorkletCode], { type: 'application/javascript' });
+                const workletUrl = URL.createObjectURL(blob);
+
+                try {
+                    await audioContext.audioWorklet.addModule(workletUrl);
+                } catch (error) {
+                    await startRecordingFallback();
+                    return;
+                } finally {
+                    URL.revokeObjectURL(workletUrl);
+                }
+
+                audioWorkletNode = new AudioWorkletNode(audioContext, 'audio-stream-processor');
+
+                audioWorkletNode.port.onmessage = (event) => {
+                    if (event.data.type === 'audio' && ws && ws.readyState === WebSocket.OPEN) {
+                        const float32Buffer = event.data.buffer;
+                        const int16Buffer = new Int16Array(float32Buffer.length);
+
+                        for (let i = 0; i < float32Buffer.length; i++) {
+                            const sample = Math.max(-1, Math.min(1, float32Buffer[i]));
+                            int16Buffer[i] = Math.round(sample * 32767);
+                        }
+
+                        const arrayBuffer = int16Buffer.buffer;
+                        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        ws.send(JSON.stringify({ type: 'audio', data: base64Audio }));
+
+                        // Note: Backend will calculate and send metrics via WebSocket
+                    }
+                };
+
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(audioWorkletNode);
+                audioWorkletNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                document.getElementById('startRecordingBtn').disabled = true;
+                document.getElementById('stopRecordingBtn').disabled = false;
+
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                setStatus('Mic error', 'error');
+            }
+        }
+
+        // Fallback for browsers without AudioWorklet
+        async function startRecordingFallback() {
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            processor.onaudioprocess = (event) => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                const float32Buffer = event.inputBuffer.getChannelData(0);
+                const int16Buffer = new Int16Array(float32Buffer.length);
+
+                for (let i = 0; i < float32Buffer.length; i++) {
+                    const sample = Math.max(-1, Math.min(1, float32Buffer[i]));
+                    int16Buffer[i] = Math.round(sample * 32767);
+                }
+
+                const arrayBuffer = int16Buffer.buffer;
+                const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                ws.send(JSON.stringify({ type: 'audio', data: base64Audio }));
+
+                // Note: Backend will calculate and send metrics via WebSocket
+            };
+
+            source.connect(processor);
+            processor.connect(analyser);
+            analyser.connect(audioContext.destination);
+            audioWorkletNode = processor;
+        }
+
+        // Stop recording
+        function stopRecording() {
+            // Clear pause detection timer
+            if (pauseTimer) {
+                clearTimeout(pauseTimer);
+                pauseTimer = null;
+            }
+
+            // Reset accumulated text (Frontend mode)
+            accumulatedInterimText = '';
+            lastInterimTime = 0;
+
+            // Reset backend accumulation tracking
+            lastBackendTranscriptionTime = 0;
+            currentBackendEntry = null;
+
+            // Reset audio metrics
+            currentRMS = 0;
+            currentMaxAmplitude = 0;
+            currentBufferSize = 0;
+            updateAudioMetrics();
+
+            // Reset pause tracking
+            pauseStartTime = null;
+            currentPauseDuration = 0;
+            lastPauseDuration = 0;
+            isSpeechActive = false;
+            updatePauseCounter();
+
+            // Stop Web Speech API if active
+            if (recognition) {
+                isRecognitionActive = false;
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error('Error stopping recognition:', e);
+                }
+                recognition = null;
+            }
+
+            // Stop media stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            // Close WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // Close audio context
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            // Stop animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            audioWorkletNode = null;
+            analyser = null;
+
+            document.getElementById('startRecordingBtn').disabled = false;
+            document.getElementById('stopRecordingBtn').disabled = true;
+            setStatus('Ready', 'ready');
+        }
+
+        // Setup visualizer
+        function setupVisualizer() {
+            const canvas = document.getElementById('visualizerCanvas');
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.offsetWidth * 2;
+                canvas.height = canvas.offsetHeight * 2;
+            });
+        }
+
+        // Visualize audio
+        function visualize() {
+            if (!analyser) return;
+
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const timeDataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteTimeDomainData(dataArray);
+                analyser.getByteTimeDomainData(timeDataArray);
+
+                // Calculate metrics from analyser data for Frontend mode
+                const mode = document.getElementById('transcriptionMode').value;
+                if (mode === 'frontend') {
+                    calculateMetricsFromAnalyser(timeDataArray);
+                }
+
+                ctx.fillStyle = '#141416';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw waveform
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#22d3ee';
+                ctx.beginPath();
+
+                const sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * canvas.height / 2;
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+
+                // Draw threshold lines
+                drawThresholdLines(ctx, canvas);
+            }
+
+            draw();
+        }
+
+        // Calculate audio metrics from analyser data (for Frontend mode)
+        function calculateMetricsFromAnalyser(dataArray) {
+            // Convert Uint8 (0-255) to Int16 (-32768 to 32767)
+            let sumSquares = 0;
+            let maxAmp = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                // Convert from 0-255 range to -128 to 127
+                const sample = (dataArray[i] - 128);
+                // Scale to Int16 range
+                const int16Value = sample * 256;
+
+                const absValue = Math.abs(int16Value);
+                sumSquares += int16Value * int16Value;
+                maxAmp = Math.max(maxAmp, absValue);
+            }
+
+            currentRMS = Math.sqrt(sumSquares / dataArray.length);
+            currentMaxAmplitude = maxAmp;
+
+            updateAudioMetrics();
+        }
+
+        // Draw threshold lines on visualizer
+        function drawThresholdLines(ctx, canvas) {
+            const mode = document.getElementById('transcriptionMode').value;
+
+            // Only show for backend mode
+            if (mode !== 'backend') return;
+
+            // Get current thresholds
+            const minRms = parseFloat(document.getElementById('min_rms_16k').value);
+            const maxAmpSilence = parseFloat(document.getElementById('max_amplitude_silence').value);
+
+            // Draw RMS threshold line (very subtle)
+            const rmsY = canvas.height - (currentRMS / 1000) * canvas.height;
+            ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, rmsY);
+            ctx.lineTo(canvas.width, rmsY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Update audio metrics display
+        function updateAudioMetrics() {
+            const mode = document.getElementById('transcriptionMode').value;
+
+            // Get current thresholds
+            const minRms8k = parseFloat(document.getElementById('min_rms_8k').value);
+            const minRms16k = parseFloat(document.getElementById('min_rms_16k').value);
+            const maxAmpSilence = parseFloat(document.getElementById('max_amplitude_silence').value);
+            const minBytes16k = parseInt(document.getElementById('min_bytes_16k').value);
+
+            // Use 16kHz thresholds (browser audio is 16kHz)
+            const currentMinRms = minRms16k;
+            const currentMinBytes = minBytes16k;
+
+            // Update RMS display
+            const rmsNumber = document.getElementById('rmsNumber');
+            const rmsValue = document.getElementById('rmsValue');
+            const rmsThreshold = document.getElementById('rmsThreshold');
+
+            rmsNumber.textContent = Math.round(currentRMS);
+            rmsThreshold.textContent = `Threshold: ${currentMinRms}`;
+
+            // Color code based on threshold
+            if (currentRMS >= currentMinRms) {
+                rmsValue.className = 'metric-value pass';
+            } else {
+                rmsValue.className = 'metric-value fail';
+            }
+
+            // Update amplitude display
+            const amplitudeNumber = document.getElementById('amplitudeNumber');
+            const amplitudeValue = document.getElementById('amplitudeValue');
+            const amplitudeThreshold = document.getElementById('amplitudeThreshold');
+
+            amplitudeNumber.textContent = Math.round(currentMaxAmplitude);
+            amplitudeThreshold.textContent = `Threshold: ${maxAmpSilence}`;
+
+            if (currentMaxAmplitude >= maxAmpSilence) {
+                amplitudeValue.className = 'metric-value pass';
+            } else {
+                amplitudeValue.className = 'metric-value fail';
+            }
+
+            // Update buffer size display
+            const bufferNumber = document.getElementById('bufferNumber');
+            const bufferValue = document.getElementById('bufferValue');
+            const bufferThreshold = document.getElementById('bufferThreshold');
+
+            bufferNumber.textContent = currentBufferSize.toLocaleString();
+            bufferThreshold.textContent = `Target: ${currentMinBytes.toLocaleString()}`;
+
+            if (currentBufferSize >= currentMinBytes) {
+                bufferValue.className = 'metric-value pass';
+            } else {
+                bufferValue.className = 'metric-value';
+            }
+
+            // Update detection badge
+            const detectionBadge = document.getElementById('detectionBadge');
+            const detectionText = document.getElementById('detectionText');
+
+            // Speech detected if BOTH RMS and amplitude pass thresholds
+            const isSpeech = currentRMS >= currentMinRms && currentMaxAmplitude >= maxAmpSilence;
+
+            if (isSpeech) {
+                detectionBadge.className = 'detection-badge speech';
+                detectionText.textContent = 'SPEECH DETECTED';
+
+                // Speech detected - track transition from silence to speech
+                if (!isSpeechActive) {
+                    // Transition: silence → speech
+                    if (pauseStartTime !== null) {
+                        // Save the last pause duration
+                        lastPauseDuration = Date.now() - pauseStartTime;
+                    }
+                    pauseStartTime = null;
+                    isSpeechActive = true;
+                }
+            } else {
+                detectionBadge.className = 'detection-badge silence';
+
+                // Show reason for silence detection
+                if (currentRMS < currentMinRms && currentMaxAmplitude < maxAmpSilence) {
+                    detectionText.textContent = 'SILENCE (RMS + AMP)';
+                } else if (currentRMS < currentMinRms) {
+                    detectionText.textContent = 'SILENCE (RMS LOW)';
+                } else if (currentMaxAmplitude < maxAmpSilence) {
+                    detectionText.textContent = 'SILENCE (AMP LOW)';
+                } else {
+                    detectionText.textContent = 'SILENCE';
+                }
+
+                // Silence detected - start/continue pause tracking
+                if (isSpeechActive) {
+                    // Transition: speech → silence
+                    pauseStartTime = Date.now();
+                    isSpeechActive = false;
+                }
+            }
+
+            // Update pause counter
+            updatePauseCounter();
+        }
+
+        // Update pause counter display
+        function updatePauseCounter() {
+            const pauseNumber = document.getElementById('pauseNumber');
+            const pauseInfo = document.getElementById('pauseInfo');
+
+            // Get thresholds
+            const minSilenceDuration = parseInt(document.getElementById('vad_min_silence_duration_ms').value);
+            const backendSegmentPause = parseInt(document.getElementById('backend_segment_pause').value);
+
+            let displayDuration = 0;
+            let statusText = '';
+
+            if (pauseStartTime !== null) {
+                // Currently in a pause - calculate current duration
+                displayDuration = Date.now() - pauseStartTime;
+                statusText = 'Current pause';
+            } else if (lastPauseDuration > 0) {
+                // Show last pause duration
+                displayDuration = lastPauseDuration;
+                statusText = 'Last pause';
+            } else {
+                // No pause yet
+                displayDuration = 0;
+                statusText = 'Waiting...';
+            }
+
+            // Update display
+            pauseNumber.textContent = Math.round(displayDuration);
+            pauseInfo.textContent = statusText;
+
+            // Apply size class based on thresholds
+            pauseNumber.className = '';
+
+            if (displayDuration === 0) {
+                pauseNumber.classList.add('pause-size-none');
+            } else if (displayDuration < minSilenceDuration) {
+                pauseNumber.classList.add('pause-size-small');
+            } else if (displayDuration < backendSegmentPause) {
+                pauseNumber.classList.add('pause-size-medium');
+            } else {
+                pauseNumber.classList.add('pause-size-large');
+            }
+        }
+
+        // Add transcription
+        function addTranscription(text, timestamp, confidence = null) {
+            const area = document.getElementById('transcriptionArea');
+
+            if (area.querySelector('.transcription-empty')) {
+                area.innerHTML = '';
+            }
+
+            const entry = document.createElement('div');
+            entry.className = 'transcription-entry';
+
+            const time = document.createElement('div');
+            time.className = 'transcription-time';
+            let timeText = new Date(timestamp).toLocaleTimeString();
+
+            // Add confidence if provided
+            if (confidence !== null && confidence !== undefined) {
+                const confidencePercent = Math.round(confidence * 100);
+                timeText += ` • Confidence: ${confidencePercent}%`;
+            }
+
+            time.textContent = timeText;
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'transcription-text';
+            textDiv.textContent = text;
+
+            entry.appendChild(time);
+            entry.appendChild(textDiv);
+            area.insertBefore(entry, area.firstChild);
+            area.scrollTop = 0;
+        }
+
+        // Append text to existing backend transcription entry
+        function appendToBackendEntry(text) {
+            if (!currentBackendEntry) {
+                console.error('No current backend entry to append to');
+                return;
+            }
+
+            const textDiv = currentBackendEntry.querySelector('.transcription-text');
+            if (textDiv) {
+                // Add a space before appending if text doesn't end with punctuation
+                const currentText = textDiv.textContent;
+                const needsSpace = currentText.length > 0 &&
+                                    !currentText.match(/[.!?,;:\s]$/);
+
+                textDiv.textContent = currentText + (needsSpace ? ' ' : '') + text;
+                console.log('✅ Text appended:', text);
+            }
+        }
+
+        // Update interim transcription (streaming text as it's recognized)
+        function updateInterimTranscription(text) {
+            const area = document.getElementById('transcriptionArea');
+
+            // Remove empty state if present
+            if (area.querySelector('.transcription-empty')) {
+                area.innerHTML = '';
+            }
+
+            // Get or create interim element
+            if (!currentInterimElement) {
+                currentInterimElement = document.createElement('div');
+                currentInterimElement.className = 'transcription-entry interim';
+                currentInterimElement.id = 'interim-transcription';
+
+                const time = document.createElement('div');
+                time.className = 'transcription-time interim';
+                time.textContent = 'Listening...';
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'transcription-text interim';
+                textDiv.id = 'interim-text';
+
+                currentInterimElement.appendChild(time);
+                currentInterimElement.appendChild(textDiv);
+                area.insertBefore(currentInterimElement, area.firstChild);
+            }
+
+            // Update interim text
+            const interimTextElement = document.getElementById('interim-text');
+            if (interimTextElement) {
+                interimTextElement.textContent = text;
+            }
+        }
+
+        // Clear transcriptions
+        function clearTranscriptions() {
+            // Remove interim element if exists (Frontend mode)
+            if (currentInterimElement) {
+                currentInterimElement.remove();
+                currentInterimElement = null;
+            }
+
+            // Reset backend tracking
+            lastBackendTranscriptionTime = 0;
+            currentBackendEntry = null;
+
+            // Reset pause tracking
+            lastPauseDuration = 0;
+            updatePauseCounter();
+
+            document.getElementById('transcriptionArea').innerHTML = `
+                <div class="transcription-empty">
+                    <div class="transcription-empty-icon">🎤</div>
+                    <div class="transcription-empty-text">Transcriptions will appear here</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

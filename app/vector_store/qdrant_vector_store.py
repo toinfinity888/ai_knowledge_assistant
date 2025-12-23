@@ -11,11 +11,15 @@ class QdrantVectorStore(BaseVectorStore):
         self.settings = settings
         self.collection_name = settings.collection_name
 
+        # Build proper URL for Qdrant Cloud
+        if settings.https:
+            url = f"https://{settings.host}:{settings.port}"
+        else:
+            url = f"http://{settings.host}:{settings.port}"
+
         self.client = QdrantClient(
-                url=settings.host,
-                port=settings.port,
+                url=url,
                 api_key=settings.api_key,
-                https=settings.https,
         )
 
         self._init_collection()

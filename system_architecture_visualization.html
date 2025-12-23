@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Assistant - System Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #f7fafc;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #edf2f7;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .flow-diagram {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .component {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 200px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border-left: 5px solid;
+        }
+
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .component.frontend { border-color: #3b82f6; }
+        .component.backend { border-color: #10b981; }
+        .component.service { border-color: #f59e0b; }
+        .component.ai { border-color: #8b5cf6; }
+        .component.database { border-color: #ec4899; }
+        .component.external { border-color: #6366f1; }
+
+        .component h3 {
+            margin-bottom: 10px;
+            color: #1a202c;
+            font-size: 1.1em;
+        }
+
+        .component .type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .component.frontend .type { background: #dbeafe; color: #1e40af; }
+        .component.backend .type { background: #d1fae5; color: #065f46; }
+        .component.service .type { background: #fed7aa; color: #92400e; }
+        .component.ai .type { background: #ede9fe; color: #5b21b6; }
+        .component.database .type { background: #fce7f3; color: #9f1239; }
+        .component.external .type { background: #e0e7ff; color: #3730a3; }
+
+        .component p {
+            color: #4a5568;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .component .tech {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.85em;
+            color: #718096;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #cbd5e0;
+            flex-shrink: 0;
+        }
+
+        .arrow.down {
+            writing-mode: vertical-lr;
+            text-align: center;
+        }
+
+        .data-flow {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .data-flow h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .data-flow code {
+            background: #fef3c7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .sequence-diagram {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .sequence-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .sequence-step:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .step-content p {
+            color: #4a5568;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .step-content .actors {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #718096;
+        }
+
+        .api-reference {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .api-endpoint {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .api-endpoint .method {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 0.85em;
+        }
+
+        .method.GET { background: #10b981; color: white; }
+        .method.POST { background: #3b82f6; color: white; }
+        .method.WS { background: #8b5cf6; color: white; }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .endpoint-desc {
+            color: #4a5568;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .params {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .params dt {
+            font-weight: 600;
+            color: #2d3748;
+            margin-top: 5px;
+        }
+
+        .params dd {
+            color: #4a5568;
+            margin-left: 20px;
+            font-size: 0.9em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .note h4 {
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+
+        .note p {
+            color: #1e40af;
+            font-size: 0.9em;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .warning h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1200px) {
+            .flow-row {
+                flex-direction: column;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Knowledge Assistant</h1>
+        <p class="subtitle">Real-time Transcription & Support System Architecture</p>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">📊 System Overview</button>
+            <button class="tab" onclick="showTab('code-graph')">🕸️ Code Graph</button>
+            <button class="tab" onclick="showTab('individual-flows')">👥 Individual Flows</button>
+            <button class="tab" onclick="showTab('audio-flow')">🎤 Audio Flow</button>
+            <button class="tab" onclick="showTab('transcription')">📝 Transcription Pipeline</button>
+            <button class="tab" onclick="showTab('agents')">🤖 AI Agents</button>
+            <button class="tab" onclick="showTab('api')">🔌 API Reference</button>
+            <button class="tab" onclick="showTab('data-models')">💾 Data Models</button>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div id="overview" class="tab-content active">
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>Frontend</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    <span>Backend</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f59e0b;"></div>
+                    <span>Service</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8b5cf6;"></div>
+                    <span>AI/ML</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ec4899;"></div>
+                    <span>Database</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #6366f1;"></div>
+                    <span>External API</span>
+                </div>
+            </div>
+
+            <div class="flow-diagram">
+                <h2 style="margin-bottom: 30px; color: #2d3748;">High-Level System Architecture</h2>
+
+                <div class="flow-row">
+                    <div class="component frontend">
+                        <span class="type">Frontend</span>
+                        <h3>Browser Interface</h3>
+                        <p><strong>File:</strong> technician_support.html</p>
+                        <p>Support agent's web interface with audio capture, real-time transcription display, and AI suggestions.</p>
+                        <div class="tech">
+                            <strong>Tech:</strong> JavaScript, WebRTC MediaStream API, WebSocket
+                        </div>
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="component backend">
+                        <span class="type">Backend</span>
+                        <h3>Flask Application</h3>
+                        <p><strong>File:</strong> main.py</p>
+                        <p>Main application server handling HTTP requests and WebSocket connections.</p>
+                        <div class="tech">
+                            <strong>Tech:</strong> Flask, Flask-Sock, SQLAlchemy
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <span class="arrow down">↓</span>
+                </div>
+
+                <div class="flow-row">
+                    <div class="component external">
+                        <span class="type">External</span>
+                        <h3>Twilio Voice API</h3>
+                        <p>Phone call infrastructure (8kHz mulaw → 16kHz PCM) for technician audio stream.</p>
+                        <div class="tech">
+                            <strong>Tech:</strong> Twilio Media Streams, TwiML
+                        </div>
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="component service">
+                        <span class="type">Service</span>
+                        <h3>Audio Service</h3>
+                        <p><strong>File:</strong> twilio_audio_service.py</p>
+                        <p>Manages bidirectional audio streaming for both agent (browser) and technician (phone).</p>
+                        <div class="tech">
+                            <strong>Handles:</strong> Separate buffers per speaker, audio format conversion
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <span class="arrow down">↓</span>
+                </div>
+
+                <div class="flow-row">
+                    <div class="component service">
+                        <span class="type">Service</span>
+                        <h3>Enhanced Transcription Service</h3>
+                        <p><strong>File:</strong> enhanced_transcription_service.py</p>
+                        <p>Speaker-specific audio buffering, VAD, and Whisper API integration.</p>
+                        <div class="tech">
+                            <strong>Features:</strong> 0.5s initial skip, RMS-based speech detection, separate buffers
+                        </div>
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="component service">
+                        <span class="type">Service</span>
+                        <h3>Speaker Diarization</h3>
+                        <p><strong>File:</strong> speaker_diarization_service.py</p>
+                        <p>Voice Activity Detection with speaker-specific RMS thresholds (Agent: 200, Technician: 100).</p>
+                        <div class="tech">
+                            <strong>Features:</strong> VAD, silence detection, quality gating
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <span class="arrow down">↓</span>
+                </div>
+
+                <div class="flow-row">
+                    <div class="component external">
+                        <span class="type">External API</span>
+                        <h3>OpenAI Whisper API</h3>
+                        <p>Speech-to-text transcription with hallucination prevention (prompt + temperature=0.0).</p>
+                        <div class="tech">
+                            <strong>Model:</strong> whisper-1, Language: French
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <span class="arrow down">↓</span>
+                </div>
+
+                <div class="flow-row">
+                    <div class="component ai">
+                        <span class="type">AI Pipeline</span>
+                        <h3>Agent Orchestrator</h3>
+                        <p><strong>File:</strong> agent_orchestrator.py</p>
+                        <p>Coordinates AI agents to analyze technician speech and generate support suggestions.</p>
+                        <div class="tech">
+                            <strong>Processes:</strong> Context analysis, query formulation, clarification
+                        </div>
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="component ai">
+                        <span class="type">AI/RAG</span>
+                        <h3>RAG Engine</h3>
+                        <p><strong>File:</strong> rag_engine.py</p>
+                        <p>Retrieval-Augmented Generation using Qdrant vector database for knowledge retrieval.</p>
+                        <div class="tech">
+                            <strong>Tech:</strong> Qdrant, embeddings, semantic search
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <span class="arrow down">↓</span>
+                </div>
+
+                <div class="flow-row">
+                    <div class="component database">
+                        <span class="type">Database</span>
+                        <h3>PostgreSQL</h3>
+                        <p>Stores call sessions, transcriptions, and conversation history.</p>
+                        <div class="tech">
+                            <strong>Tables:</strong> call_sessions, transcription_segments
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <h4>🔑 Key Design Principles</h4>
+                <p><strong>1. Speaker Isolation:</strong> Separate audio buffers (session_id_agent, session_id_technician) prevent interference<br>
+                <strong>2. Adaptive Thresholds:</strong> Agent (200 RMS) vs Technician (100 RMS) accommodate different audio sources<br>
+                <strong>3. Hallucination Prevention:</strong> Multi-layer approach (0.5s skip, RMS gates, Whisper prompt, temperature=0.0)<br>
+                <strong>4. Bidirectional Communication:</strong> WebSocket sends transcriptions back to UI in real-time</p>
+            </div>
+        </div>
+
+        <!-- CODE GRAPH TAB -->
+        <div id="code-graph" class="tab-content">
+            <h2 style="margin-bottom: 20px; color: #2d3748;">Interactive Code Graph</h2>
+
+            <div class="note">
+                <h4>🕸️ How to Use</h4>
+                <p>
+                    <strong>• Drag nodes</strong> to rearrange the graph<br>
+                    <strong>• Hover over nodes</strong> to see function details<br>
+                    <strong>• Click nodes</strong> to highlight their connections<br>
+                    <strong>• Zoom</strong> with mouse wheel<br>
+                    <strong>• Pan</strong> by dragging empty space
+                </p>
+            </div>
+
+            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 28px; height: 28px; background: #ef4444; border-radius: 50%; border: 3px solid #fbbf24; box-shadow: 0 0 8px #fbbf24;"></div>
+                        <span><strong>👤 Users (Start)</strong></span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #3b82f6; border-radius: 50%;"></div>
+                        <span>Frontend</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #10b981; border-radius: 50%;"></div>
+                        <span>Backend/Routes</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #f59e0b; border-radius: 50%;"></div>
+                        <span>Services</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #8b5cf6; border-radius: 50%;"></div>
+                        <span>AI/ML</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #6366f1; border-radius: 50%;"></div>
+                        <span>External API</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="graph-container" style="width: 100%; height: 900px; background: white; border-radius: 12px; border: 2px solid #e2e8f0; position: relative; overflow: hidden;">
+                <div id="tooltip" style="position: absolute; display: none; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; font-size: 13px; pointer-events: none; z-index: 1000; max-width: 350px; line-height: 1.5;"></div>
+                <svg id="graph-svg" width="100%" height="100%"></svg>
+            </div>
+        </div>
+
+        <!-- INDIVIDUAL FLOWS TAB -->
+        <div id="individual-flows" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">👥 Individual Flow Processes - Agent vs Technician</h2>
+
+            <div class="note" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                <strong>📌 Overview:</strong> This diagram shows how audio from each participant (Agent and Technician) flows through separate, parallel processing pipelines with speaker-specific optimizations.
+            </div>
+
+            <!-- AGENT FLOW -->
+            <div class="flow-diagram" style="border: 3px solid #3b82f6; background: linear-gradient(135deg, #ebf4ff 0%, #e0f2fe 100%);">
+                <h3 style="color: #1e40af; margin-bottom: 25px; font-size: 24px;">
+                    <span style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; display: inline-block; margin-right: 10px;">👨‍💼 AGENT</span>
+                    Browser-Based Audio Processing
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Step 1: Audio Capture -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">1</div>
+                        <h4 style="color: #1e40af; margin-bottom: 10px;">🎤 Audio Capture</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Source:</strong> Agent's browser microphone<br>
+                            <strong>Method:</strong> <code>getUserMedia()</code><br>
+                            <strong>Format:</strong> Float32 PCM at native sample rate<br>
+                            <strong>Settings:</strong> Echo cancellation, noise suppression enabled
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                            📍 <code>technician_support.html:1506</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Gain Amplification -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">2</div>
+                        <h4 style="color: #1e40af; margin-bottom: 10px;">📈 Gain Amplification</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Boost:</strong> 2.5x gain applied<br>
+                            <strong>Conversion:</strong> Float32 → Int16<br>
+                            <strong>Reason:</strong> Compensate for low browser microphone levels<br>
+                            <strong>Clipping:</strong> Values clamped to [-1, 1]
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                            📍 <code>technician_support.html:1565</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: WebSocket Streaming -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">3</div>
+                        <h4 style="color: #1e40af; margin-bottom: 10px;">🌐 WebSocket Stream</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Endpoint:</strong> <code>/twilio/agent-audio-stream/{session_id}</code><br>
+                            <strong>Data:</strong> Binary Int16 PCM chunks<br>
+                            <strong>Bidirectional:</strong> Sends audio, receives transcriptions<br>
+                            <strong>Protocol:</strong> WebSocket
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                            📍 <code>twilio_routes.py:598</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Buffer Management -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">4</div>
+                        <h4 style="color: #1e40af; margin-bottom: 10px;">🗃️ Buffer (Agent-Specific)</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Buffer Key:</strong> <code>session_123_agent</code><br>
+                            <strong>Isolation:</strong> Separate from technician buffer<br>
+                            <strong>Initial Skip:</strong> First 500ms discarded<br>
+                            <strong>Accumulation:</strong> Until speech end detected
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                            📍 <code>enhanced_transcription_service.py:215</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: RMS Threshold -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #f59e0b; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">5</div>
+                        <h4 style="color: #d97706; margin-bottom: 10px;">📊 RMS Quality Gate</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Agent Threshold:</strong> <span style="color: #f59e0b; font-weight: bold;">RMS ≥ 200</span><br>
+                            <strong>Purpose:</strong> Filter browser background noise<br>
+                            <strong>Higher than Technician:</strong> Browser has more ambient noise<br>
+                            <strong>Result:</strong> Only clear speech passes
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 6px; font-size: 12px; color: #d97706;">
+                            ⚙️ <strong>AGENT-SPECIFIC SETTING</strong>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: VAD -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #3b82f6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">6</div>
+                        <h4 style="color: #1e40af; margin-bottom: 10px;">🔊 Voice Activity Detection</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Monitors:</strong> Speech vs silence<br>
+                            <strong>Segment Trigger:</strong> 0.5s continuous silence<br>
+                            <strong>States:</strong> WAITING → SPEAKING → SILENCE<br>
+                            <strong>Shared Logic:</strong> Same VAD for both speakers
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                            📍 <code>enhanced_transcription_service.py:320</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: Whisper Transcription -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #8b5cf6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #8b5cf6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">7</div>
+                        <h4 style="color: #7c3aed; margin-bottom: 10px;">🤖 Whisper API Transcription</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Service:</strong> OpenAI Whisper API<br>
+                            <strong>Temperature:</strong> 0.0 (deterministic)<br>
+                            <strong>Anti-hallucination:</strong> Prompt filters silence<br>
+                            <strong>Format:</strong> WAV 16kHz mono
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #ede9fe; border-radius: 6px; font-size: 12px; color: #7c3aed;">
+                            📍 <code>enhanced_transcription_service.py:455</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 8: Send to UI -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">8</div>
+                        <h4 style="color: #059669; margin-bottom: 10px;">📤 Send to UI</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Via:</strong> Same WebSocket connection<br>
+                            <strong>Speaker Label:</strong> "Agent"<br>
+                            <strong>JSON Format:</strong> <code>{type, text, speaker_label, timestamp}</code><br>
+                            <strong>Display:</strong> Real-time in transcript panel
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #059669;">
+                            📍 <code>twilio_audio_service.py:310-324</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #3b82f6; color: white; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; font-weight: bold;">
+                    ⚡ AGENT FLOW COMPLETE: Browser → Gain Boost → WebSocket → Buffer (agent) → RMS ≥ 200 → VAD → Whisper → UI
+                </div>
+            </div>
+
+            <div style="height: 40px;"></div>
+
+            <!-- TECHNICIAN FLOW -->
+            <div class="flow-diagram" style="border: 3px solid #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
+                <h3 style="color: #065f46; margin-bottom: 25px; font-size: 24px;">
+                    <span style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; display: inline-block; margin-right: 10px;">👷 TECHNICIAN</span>
+                    Phone-Based Audio Processing
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Step 1: Phone Call -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">1</div>
+                        <h4 style="color: #065f46; margin-bottom: 10px;">📞 Phone Call</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Source:</strong> Technician's phone (PSTN/VoIP)<br>
+                            <strong>Network:</strong> Twilio telephony infrastructure<br>
+                            <strong>Format:</strong> 8kHz mulaw-encoded audio<br>
+                            <strong>Quality:</strong> Telephone-grade (narrowband)
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <strong>Twilio Platform</strong>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Media Stream -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">2</div>
+                        <h4 style="color: #065f46; margin-bottom: 10px;">🌊 Twilio Media Stream</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Endpoint:</strong> <code>/twilio/media-stream</code><br>
+                            <strong>Protocol:</strong> WebSocket (server-side)<br>
+                            <strong>Data:</strong> Base64-encoded mulaw packets<br>
+                            <strong>Chunk Size:</strong> 160 bytes (20ms audio)
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <code>twilio_routes.py:448</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Decode & Resample -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">3</div>
+                        <h4 style="color: #065f46; margin-bottom: 10px;">🔄 Decode & Resample</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Step 1:</strong> Base64 decode → mulaw bytes<br>
+                            <strong>Step 2:</strong> Mulaw decode → 16-bit PCM<br>
+                            <strong>Step 3:</strong> Resample 8kHz → 16kHz<br>
+                            <strong>Output:</strong> 320 samples per 20ms chunk
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <code>twilio_audio_service.py:165</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Buffer Management -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">4</div>
+                        <h4 style="color: #065f46; margin-bottom: 10px;">🗃️ Buffer (Technician-Specific)</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Buffer Key:</strong> <code>session_123_technician</code><br>
+                            <strong>Isolation:</strong> Separate from agent buffer<br>
+                            <strong>Initial Skip:</strong> First 500ms discarded<br>
+                            <strong>Accumulation:</strong> Until speech end detected
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <code>enhanced_transcription_service.py:215</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: RMS Threshold -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #f59e0b; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">5</div>
+                        <h4 style="color: #d97706; margin-bottom: 10px;">📊 RMS Quality Gate</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Technician Threshold:</strong> <span style="color: #10b981; font-weight: bold;">RMS ≥ 100</span><br>
+                            <strong>Purpose:</strong> Filter phone line noise<br>
+                            <strong>Lower than Agent:</strong> Phone audio is cleaner<br>
+                            <strong>Result:</strong> More sensitive to speech
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 6px; font-size: 12px; color: #d97706;">
+                            ⚙️ <strong>TECHNICIAN-SPECIFIC SETTING</strong>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: VAD -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">6</div>
+                        <h4 style="color: #065f46; margin-bottom: 10px;">🔊 Voice Activity Detection</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Monitors:</strong> Speech vs silence<br>
+                            <strong>Segment Trigger:</strong> 0.5s continuous silence<br>
+                            <strong>States:</strong> WAITING → SPEAKING → SILENCE<br>
+                            <strong>Shared Logic:</strong> Same VAD for both speakers
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <code>enhanced_transcription_service.py:320</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: Whisper Transcription -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #8b5cf6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #8b5cf6; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">7</div>
+                        <h4 style="color: #7c3aed; margin-bottom: 10px;">🤖 Whisper API Transcription</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Service:</strong> OpenAI Whisper API<br>
+                            <strong>Temperature:</strong> 0.0 (deterministic)<br>
+                            <strong>Anti-hallucination:</strong> Prompt filters silence<br>
+                            <strong>Format:</strong> WAV 16kHz mono
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #ede9fe; border-radius: 6px; font-size: 12px; color: #7c3aed;">
+                            📍 <code>enhanced_transcription_service.py:455</code>
+                        </div>
+                    </div>
+
+                    <!-- Step 8: Send to UI -->
+                    <div style="background: white; border-radius: 10px; padding: 20px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px;">8</div>
+                        <h4 style="color: #059669; margin-bottom: 10px;">📤 Send to Agent's UI</h4>
+                        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+                            <strong>Via:</strong> Agent's WebSocket connection<br>
+                            <strong>Speaker Label:</strong> "Technician" / "Customer"<br>
+                            <strong>JSON Format:</strong> <code>{type, text, speaker_label, timestamp}</code><br>
+                            <strong>Display:</strong> Real-time in transcript panel
+                        </p>
+                        <div style="margin-top: 10px; padding: 8px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                            📍 <code>twilio_audio_service.py:226-239</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #10b981; color: white; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; font-weight: bold;">
+                    ⚡ TECHNICIAN FLOW COMPLETE: Phone → Twilio → Decode/Resample → Buffer (technician) → RMS ≥ 100 → VAD → Whisper → Agent's UI
+                </div>
+            </div>
+
+            <div style="height: 40px;"></div>
+
+            <!-- KEY DIFFERENCES -->
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 3px solid #f59e0b; border-radius: 15px; padding: 30px;">
+                <h3 style="color: #92400e; margin-bottom: 20px; font-size: 22px;">🔑 Key Differences Between Agent & Technician Flows</h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #3b82f6;">
+                        <h4 style="color: #1e40af; margin-bottom: 15px;">👨‍💼 Agent (Browser)</h4>
+                        <ul style="list-style: none; padding: 0; font-size: 14px; line-height: 2;">
+                            <li>✅ <strong>Input:</strong> Browser microphone (WebRTC)</li>
+                            <li>✅ <strong>Sample Rate:</strong> Native (typically 48kHz) → 16kHz</li>
+                            <li>✅ <strong>Encoding:</strong> Float32 → Int16 with 2.5x gain</li>
+                            <li>✅ <strong>Transport:</strong> WebSocket <code>/agent-audio-stream</code></li>
+                            <li>✅ <strong>Buffer Key:</strong> <code>session_XXX_agent</code></li>
+                            <li>✅ <strong>RMS Threshold:</strong> <span style="color: #f59e0b; font-weight: bold;">200</span> (higher - more noise)</li>
+                            <li>✅ <strong>Gain Boost:</strong> Yes (2.5x)</li>
+                            <li>✅ <strong>WebSocket:</strong> Bidirectional (send audio + receive transcriptions)</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #10b981;">
+                        <h4 style="color: #065f46; margin-bottom: 15px;">👷 Technician (Phone)</h4>
+                        <ul style="list-style: none; padding: 0; font-size: 14px; line-height: 2;">
+                            <li>✅ <strong>Input:</strong> Phone call via Twilio (PSTN/VoIP)</li>
+                            <li>✅ <strong>Sample Rate:</strong> 8kHz mulaw → 16kHz PCM</li>
+                            <li>✅ <strong>Encoding:</strong> Mulaw decode + resample</li>
+                            <li>✅ <strong>Transport:</strong> Twilio Media Stream <code>/media-stream</code></li>
+                            <li>✅ <strong>Buffer Key:</strong> <code>session_XXX_technician</code></li>
+                            <li>✅ <strong>RMS Threshold:</strong> <span style="color: #10b981; font-weight: bold;">100</span> (lower - cleaner phone audio)</li>
+                            <li>✅ <strong>Gain Boost:</strong> No (phone audio already normalized)</li>
+                            <li>✅ <strong>WebSocket:</strong> Unidirectional (receive only, transcriptions sent to agent's WS)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; background: #92400e; color: white; padding: 20px; border-radius: 10px;">
+                    <h4 style="margin-bottom: 15px; font-size: 18px;">⚙️ Why Different RMS Thresholds?</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px; line-height: 1.8;">
+                        <div>
+                            <strong>Agent (RMS ≥ 200):</strong><br>
+                            • Browser microphones pick up keyboard typing, mouse clicks, fan noise<br>
+                            • Background conversations in office<br>
+                            • Need higher threshold to avoid false positives<br>
+                            • Applied AFTER 2.5x gain boost
+                        </div>
+                        <div>
+                            <strong>Technician (RMS ≥ 100):</strong><br>
+                            • Phone audio is pre-filtered by carrier<br>
+                            • Telephony systems already apply noise reduction<br>
+                            • Lower threshold ensures we don't miss quiet speech<br>
+                            • No gain boost needed
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 40px;"></div>
+
+            <!-- PARALLEL PROCESSING -->
+            <div style="background: white; border: 3px solid #8b5cf6; border-radius: 15px; padding: 30px;">
+                <h3 style="color: #7c3aed; margin-bottom: 20px; font-size: 22px;">⚡ Parallel & Independent Processing</h3>
+
+                <div style="display: flex; gap: 20px; align-items: center; justify-content: center; margin: 30px 0;">
+                    <div style="flex: 1; text-align: center;">
+                        <div style="background: #3b82f6; color: white; padding: 20px; border-radius: 10px; font-size: 18px; font-weight: bold;">
+                            👨‍💼 Agent Audio
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Buffer: <code>agent</code><br>
+                            RMS ≥ 200
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #ede9fe; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Whisper API
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #d1fae5; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Transcription<br>
+                            Speaker: "Agent"
+                        </div>
+                    </div>
+
+                    <div style="font-size: 48px; color: #8b5cf6;">⚡</div>
+
+                    <div style="flex: 1; text-align: center;">
+                        <div style="background: #10b981; color: white; padding: 20px; border-radius: 10px; font-size: 18px; font-weight: bold;">
+                            👷 Technician Audio
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #d1fae5; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Buffer: <code>technician</code><br>
+                            RMS ≥ 100
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #ede9fe; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Whisper API
+                        </div>
+                        <div style="margin: 15px 0; font-size: 24px;">⬇️</div>
+                        <div style="background: #d1fae5; padding: 15px; border-radius: 8px; font-size: 14px;">
+                            Transcription<br>
+                            Speaker: "Technician"
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #f3e8ff; border-left: 5px solid #8b5cf6; padding: 20px; border-radius: 8px; margin-top: 30px;">
+                    <h4 style="color: #7c3aed; margin-bottom: 10px;">🔄 Complete Independence:</h4>
+                    <ul style="line-height: 2; color: #4b5563;">
+                        <li>✅ <strong>Separate Buffers:</strong> No cross-talk or mixing</li>
+                        <li>✅ <strong>Separate State Machines:</strong> Each speaker has independent VAD state</li>
+                        <li>✅ <strong>Separate RMS Thresholds:</strong> Optimized per speaker type</li>
+                        <li>✅ <strong>Parallel Transcription:</strong> Both can be transcribed simultaneously</li>
+                        <li>✅ <strong>Speaker Diarization:</strong> Automatic labeling (Agent vs Technician)</li>
+                        <li>✅ <strong>No Interference:</strong> One speaker's silence doesn't affect the other</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIO FLOW TAB -->
+        <div id="audio-flow" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">Dual Audio Stream Architecture</h2>
+
+            <div class="flow-diagram">
+                <h3 style="color: #3b82f6; margin-bottom: 20px;">🎤 Agent Audio Stream (Browser Microphone)</h3>
+
+                <div class="sequence-diagram">
+                    <div class="sequence-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Audio Capture</h4>
+                            <p>Browser captures microphone via <code>navigator.mediaDevices.getUserMedia()</code> with 16kHz, mono, Int16 PCM.</p>
+                            <div class="actors">📍 Location: technician_support.html (line 1506)</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Gain Amplification</h4>
+                            <p>Apply 2.5x gain to boost quiet microphones. Clamp to [-1, 1] to prevent distortion.</p>
+                            <div class="actors">📍 Location: technician_support.html (line 1565) | Output: Amplified Int16 PCM</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>WebSocket Transmission</h4>
+                            <p>Send audio chunks via WebSocket to <code>/agent-audio/{session_id}</code></p>
+                            <div class="actors">📍 Protocol: Binary WebSocket | Chunk size: ~4096 bytes</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Backend Processing</h4>
+                            <p>Flask-Sock receives binary data, passes to <code>_process_agent_audio()</code> with <code>speaker='agent'</code></p>
+                            <div class="actors">📍 Location: twilio_audio_service.py (line 252)</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Speaker-Specific Buffer</h4>
+                            <p>Stored in buffer key: <code>session_123_agent</code> with independent VAD state and RMS threshold (200.0)</p>
+                            <div class="actors">📍 Location: enhanced_transcription_service.py (line 67)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-diagram">
+                <h3 style="color: #10b981; margin-bottom: 20px;">📞 Technician Audio Stream (Phone Call)</h3>
+
+                <div class="sequence-diagram">
+                    <div class="sequence-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Twilio Call Initiation</h4>
+                            <p>Backend initiates call using Twilio Voice API with TwiML containing <code>&lt;Stream&gt;</code> directive.</p>
+                            <div class="actors">📍 Location: twilio_audio_service.py (line 41) | Format: 8kHz mulaw</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Media Stream WebSocket</h4>
+                            <p>Twilio opens WebSocket to <code>/twilio/media-stream</code> and streams base64-encoded mulaw audio.</p>
+                            <div class="actors">📍 Location: twilio_audio_service.py (line 92)</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Audio Conversion</h4>
+                            <p>Decode base64 → mulaw → upsample 8kHz to 16kHz → convert to linear PCM Int16</p>
+                            <div class="actors">📍 Location: twilio_audio_service.py (line 138) | Output: 16kHz PCM</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Buffering</h4>
+                            <p>Buffer 1 second of audio before sending to transcription (no gain applied).</p>
+                            <div class="actors">📍 Location: twilio_audio_service.py (line 181)</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Speaker-Specific Buffer</h4>
+                            <p>Stored in buffer key: <code>session_123_technician</code> with lower RMS threshold (100.0) for phone audio.</p>
+                            <div class="actors">📍 Location: enhanced_transcription_service.py (line 67)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-flow">
+                <h4>📊 Audio Format Specifications</h4>
+                <table>
+                    <tr>
+                        <th>Stream</th>
+                        <th>Source</th>
+                        <th>Input Format</th>
+                        <th>Gain</th>
+                        <th>Output Format</th>
+                        <th>RMS Threshold</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Agent</strong></td>
+                        <td>Browser Microphone</td>
+                        <td>16kHz, mono, Float32</td>
+                        <td>2.5x</td>
+                        <td>16kHz, mono, Int16 PCM</td>
+                        <td>200.0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technician</strong></td>
+                        <td>Phone (Twilio)</td>
+                        <td>8kHz, mulaw</td>
+                        <td>None</td>
+                        <td>16kHz, mono, Int16 PCM (upsampled)</td>
+                        <td>100.0</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="warning">
+                <h4>⚠️ Critical Design Decision: Separate Buffers</h4>
+                <p>Each speaker MUST have independent buffers to prevent interference. Buffer keys include speaker identifier: <code>session_id_agent</code> and <code>session_id_technician</code>. This ensures independent VAD state, RMS tracking, and 0.5s initial skip per speaker.</p>
+            </div>
+        </div>
+
+        <!-- TRANSCRIPTION TAB -->
+        <div id="transcription" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">Transcription Pipeline with Anti-Hallucination</h2>
+
+            <div class="sequence-diagram">
+                <div class="sequence-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Initial 0.5s Hard Skip</h4>
+                        <p>Unconditionally ignore first 0.5 seconds to eliminate startup noise (applies once per speaker session).</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:80-87 | Preserves <code>initial_skip_start</code> across resets</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Waiting for Speech State</h4>
+                        <p>Calculate chunk RMS and compare to speaker-specific threshold. Skip chunks below threshold until real speech detected.</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:89-110 | Agent: 200, Technician: 100</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Audio Buffering</h4>
+                        <p>Once speech detected, start accumulating audio chunks. Track total duration and timestamp.</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:112-120 | Independent per speaker</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Voice Activity Detection (VAD)</h4>
+                        <p>Monitor RMS per chunk. Detect when silence exceeds 0.5s threshold to trigger segmentation.</p>
+                        <div class="actors">📍 speaker_diarization_service.py:206-297 | Separate VAD state per buffer_key</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>RMS Quality Gate</h4>
+                        <p>Calculate average RMS for entire segment. Reject if below speaker-specific threshold to avoid hallucinations.</p>
+                        <div class="actors">📍 speaker_diarization_service.py:283-291 | Returns <code>rms_too_low</code> if rejected</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Duration Check</h4>
+                        <p>Ensure segment is at least 0.5 seconds. Discard too-short segments (likely noise).</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:158-182</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <h4>WAV Conversion</h4>
+                        <p>Convert buffered PCM chunks to WAV format (16kHz, mono, 16-bit) for Whisper API.</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:332-349</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">8</div>
+                    <div class="step-content">
+                        <h4>Whisper API Call</h4>
+                        <p>Transcribe with constrained prompt and temperature=0.0 for deterministic output.</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:351-403 | Model: whisper-1, Language: fr</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">9</div>
+                    <div class="step-content">
+                        <h4>WebSocket Broadcast</h4>
+                        <p>Send transcription result back to browser UI via WebSocket with speaker metadata.</p>
+                        <div class="actors">📍 twilio_audio_service.py:226-243 (technician) & 310-329 (agent)</div>
+                    </div>
+                </div>
+
+                <div class="sequence-step">
+                    <div class="step-number">10</div>
+                    <div class="step-content">
+                        <h4>Buffer Reset</h4>
+                        <p>Clear buffer, reset <code>waiting_for_speech=True</code>, but preserve <code>initial_skip_start</code> for subsequent segments.</p>
+                        <div class="actors">📍 enhanced_transcription_service.py:162-169</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <h4>🛡️ Six-Layer Anti-Hallucination Strategy</h4>
+                <p>
+                    <strong>Layer 1:</strong> Frontend 2.5x gain (boost speech to detectable levels)<br>
+                    <strong>Layer 2:</strong> 0.5s hard skip (eliminate startup noise)<br>
+                    <strong>Layer 3:</strong> Initial speech detection (RMS threshold before buffering)<br>
+                    <strong>Layer 4:</strong> VAD-based segmentation (natural speech boundaries)<br>
+                    <strong>Layer 5:</strong> Segment RMS quality gate (reject low-quality audio)<br>
+                    <strong>Layer 6:</strong> Whisper constraints (prompt + temperature=0.0)
+                </p>
+            </div>
+
+            <div class="data-flow">
+                <h4>📝 Whisper API Parameters</h4>
+                <code>
+                    model="whisper-1"<br>
+                    language="fr"<br>
+                    response_format="verbose_json"<br>
+                    temperature=0.0  # Deterministic<br>
+                    prompt="Vous êtes un transcripteur automatique précis..." # Context constraint
+                </code>
+            </div>
+        </div>
+
+        <!-- AGENTS TAB -->
+        <div id="agents" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">AI Agent Pipeline</h2>
+
+            <div class="flow-diagram">
+                <h3 style="margin-bottom: 20px;">Agent Workflow (Technician Speech Only)</h3>
+
+                <div class="sequence-diagram">
+                    <div class="sequence-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Transcription Input</h4>
+                            <p>Only technician transcriptions are sent to agent pipeline. Agent speech is not processed (generated by system).</p>
+                            <div class="actors">📍 enhanced_transcription_service.py:405-426 | Filter: <code>speaker_role == 'technician'</code></div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Agent Orchestrator</h4>
+                            <p>Coordinates all AI agents. Retrieves last 10 conversation segments for context.</p>
+                            <div class="actors">📍 agent_orchestrator.py:48-89 | Input: session_id, new_transcription, speaker='technician'</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Context Analyzer Agent</h4>
+                            <p>Analyzes conversation to detect: issue type, entities (equipment, codes), sentiment, urgency, sufficient context.</p>
+                            <div class="actors">📍 context_analyzer_agent.py | Output: <code>has_sufficient_context, detected_issue, needs_clarification</code></div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Decision Point: Sufficient Context?</h4>
+                            <p><strong>YES:</strong> Proceed to Query Formulation<br><strong>NO:</strong> Use Clarification Agent</p>
+                            <div class="actors">Threshold: <code>min_context_confidence = 0.6</code></div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">5A</div>
+                        <div class="step-content">
+                            <h4>Query Formulation Agent (Path A)</h4>
+                            <p>Generates semantic search queries based on detected issue and entities for RAG retrieval.</p>
+                            <div class="actors">📍 query_formulation_agent.py | Output: List of search queries</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">5B</div>
+                        <div class="step-content">
+                            <h4>Clarification Agent (Path B)</h4>
+                            <p>Generates targeted questions to gather missing information (equipment type, error codes, symptoms).</p>
+                            <div class="actors">📍 clarification_agent.py | Output: List of clarifying questions</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h4>RAG Engine (If Path A)</h4>
+                            <p>Execute queries against Qdrant vector database. Retrieve relevant documentation chunks.</p>
+                            <div class="actors">📍 rag_engine.py | Tech: Embeddings + semantic search</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">7</div>
+                        <div class="step-content">
+                            <h4>Suggestion Generation</h4>
+                            <p>Synthesize retrieved knowledge into actionable suggestions for support agent (troubleshooting steps, documentation links).</p>
+                            <div class="actors">Output format: JSON with suggestions, confidence scores, sources</div>
+                        </div>
+                    </div>
+
+                    <div class="sequence-step">
+                        <div class="step-number">8</div>
+                        <div class="step-content">
+                            <h4>Response to Frontend</h4>
+                            <p>Return suggestions or clarifying questions to agent's browser UI for display.</p>
+                            <div class="actors">📍 Via Flask route response | Language: French (default)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <h4>🎯 Agent Context Structure</h4>
+                <code>
+                    {<br>
+                    &nbsp;&nbsp;"conversation_text": "Technicien: ...\nAgent: ...",<br>
+                    &nbsp;&nbsp;"customer_last_message": "[technician's latest speech]",<br>
+                    &nbsp;&nbsp;"session_id": "session_123",<br>
+                    &nbsp;&nbsp;"timestamp": "2025-11-09T...",<br>
+                    &nbsp;&nbsp;"language": "fr"<br>
+                    }
+                </code>
+            </div>
+
+            <div class="data-flow">
+                <h4>🤖 Available Agents</h4>
+                <table>
+                    <tr>
+                        <th>Agent</th>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Output</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Context Analyzer</strong></td>
+                        <td>context_analyzer_agent.py</td>
+                        <td>Understand problem context, detect entities, assess completeness</td>
+                        <td>Issue type, entities, confidence, needs_clarification</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Query Formulation</strong></td>
+                        <td>query_formulation_agent.py</td>
+                        <td>Generate semantic search queries for RAG</td>
+                        <td>List of search queries</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Clarification</strong></td>
+                        <td>clarification_agent.py</td>
+                        <td>Ask targeted questions when context insufficient</td>
+                        <td>List of clarifying questions</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- API TAB -->
+        <div id="api" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">API Endpoints Reference</h2>
+
+            <div class="api-reference">
+                <h3 style="margin-bottom: 20px;">WebSocket Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <span class="method WS">WebSocket</span>
+                    <span class="endpoint-path">/twilio/media-stream</span>
+                    <p class="endpoint-desc">Twilio Media Streams endpoint for technician phone audio (8kHz mulaw).</p>
+                    <div class="params">
+                        <dl>
+                            <dt>Input:</dt>
+                            <dd>JSON messages with base64-encoded mulaw audio chunks</dd>
+                            <dt>Processing:</dt>
+                            <dd>Decode → upsample to 16kHz → convert to PCM → buffer → transcribe</dd>
+                            <dt>Output:</dt>
+                            <dd>Sends transcription results back to agent's browser WebSocket</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="method WS">WebSocket</span>
+                    <span class="endpoint-path">/agent-audio/{session_id}</span>
+                    <p class="endpoint-desc">Agent browser microphone audio stream (16kHz PCM with 2.5x gain).</p>
+                    <div class="params">
+                        <dl>
+                            <dt>Input:</dt>
+                            <dd>Binary Int16 PCM audio chunks (already amplified)</dd>
+                            <dt>Processing:</dt>
+                            <dd>Buffer → RMS check → VAD → transcribe with speaker='agent'</dd>
+                            <dt>Output:</dt>
+                            <dd>Sends transcription results back to same WebSocket connection</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-reference">
+                <h3 style="margin-bottom: 20px;">HTTP Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <span class="method POST">POST</span>
+                    <span class="endpoint-path">/api/calls/initiate</span>
+                    <p class="endpoint-desc">Initiate a new call to technician via Twilio.</p>
+                    <div class="params">
+                        <dl>
+                            <dt>Request Body:</dt>
+                            <dd><code>{ "to_number": "+33...", "session_id": "session_123", "technician_name": "..." }</code></dd>
+                            <dt>Response:</dt>
+                            <dd><code>{ "call_sid": "CA...", "session_id": "...", "status": "initiated" }</code></dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="method POST">POST</span>
+                    <span class="endpoint-path">/twilio/status</span>
+                    <p class="endpoint-desc">Twilio webhook for call status updates.</p>
+                    <div class="params">
+                        <dl>
+                            <dt>Events:</dt>
+                            <dd>initiated, ringing, answered, completed</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="method GET">GET</span>
+                    <span class="endpoint-path">/api/sessions/{session_id}/transcriptions</span>
+                    <p class="endpoint-desc">Retrieve all transcriptions for a session.</p>
+                    <div class="params">
+                        <dl>
+                            <dt>Response:</dt>
+                            <dd>Array of transcription segments with speaker, text, timestamp, confidence</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <h4>🔐 WebSocket Message Format (Transcription)</h4>
+                <code>
+                    {<br>
+                    &nbsp;&nbsp;"type": "transcription",<br>
+                    &nbsp;&nbsp;"text": "Transcribed speech...",<br>
+                    &nbsp;&nbsp;"speaker_label": "Technicien" | "Agent",<br>
+                    &nbsp;&nbsp;"speaker_role": "technician" | "agent",<br>
+                    &nbsp;&nbsp;"timestamp": "2025-11-09T...",<br>
+                    &nbsp;&nbsp;"confidence": 0.95<br>
+                    }
+                </code>
+            </div>
+        </div>
+
+        <!-- DATA MODELS TAB -->
+        <div id="data-models" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: #2d3748;">Database Schema & Data Models</h2>
+
+            <div class="flow-diagram">
+                <h3 style="margin-bottom: 20px;">PostgreSQL Tables</h3>
+
+                <div class="component database" style="margin-bottom: 20px;">
+                    <span class="type">Table</span>
+                    <h3>call_sessions</h3>
+                    <p>Stores call session metadata and state.</p>
+                    <table style="margin-top: 15px;">
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>id</td>
+                            <td>String (PK)</td>
+                            <td>Session identifier (e.g., "session_123")</td>
+                        </tr>
+                        <tr>
+                            <td>call_sid</td>
+                            <td>String</td>
+                            <td>Twilio call SID</td>
+                        </tr>
+                        <tr>
+                            <td>technician_id</td>
+                            <td>String</td>
+                            <td>Technician identifier</td>
+                        </tr>
+                        <tr>
+                            <td>technician_name</td>
+                            <td>String</td>
+                            <td>Technician display name</td>
+                        </tr>
+                        <tr>
+                            <td>technician_phone</td>
+                            <td>String</td>
+                            <td>Phone number</td>
+                        </tr>
+                        <tr>
+                            <td>status</td>
+                            <td>String</td>
+                            <td>initiated | active | completed</td>
+                        </tr>
+                        <tr>
+                            <td>started_at</td>
+                            <td>DateTime</td>
+                            <td>Session start timestamp</td>
+                        </tr>
+                        <tr>
+                            <td>ended_at</td>
+                            <td>DateTime</td>
+                            <td>Session end timestamp</td>
+                        </tr>
+                        <tr>
+                            <td>metadata</td>
+                            <td>JSON</td>
+                            <td>Additional session data</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="component database">
+                    <span class="type">Table</span>
+                    <h3>transcription_segments</h3>
+                    <p>Stores individual transcription segments with speaker attribution.</p>
+                    <table style="margin-top: 15px;">
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>id</td>
+                            <td>Integer (PK)</td>
+                            <td>Auto-increment ID</td>
+                        </tr>
+                        <tr>
+                            <td>session_id</td>
+                            <td>String (FK)</td>
+                            <td>References call_sessions.id</td>
+                        </tr>
+                        <tr>
+                            <td>speaker</td>
+                            <td>String</td>
+                            <td>"technician" | "agent"</td>
+                        </tr>
+                        <tr>
+                            <td>text</td>
+                            <td>Text</td>
+                            <td>Transcribed speech</td>
+                        </tr>
+                        <tr>
+                            <td>start_time</td>
+                            <td>Float</td>
+                            <td>Segment start (seconds from session start)</td>
+                        </tr>
+                        <tr>
+                            <td>end_time</td>
+                            <td>Float</td>
+                            <td>Segment end (seconds from session start)</td>
+                        </tr>
+                        <tr>
+                            <td>confidence</td>
+                            <td>Float</td>
+                            <td>Whisper confidence score (0.0-1.0)</td>
+                        </tr>
+                        <tr>
+                            <td>language</td>
+                            <td>String</td>
+                            <td>Detected language (usually "fr")</td>
+                        </tr>
+                        <tr>
+                            <td>created_at</td>
+                            <td>DateTime</td>
+                            <td>Database insertion timestamp</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flow-diagram">
+                <h3 style="margin-bottom: 20px;">In-Memory Data Structures</h3>
+
+                <div class="component service" style="margin-bottom: 20px;">
+                    <span class="type">Dictionary</span>
+                    <h3>audio_buffers (Enhanced Transcription Service)</h3>
+                    <p>Speaker-specific audio buffering state.</p>
+                    <code style="display: block; margin-top: 10px; background: #f7fafc; padding: 15px; border-radius: 8px;">
+{<br>
+&nbsp;&nbsp;"session_123_agent": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"chunks": [bytes, bytes, ...],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"start_time": 1.5,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"last_chunk_time": 3.2,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"total_duration": 1.7,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"waiting_for_speech": False,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"initial_skip_start": 0.0<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;"session_123_technician": { ... }<br>
+}
+                    </code>
+                </div>
+
+                <div class="component service" style="margin-bottom: 20px;">
+                    <span class="type">Dictionary</span>
+                    <h3>vad_state (Speaker Diarization Service)</h3>
+                    <p>Voice Activity Detection state per speaker.</p>
+                    <code style="display: block; margin-top: 10px; background: #f7fafc; padding: 15px; border-radius: 8px;">
+{<br>
+&nbsp;&nbsp;"session_123_agent": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"is_speaking": True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"silence_start": None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"last_speech_timestamp": 3.5,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"speech_start": 1.2,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"rms_samples": [250.3, 312.5, 289.1]<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;"session_123_technician": { ... }<br>
+}
+                    </code>
+                </div>
+
+                <div class="component service">
+                    <span class="type">Dictionary</span>
+                    <h3>active_streams (Twilio Audio Service)</h3>
+                    <p>Active WebSocket connections and audio buffers.</p>
+                    <code style="display: block; margin-top: 10px; background: #f7fafc; padding: 15px; border-radius: 8px;">
+{<br>
+&nbsp;&nbsp;"session_123": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"websocket": &lt;WebSocket obj&gt;,  # Twilio media stream<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"stream_sid": "MZ...",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"started_at": datetime(...),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"audio_buffer": [bytes, bytes, ...],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"agent": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"websocket": &lt;WebSocket obj&gt;,  # Browser connection<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"started_at": datetime(...),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"audio_buffer": [bytes, bytes, ...]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}
+                    </code>
+                </div>
+            </div>
+
+            <div class="note">
+                <h4>🗂️ Qdrant Vector Database (RAG)</h4>
+                <p><strong>Collection:</strong> technical_documentation<br>
+                <strong>Vector Dimension:</strong> Depends on embedding model<br>
+                <strong>Stored Data:</strong> Text chunks with embeddings, metadata (source, page, title)<br>
+                <strong>Search:</strong> Semantic similarity search for troubleshooting knowledge</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- D3.js Library -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+
+            // Initialize code graph when switching to that tab
+            if (tabName === 'code-graph' && !window.graphInitialized) {
+                window.graphInitialized = true;
+                initializeCodeGraph();
+            }
+        }
+
+        // Comprehensive code graph data
+        function initializeCodeGraph() {
+            const graphData = {
+                nodes: [
+                    // USER ENTITIES (STARTING POINTS)
+                    { id: 'user_technician', label: '👷 Technician', type: 'user', file: 'User', desc: 'Customer calling from phone for technical support', size: 'large', isStart: true },
+                    { id: 'user_agent', label: '👨‍💼 Support Agent', type: 'user', file: 'User', desc: 'Support agent in browser providing assistance', size: 'large', isStart: true },
+
+                    // TWILIO COMPONENT (LARGE)
+                    { id: 'twilio_platform', label: '☁️ Twilio Platform', type: 'external', file: 'External', desc: 'Telephony infrastructure and media streaming platform', size: 'xlarge' },
+
+                    // FRONTEND
+                    { id: 'browser_ui', label: 'Browser Interface', type: 'frontend', file: 'technician_support.html', desc: 'Support agent web interface', size: 'medium' },
+                    { id: 'getUserMedia', label: 'getUserMedia()', type: 'frontend', file: 'technician_support.html:1506', desc: 'Capture microphone audio', size: 'small' },
+                    { id: 'applyGain', label: 'Apply 2.5x Gain', type: 'frontend', file: 'technician_support.html:1565', desc: 'Amplify audio signal' },
+                    { id: 'sendAudioWS', label: 'WebSocket Send', type: 'frontend', file: 'technician_support.html:1577', desc: 'Send Int16 PCM to backend' },
+                    { id: 'receiveTranscription', label: 'WS.onmessage', type: 'frontend', file: 'technician_support.html:1530', desc: 'Receive transcriptions from backend' },
+                    { id: 'displayTranscription', label: 'displayTranscriptionFromBackend()', type: 'frontend', file: 'technician_support.html', desc: 'Show transcription in UI' },
+
+                    // BACKEND ROUTES
+                    { id: 'flask_app', label: 'Flask App', type: 'backend', file: 'main.py', desc: 'Main application server', size: 'large' },
+                    { id: 'initiate_call_route', label: 'POST /api/calls/initiate', type: 'backend', file: 'main.py', desc: 'Start new call', size: 'small' },
+                    { id: 'agent_audio_ws', label: 'WS /agent-audio/{id}', type: 'backend', file: 'main.py', desc: 'Agent audio stream', size: 'small' },
+                    { id: 'twilio_media_ws', label: 'WS /twilio/media-stream', type: 'backend', file: 'main.py', desc: 'Twilio media stream', size: 'small' },
+
+                    // AUDIO SERVICE
+                    { id: 'audio_service', label: 'TwilioAudioService', type: 'service', file: 'twilio_audio_service.py', desc: 'Audio streaming manager' },
+                    { id: 'initiate_call', label: 'initiate_call()', type: 'service', file: 'twilio_audio_service.py:41', desc: 'Create Twilio call' },
+                    { id: 'handle_media_stream', label: 'handle_media_stream()', type: 'service', file: 'twilio_audio_service.py:92', desc: 'Process Twilio audio' },
+                    { id: 'decode_mulaw', label: 'Decode mulaw', type: 'service', file: 'twilio_audio_service.py:138', desc: 'Convert 8kHz mulaw to 16kHz PCM' },
+                    { id: 'buffer_tech_audio', label: 'Buffer Technician Audio', type: 'service', file: 'twilio_audio_service.py:181', desc: 'Accumulate 1s of audio' },
+                    { id: 'process_agent_audio', label: '_process_agent_audio()', type: 'service', file: 'twilio_audio_service.py:252', desc: 'Process agent microphone' },
+                    { id: 'send_transcription_ws', label: 'ws.send(transcription)', type: 'service', file: 'twilio_audio_service.py:238', desc: 'Broadcast transcription to UI' },
+
+                    // ENHANCED TRANSCRIPTION SERVICE
+                    { id: 'transcription_service', label: 'EnhancedTranscriptionService', type: 'service', file: 'enhanced_transcription_service.py', desc: 'Main transcription orchestrator' },
+                    { id: 'process_audio_stream', label: 'process_audio_stream()', type: 'service', file: 'enhanced_transcription_service.py:45', desc: 'Entry point for audio chunks' },
+                    { id: 'create_buffer_key', label: 'buffer_key = session_id_speaker', type: 'service', file: 'enhanced_transcription_service.py:67', desc: 'Separate buffers per speaker' },
+                    { id: 'hard_skip', label: '0.5s Hard Skip', type: 'service', file: 'enhanced_transcription_service.py:83', desc: 'Skip initial noise' },
+                    { id: 'waiting_for_speech', label: 'Waiting for Speech Check', type: 'service', file: 'enhanced_transcription_service.py:90', desc: 'RMS-based speech detection' },
+                    { id: 'get_min_rms', label: 'get_min_rms_for_speaker()', type: 'service', file: 'enhanced_transcription_service.py:99', desc: 'Agent:200, Technician:100' },
+                    { id: 'buffer_audio', label: 'buffer[\'chunks\'].append()', type: 'service', file: 'enhanced_transcription_service.py:112', desc: 'Accumulate audio chunks' },
+                    { id: 'check_vad', label: 'check_speech_ended()', type: 'service', file: 'enhanced_transcription_service.py:124', desc: 'VAD segmentation trigger' },
+                    { id: 'transcribe_buffer', label: '_transcribe_buffer()', type: 'service', file: 'enhanced_transcription_service.py:188', desc: 'Prepare audio for Whisper' },
+                    { id: 'create_wav', label: '_create_wav_buffer()', type: 'service', file: 'enhanced_transcription_service.py:332', desc: 'Convert PCM to WAV' },
+                    { id: 'call_whisper', label: '_transcribe_with_whisper()', type: 'service', file: 'enhanced_transcription_service.py:351', desc: 'Call Whisper API' },
+
+                    // SPEAKER DIARIZATION SERVICE
+                    { id: 'diarization_service', label: 'SpeakerDiarizationService', type: 'service', file: 'speaker_diarization_service.py', desc: 'VAD and speaker management' },
+                    { id: 'get_min_rms_threshold', label: 'get_min_rms_for_speaker()', type: 'service', file: 'speaker_diarization_service.py:51', desc: 'Speaker-specific thresholds' },
+                    { id: 'vad_check', label: 'check_speech_ended()', type: 'service', file: 'speaker_diarization_service.py:206', desc: 'Detect silence duration' },
+                    { id: 'rms_quality_gate', label: 'RMS Quality Gate', type: 'service', file: 'speaker_diarization_service.py:283', desc: 'Reject low RMS segments' },
+                    { id: 'vad_state', label: 'VAD State (per buffer_key)', type: 'service', file: 'speaker_diarization_service.py:207', desc: 'Track speaking/silence' },
+
+                    // WHISPER API
+                    { id: 'whisper_api', label: 'OpenAI Whisper API', type: 'external', file: 'External', desc: 'Speech-to-text transcription' },
+                    { id: 'whisper_response', label: 'Whisper Response', type: 'external', file: 'External', desc: 'Transcribed text + metadata' },
+
+                    // AI AGENTS
+                    { id: 'agent_orchestrator', label: 'AgentOrchestrator', type: 'ai', file: 'agent_orchestrator.py', desc: 'Coordinates AI agents' },
+                    { id: 'process_transcription', label: 'process_transcription_update()', type: 'ai', file: 'agent_orchestrator.py:48', desc: 'Process technician speech' },
+                    { id: 'context_analyzer', label: 'ContextAnalyzerAgent', type: 'ai', file: 'context_analyzer_agent.py', desc: 'Analyze conversation context' },
+                    { id: 'query_formulation', label: 'QueryFormulationAgent', type: 'ai', file: 'query_formulation_agent.py', desc: 'Generate search queries' },
+                    { id: 'clarification_agent', label: 'ClarificationAgent', type: 'ai', file: 'clarification_agent.py', desc: 'Generate clarifying questions' },
+                    { id: 'rag_engine', label: 'RAG Engine', type: 'ai', file: 'rag_engine.py', desc: 'Semantic search + generation' },
+                    { id: 'qdrant_search', label: 'Qdrant Vector Search', type: 'external', file: 'External', desc: 'Semantic similarity search' },
+
+                    // DATABASE
+                    { id: 'session_manager', label: 'CallSessionManager', type: 'service', file: 'call_session_manager.py', desc: 'Database operations' },
+                    { id: 'save_transcription', label: 'save_transcription_segment()', type: 'service', file: 'call_session_manager.py', desc: 'Store in PostgreSQL' },
+                    { id: 'postgres', label: 'PostgreSQL', type: 'external', file: 'Database', desc: 'Persistent storage' }
+                ],
+                links: [
+                    // USER INTERACTIONS (START POINTS)
+                    { source: 'user_technician', target: 'twilio_platform', label: 'calls phone number', thickness: 3, dataDesc: 'Initiates voice call through PSTN/VoIP. Sends: Dialed phone number. Receives: Audio stream (8kHz mulaw encoded)' },
+                    { source: 'user_agent', target: 'browser_ui', label: 'opens web interface', thickness: 3, dataDesc: 'Opens support dashboard in browser. Sends: HTTP request. Receives: HTML/CSS/JS application for call management' },
+
+                    // Twilio platform connections
+                    { source: 'twilio_platform', target: 'twilio_media_ws', label: 'WebSocket connection', thickness: 2, dataDesc: 'Bidirectional real-time audio streaming. Sends/Receives: Base64-encoded mulaw audio packets (8kHz, 20ms chunks) in JSON messages' },
+                    { source: 'initiate_call', target: 'twilio_platform', label: 'TwiML + call params', thickness: 2, dataDesc: 'REST API call to initiate outbound call. Sends: TwiML XML instructions + to/from numbers + callback URLs. Receives: Call SID and status' },
+
+                    // Frontend flow
+                    { source: 'browser_ui', target: 'getUserMedia', label: 'capture audio', dataDesc: 'Requests microphone access via WebRTC. Sends: Audio constraints (44.1kHz default). Receives: MediaStream with live audio track' },
+                    { source: 'getUserMedia', target: 'applyGain', label: 'Float32 PCM', dataDesc: 'Raw audio samples from microphone. Sends: Float32Array (-1.0 to 1.0) PCM samples at native sample rate. Receives: Same format for processing' },
+                    { source: 'applyGain', target: 'sendAudioWS', label: 'Int16 + 2.5x gain', dataDesc: 'Amplified audio converted to integer format. Sends: Int16Array (2.5x gain applied) PCM samples. Receives: Processed chunks ready for transmission' },
+                    { source: 'sendAudioWS', target: 'agent_audio_ws', label: 'binary WebSocket', dataDesc: 'Agent microphone stream to backend. Sends: Binary WebSocket frames with Int16 PCM chunks (resampled to 16kHz). Receives: WebSocket ACK' },
+                    { source: 'send_transcription_ws', target: 'receiveTranscription', label: 'JSON message', dataDesc: 'Transcription results from backend. Sends: JSON {speaker, text, timestamp, confidence}. Receives: Parsed transcription object for UI display' },
+                    { source: 'receiveTranscription', target: 'displayTranscription', label: 'transcription data', dataDesc: 'Updates UI with new transcription. Sends: Transcription object. Receives: Rendered DOM update in chat/transcript area' },
+
+                    // Backend routing
+                    { source: 'flask_app', target: 'initiate_call_route', label: 'HTTP POST', dataDesc: 'Routes /initiate-call endpoint. Sends: Request object with JSON body {to_number}. Receives: Handler function execution' },
+                    { source: 'flask_app', target: 'agent_audio_ws', label: 'WebSocket handler', dataDesc: 'Routes /agent-audio WebSocket endpoint. Sends: WebSocket connection object. Receives: Continuous binary audio stream from agent browser' },
+                    { source: 'flask_app', target: 'twilio_media_ws', label: 'WebSocket handler', dataDesc: 'Routes /media-stream WebSocket endpoint. Sends: WebSocket connection object. Receives: Twilio Media Stream messages with technician audio' },
+
+                    // Twilio call flow
+                    { source: 'initiate_call_route', target: 'audio_service', label: 'call params', dataDesc: 'Passes call initiation parameters. Sends: to_number (string), optional session_id. Receives: Call service processing confirmation' },
+                    { source: 'audio_service', target: 'initiate_call', label: 'to_number, session_id', dataDesc: 'Triggers Twilio API call. Sends: Phone number (E.164 format), unique session ID (UUID). Receives: Twilio Call SID for tracking' },
+                    { source: 'twilio_media_ws', target: 'handle_media_stream', label: 'WebSocket messages', dataDesc: 'Twilio media stream events. Sends: JSON messages {event: start/media/stop, media: {payload: base64}}. Receives: Stream handler processing' },
+
+                    // Technician audio processing
+                    { source: 'handle_media_stream', target: 'decode_mulaw', label: 'base64 mulaw', dataDesc: 'Encoded audio from Twilio. Sends: Base64 string of mulaw-encoded 8kHz audio (160 bytes = 20ms). Receives: Decoder function call' },
+                    { source: 'decode_mulaw', target: 'buffer_tech_audio', label: '16kHz PCM', dataDesc: 'Decoded and resampled audio. Sends: 16-bit PCM samples at 16kHz (320 samples for 20ms). Receives: Buffer for accumulation' },
+                    { source: 'buffer_tech_audio', target: 'transcription_service', label: 'speaker=technician', dataDesc: 'Audio chunks with speaker label. Sends: bytes(PCM audio) + metadata {speaker: "technician", timestamp}. Receives: Queued for transcription' },
+
+                    // Agent audio processing
+                    { source: 'agent_audio_ws', target: 'process_agent_audio', label: 'Int16 PCM chunks', dataDesc: 'Binary audio from agent browser. Sends: Raw bytes of Int16 PCM at 16kHz (variable chunk size). Receives: Audio processor function' },
+                    { source: 'process_agent_audio', target: 'transcription_service', label: 'speaker=agent', dataDesc: 'Processed agent audio. Sends: bytes(PCM audio) + metadata {speaker: "agent", timestamp}. Receives: Queued for separate agent buffer' },
+
+                    // Transcription pipeline
+                    { source: 'transcription_service', target: 'process_audio_stream', label: 'audio_chunk, timestamp', dataDesc: 'Main processing entry point. Sends: audio_chunk (bytes), speaker (str), session_id (str), timestamp (float). Receives: State machine execution' },
+                    { source: 'process_audio_stream', target: 'create_buffer_key', label: 'session_id, speaker', dataDesc: 'Creates unique buffer identifier. Sends: session_id + speaker name. Receives: buffer_key string like "session_123_agent" for isolation' },
+                    { source: 'create_buffer_key', target: 'hard_skip', label: 'buffer_key', dataDesc: 'Initial silence skip. Sends: buffer_key. Receives: Boolean (True for first 500ms to skip initial buffering noise)' },
+                    { source: 'hard_skip', target: 'waiting_for_speech', label: 'after 0.5s', dataDesc: 'Enters speech detection state. Sends: State transition signal. Receives: State machine enters WAITING_FOR_SPEECH mode' },
+                    { source: 'waiting_for_speech', target: 'get_min_rms', label: 'check threshold', dataDesc: 'Checks if audio loud enough. Sends: buffer_key. Receives: RMS threshold value (200 for agent, 100 for technician)' },
+                    { source: 'get_min_rms', target: 'diarization_service', label: 'get threshold', dataDesc: 'Retrieves speaker-specific RMS threshold. Sends: buffer_key query. Receives: Threshold lookup from speaker type' },
+                    { source: 'diarization_service', target: 'get_min_rms_threshold', label: 'buffer_key', dataDesc: 'Threshold configuration. Sends: buffer_key string. Receives: Integer RMS threshold (Agent: 200, Technician: 100 to reduce false positives)' },
+                    { source: 'get_min_rms_threshold', target: 'waiting_for_speech', label: 'Agent:200 or Tech:100', dataDesc: 'Returns threshold value. Sends: Integer threshold. Receives: Comparison with current chunk RMS to gate quality' },
+                    { source: 'waiting_for_speech', target: 'buffer_audio', label: 'if RMS >= threshold', dataDesc: 'Starts buffering speech. Sends: Audio chunk passing RMS threshold. Receives: Chunk appended to speaker-specific buffer' },
+                    { source: 'buffer_audio', target: 'check_vad', label: 'check silence', dataDesc: 'Voice activity detection. Sends: Current audio chunk. Receives: VAD state update (speaking vs silence detection)' },
+                    { source: 'check_vad', target: 'vad_check', label: 'buffer_key, chunk', dataDesc: 'VAD processing. Sends: buffer_key + audio_chunk bytes. Receives: Silence/speech classification and duration tracking' },
+                    { source: 'vad_check', target: 'vad_state', label: 'update state', dataDesc: 'Updates VAD state machine. Sends: New state (SPEAKING/SILENCE). Receives: State transition with silence duration counter' },
+                    { source: 'vad_state', target: 'rms_quality_gate', label: 'if silence >= 0.5s', dataDesc: 'Checks for end of utterance. Sends: VAD state + silence duration. Receives: RMS quality gate check for whole buffer' },
+                    { source: 'rms_quality_gate', target: 'vad_check', label: 'should_segment, reason', dataDesc: 'Quality check result. Sends: Boolean should_segment + reason string. Receives: Decision to transcribe or discard buffer' },
+                    { source: 'check_vad', target: 'transcribe_buffer', label: 'if should_segment', dataDesc: 'Triggers transcription. Sends: Complete audio buffer (all accumulated chunks). Receives: Transcription pipeline execution' },
+                    { source: 'transcribe_buffer', target: 'create_wav', label: 'combined PCM', dataDesc: 'Prepares WAV file. Sends: Concatenated PCM bytes from buffer. Receives: WAV-formatted BytesIO object with proper headers' },
+                    { source: 'create_wav', target: 'call_whisper', label: 'WAV buffer', dataDesc: 'Sends to Whisper API. Sends: BytesIO WAV file (16kHz, 16-bit mono). Receives: API call with anti-hallucination prompt' },
+                    { source: 'call_whisper', target: 'whisper_api', label: 'prompt, temp=0.0', dataDesc: 'OpenAI Whisper API request. Sends: Audio file + prompt "Transcribe technical support call. Return empty if silence." + temperature=0.0. Receives: HTTP response' },
+                    { source: 'whisper_api', target: 'whisper_response', label: 'text, confidence', dataDesc: 'Whisper API response. Sends: JSON {text: str, confidence: float}. Receives: Transcription text or empty string if hallucinated' },
+                    { source: 'whisper_response', target: 'call_whisper', label: 'transcription result', dataDesc: 'Returns result to service. Sends: Parsed transcription text. Receives: Post-processing (filter if empty/hallucinated)' },
+                    { source: 'call_whisper', target: 'send_transcription_ws', label: 'if technician speech', dataDesc: 'Sends to UI. Sends: JSON {speaker: "technician", text, timestamp}. Receives: WebSocket broadcast to all connected agents' },
+                    { source: 'call_whisper', target: 'agent_orchestrator', label: 'if technician speech', dataDesc: 'Triggers AI processing. Sends: Transcription object {text, speaker, timestamp}. Receives: AI agent workflow initiation' },
+
+                    // AI agents flow
+                    { source: 'agent_orchestrator', target: 'process_transcription', label: 'new transcription', dataDesc: 'Orchestrates AI agents. Sends: Full transcription object + conversation history. Receives: Agent selection and routing' },
+                    { source: 'process_transcription', target: 'context_analyzer', label: 'conversation context', dataDesc: 'Analyzes conversation state. Sends: Full conversation history + current utterance. Receives: Intent classification and context assessment' },
+                    { source: 'context_analyzer', target: 'query_formulation', label: 'if sufficient context', dataDesc: 'Routes to RAG search. Sends: Extracted entities + intent. Receives: Search query generation for knowledge base' },
+                    { source: 'context_analyzer', target: 'clarification_agent', label: 'if needs clarification', dataDesc: 'Routes to clarification. Sends: Ambiguous/incomplete query markers. Receives: Clarifying question generation' },
+                    { source: 'query_formulation', target: 'rag_engine', label: 'search queries', dataDesc: 'Sends formatted queries. Sends: List of semantic search queries (strings). Receives: RAG retrieval execution' },
+                    { source: 'rag_engine', target: 'qdrant_search', label: 'semantic search', dataDesc: 'Vector database query. Sends: Embedded query vectors (OpenAI ada-002). Receives: Top-K similar document chunks' },
+                    { source: 'qdrant_search', target: 'rag_engine', label: 'relevant docs', dataDesc: 'Returns search results. Sends: List of {text, score, metadata} documents. Receives: Ranked relevant documentation' },
+                    { source: 'rag_engine', target: 'browser_ui', label: 'suggestions', dataDesc: 'Sends suggestions to agent. Sends: JSON {type: "suggestion", docs: [...], summary: str}. Receives: UI update with knowledge base results' },
+                    { source: 'clarification_agent', target: 'browser_ui', label: 'questions', dataDesc: 'Sends clarifying questions. Sends: JSON {type: "clarification", question: str}. Receives: UI prompt for agent to ask technician' },
+
+                    // Database storage
+                    { source: 'call_whisper', target: 'session_manager', label: 'transcription result', dataDesc: 'Persists transcription. Sends: {session_id, speaker, text, timestamp, confidence}. Receives: Database save operation' },
+                    { source: 'session_manager', target: 'save_transcription', label: 'store segment', dataDesc: 'Database write. Sends: Full transcription segment object. Receives: SQL INSERT execution' },
+                    { source: 'save_transcription', target: 'postgres', label: 'INSERT', dataDesc: 'SQL database operation. Sends: INSERT INTO transcriptions VALUES (...). Receives: Row ID confirmation and commit' }
+                ]
+            };
+
+            // Render the graph
+            renderCodeGraph(graphData);
+        }
+
+        function renderCodeGraph(data) {
+            const container = document.getElementById('graph-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const svg = d3.select('#graph-svg');
+            svg.selectAll('*').remove();
+
+            const g = svg.append('g');
+
+            // Define arrow markers
+            svg.append('defs').selectAll('marker')
+                .data(['arrow'])
+                .enter().append('marker')
+                .attr('id', d => d)
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 25)
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('fill', '#999');
+
+            // Color mapping
+            const colorMap = {
+                'user': '#ef4444',        // Red for users (starting points)
+                'frontend': '#3b82f6',    // Blue
+                'backend': '#10b981',     // Green
+                'service': '#f59e0b',     // Orange
+                'ai': '#8b5cf6',          // Purple
+                'external': '#6366f1'     // Indigo
+            };
+
+            // Size mapping
+            const sizeMap = {
+                'small': 12,
+                'medium': 18,
+                'large': 28,
+                'xlarge': 45
+            };
+
+            // Function to get node radius
+            const getNodeRadius = (node) => {
+                if (node.size) return sizeMap[node.size];
+                return sizeMap['small']; // default
+            };
+
+            // Create force simulation
+            const simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.links).id(d => d.id).distance(150))
+                .force('charge', d3.forceManyBody().strength(-1000))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 25));
+
+            // Draw links
+            const link = g.append('g')
+                .selectAll('line')
+                .data(data.links)
+                .enter().append('line')
+                .attr('stroke', '#999')
+                .attr('stroke-opacity', 0.6)
+                .attr('stroke-width', 2)
+                .attr('marker-end', 'url(#arrow)');
+
+            // Draw link labels
+            const linkLabel = g.append('g')
+                .selectAll('text')
+                .data(data.links)
+                .enter().append('text')
+                .attr('font-size', 10)
+                .attr('fill', '#666')
+                .attr('text-anchor', 'middle')
+                .text(d => d.label);
+
+            // Draw nodes
+            const node = g.append('g')
+                .selectAll('circle')
+                .data(data.nodes)
+                .enter().append('circle')
+                .attr('r', d => getNodeRadius(d))
+                .attr('fill', d => colorMap[d.type])
+                .attr('stroke', d => d.isStart ? '#fbbf24' : '#fff')  // Gold border for starting points
+                .attr('stroke-width', d => d.isStart ? 4 : 2)
+                .style('cursor', 'pointer')
+                .style('filter', d => d.isStart ? 'drop-shadow(0 0 8px #fbbf24)' : 'none')  // Glow effect for start nodes
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // Draw node labels
+            const nodeLabel = g.append('g')
+                .selectAll('text')
+                .data(data.nodes)
+                .enter().append('text')
+                .attr('font-size', d => {
+                    const radius = getNodeRadius(d);
+                    if (radius >= 45) return 14;  // xlarge
+                    if (radius >= 28) return 13;  // large
+                    if (radius >= 18) return 11;  // medium
+                    return 10;  // small
+                })
+                .attr('font-weight', d => d.isStart ? 'bold' : 'bold')
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => -(getNodeRadius(d) + 8))
+                .text(d => d.label)
+                .style('pointer-events', 'none')
+                .style('fill', d => d.isStart ? '#fbbf24' : '#2d3748');
+
+            // Tooltip
+            const tooltip = d3.select('#tooltip');
+
+            node.on('mouseover', function(event, d) {
+                // Find incoming and outgoing connections
+                const incomingLinks = data.links.filter(link => link.target.id === d.id);
+                const outgoingLinks = data.links.filter(link => link.source.id === d.id);
+
+                // Build detailed tooltip HTML
+                let tooltipHTML = `
+                    <div style="border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px; margin-bottom: 8px;">
+                        <div style="font-size: 15px; font-weight: bold; color: #fff;">${d.label}</div>
+                        <div style="font-size: 11px; color: #a0aec0; margin-top: 4px;">
+                            <span style="background: ${colorMap[d.type]}; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 600;">${d.type.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 4px;">📁 <strong>File:</strong></div>
+                        <div style="font-size: 11px; color: #e2e8f0; font-family: monospace; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">${d.file}</div>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 4px;">📝 <strong>Description:</strong></div>
+                        <div style="font-size: 11px; color: #e2e8f0; line-height: 1.4;">${d.desc}</div>
+                    </div>
+                `;
+
+                // Add incoming connections
+                if (incomingLinks.length > 0) {
+                    tooltipHTML += `
+                        <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; margin-top: 8px;">
+                            <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 6px;">⬇️ <strong>Incoming (${incomingLinks.length}):</strong></div>
+                    `;
+                    incomingLinks.slice(0, 5).forEach(link => {
+                        tooltipHTML += `
+                            <div style="margin-left: 8px; margin-bottom: 8px; background: rgba(144, 205, 244, 0.1); padding: 6px; border-radius: 4px; border-left: 3px solid #90cdf4;">
+                                <div style="font-size: 10px; color: #e2e8f0; margin-bottom: 3px;">
+                                    • <span style="color: #90cdf4; font-weight: bold;">${link.source.label}</span>
+                                    <span style="color: #a0aec0;"> → ${link.label || 'connects to'}</span>
+                                </div>
+                                ${link.dataDesc ? `
+                                    <div style="font-size: 9px; color: #cbd5e0; margin-left: 12px; line-height: 1.4; font-style: italic;">
+                                        📦 ${link.dataDesc}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    if (incomingLinks.length > 5) {
+                        tooltipHTML += `<div style="font-size: 10px; color: #a0aec0; margin-left: 8px;">... and ${incomingLinks.length - 5} more</div>`;
+                    }
+                    tooltipHTML += `</div>`;
+                }
+
+                // Add outgoing connections
+                if (outgoingLinks.length > 0) {
+                    tooltipHTML += `
+                        <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; margin-top: 8px;">
+                            <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 6px;">⬆️ <strong>Outgoing (${outgoingLinks.length}):</strong></div>
+                    `;
+                    outgoingLinks.slice(0, 5).forEach(link => {
+                        tooltipHTML += `
+                            <div style="margin-left: 8px; margin-bottom: 8px; background: rgba(139, 92, 246, 0.1); padding: 6px; border-radius: 4px; border-left: 3px solid #8b5cf6;">
+                                <div style="font-size: 10px; color: #e2e8f0; margin-bottom: 3px;">
+                                    • <span style="color: #a0aec0;">${link.label || 'connects to'}</span>
+                                    <span style="color: #c4b5fd; font-weight: bold;"> → ${link.target.label}</span>
+                                </div>
+                                ${link.dataDesc ? `
+                                    <div style="font-size: 9px; color: #cbd5e0; margin-left: 12px; line-height: 1.4; font-style: italic;">
+                                        📦 ${link.dataDesc}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    if (outgoingLinks.length > 5) {
+                        tooltipHTML += `<div style="font-size: 10px; color: #a0aec0; margin-left: 8px;">... and ${outgoingLinks.length - 5} more</div>`;
+                    }
+                    tooltipHTML += `</div>`;
+                }
+
+                // Add connection summary
+                const totalConnections = incomingLinks.length + outgoingLinks.length;
+                tooltipHTML += `
+                    <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; margin-top: 8px; text-align: center;">
+                        <div style="font-size: 11px; color: #a0aec0;">
+                            <strong>${totalConnections}</strong> total connection${totalConnections !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Position tooltip near the node but within viewport
+                const containerRect = container.getBoundingClientRect();
+                let tooltipX = event.pageX + 15;
+                let tooltipY = event.pageY - 28;
+
+                // Adjust if tooltip would go off-screen
+                const estimatedTooltipWidth = 380;
+                const estimatedTooltipHeight = 400;
+
+                if (tooltipX + estimatedTooltipWidth > window.innerWidth) {
+                    tooltipX = event.pageX - estimatedTooltipWidth - 15;
+                }
+                if (tooltipY + estimatedTooltipHeight > window.innerHeight) {
+                    tooltipY = window.innerHeight - estimatedTooltipHeight - 20;
+                }
+                if (tooltipY < 0) {
+                    tooltipY = 20;
+                }
+
+                tooltip.style('display', 'block')
+                    .html(tooltipHTML)
+                    .style('left', tooltipX + 'px')
+                    .style('top', tooltipY + 'px')
+                    .style('max-width', '380px')
+                    .style('max-height', '500px')
+                    .style('overflow-y', 'auto');
+
+                d3.select(this)
+                    .transition().duration(200)
+                    .attr('r', d => getNodeRadius(d) + 4)
+                    .attr('stroke-width', d => d.isStart ? 6 : 4);
+            })
+            .on('mouseout', function(event, d) {
+                tooltip.style('display', 'none');
+                d3.select(this)
+                    .transition().duration(200)
+                    .attr('r', d => getNodeRadius(d))
+                    .attr('stroke-width', d => d.isStart ? 4 : 2);
+            })
+            .on('click', function(event, d) {
+                highlightConnections(d);
+            });
+
+            function highlightConnections(selectedNode) {
+                // Find connected nodes
+                const connected = new Set();
+                data.links.forEach(link => {
+                    if (link.source.id === selectedNode.id) connected.add(link.target.id);
+                    if (link.target.id === selectedNode.id) connected.add(link.source.id);
+                });
+
+                // Highlight
+                node.attr('opacity', n => n.id === selectedNode.id || connected.has(n.id) ? 1 : 0.2);
+                link.attr('opacity', l =>
+                    (l.source.id === selectedNode.id || l.target.id === selectedNode.id) ? 1 : 0.1
+                );
+                nodeLabel.attr('opacity', n => n.id === selectedNode.id || connected.has(n.id) ? 1 : 0.2);
+                linkLabel.attr('opacity', l =>
+                    (l.source.id === selectedNode.id || l.target.id === selectedNode.id) ? 1 : 0.1
+                );
+
+                // Reset on next click
+                setTimeout(() => {
+                    node.attr('opacity', 1);
+                    link.attr('opacity', 1);
+                    nodeLabel.attr('opacity', 1);
+                    linkLabel.attr('opacity', 1);
+                }, 3000);
+            }
+
+            // Update positions
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabel
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+
+                nodeLabel
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            });
+
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.3, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+    </script>
+</body>
+</html>
