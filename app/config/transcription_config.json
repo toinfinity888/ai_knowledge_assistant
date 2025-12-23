@@ -10,7 +10,7 @@
   "min_bytes_8k": 96000,
   "min_bytes_16k": 320000,
   "frontend_pause_threshold": 2000,
-  "backend_segment_pause": 1500,
+  "backend_segment_pause": 3000,
   "bypass_vad": false,
   "bypass_min_duration": false,
   "debug_show_hallucinations": true

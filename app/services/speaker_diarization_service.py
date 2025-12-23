@@ -234,7 +234,8 @@ class SpeakerDiarizationService:
                 'silence_start': None,
                 'last_speech_timestamp': None,
                 'speech_start': None,
-                'rms_samples': []  # Track RMS values during speech
+                'rms_samples': [],  # Track RMS values during speech
+                'pause_before_current_speech': 0.0  # Actual silence gap before current speech started
             }
 
         state = self.vad_state[session_id]
@@ -248,7 +249,14 @@ class SpeakerDiarizationService:
         if is_speech:
             if not state['is_speaking']:
                 # Transition: silence → speech
-                logger.info(f"[{session_id}] 🗣️ Speech started (RMS={absolute_rms:.1f})")
+                # Calculate the ACTUAL pause duration (time spent in silence before this speech started)
+                if state['silence_start'] is not None:
+                    state['pause_before_current_speech'] = (current_timestamp - state['silence_start']) * 1000
+                    logger.info(f"[{session_id}] 🗣️ Speech started after {state['pause_before_current_speech']:.0f}ms pause (RMS={absolute_rms:.1f})")
+                else:
+                    state['pause_before_current_speech'] = 0.0
+                    logger.info(f"[{session_id}] 🗣️ Speech started (first speech or no prior silence tracked) (RMS={absolute_rms:.1f})")
+                
                 state['speech_start'] = current_timestamp
                 state['rms_samples'] = []  # Reset RMS tracking for new segment
 
@@ -272,12 +280,16 @@ class SpeakerDiarizationService:
 
                 if silence_duration >= self.silence_duration_to_segment:
                     # Speech has ended - check if segment quality is good enough for transcription
+                    # Get the pause duration that was calculated when this speech segment STARTED
+                    actual_pause_ms = state.get('pause_before_current_speech', 0.0)
+                    
                     if state['rms_samples']:
                         avg_rms = np.mean(state['rms_samples'])
                         max_rms = np.max(state['rms_samples'])
 
                         logger.info(f"[{session_id}] ✂️ Speech ended after {silence_duration:.2f}s of silence")
                         logger.info(f"[{session_id}] 📊 Segment RMS stats: avg={avg_rms:.1f}, max={max_rms:.1f}, samples={len(state['rms_samples'])}")
+                        logger.info(f"[{session_id}] ⏱️ Pause BEFORE this speech segment: {actual_pause_ms:.0f}ms")
 
                         # Get speaker-specific RMS threshold
                         min_rms_threshold = self.get_min_rms_for_speaker(session_id)
@@ -286,21 +298,21 @@ class SpeakerDiarizationService:
                         if avg_rms < min_rms_threshold:
                             logger.warning(f"[{session_id}] ⚠️ Segment RMS too low ({avg_rms:.1f} < {min_rms_threshold}) - SKIPPING Whisper call to avoid hallucinations")
                             state['is_speaking'] = False
-                            state['silence_start'] = None
+                            state['silence_start'] = current_timestamp  # Keep tracking silence for next speech
                             state['rms_samples'] = []
-                            return True, f"rms_too_low_{avg_rms:.1f}", silence_duration * 1000
+                            return True, f"rms_too_low_{avg_rms:.1f}", actual_pause_ms
                         else:
-                            logger.info(f"[{session_id}] ✅ Segment RMS acceptable ({avg_rms:.1f} >= {min_rms_threshold}) - SEGMENTING for transcription")
+                            logger.info(f"[{session_id}] ✅ Segment RMS acceptable ({avg_rms:.1f} >= {min_rms_threshold}) - SEGMENTING for transcription (pause={actual_pause_ms:.0f}ms)")
                             state['is_speaking'] = False
-                            state['silence_start'] = None
+                            state['silence_start'] = current_timestamp  # Keep tracking silence for next speech
                             state['rms_samples'] = []
-                            return True, f"silence_threshold_reached_{silence_duration:.2f}s_rms_{avg_rms:.1f}", silence_duration * 1000
+                            return True, f"silence_threshold_reached_{silence_duration:.2f}s_rms_{avg_rms:.1f}", actual_pause_ms
                     else:
                         # No RMS samples collected (shouldn't happen, but handle gracefully)
                         logger.warning(f"[{session_id}] ⚠️ No RMS samples collected during segment - SKIPPING")
                         state['is_speaking'] = False
-                        state['silence_start'] = None
-                        return True, "no_rms_data", 0.0
+                        state['silence_start'] = current_timestamp  # Keep tracking silence
+                        return True, "no_rms_data", actual_pause_ms
                 else:
                     logger.debug(f"[{session_id}] 🤫 In silence period: {silence_duration:.2f}s / {self.silence_duration_to_segment}s")
                     return False, f"silence_accumulating_{silence_duration:.2f}s", silence_duration * 1000
