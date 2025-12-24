@@ -188,6 +188,27 @@
         /* Parameter Groups */
         .param-group {
             margin-bottom: 16px;
+            transition: opacity 0.2s ease, max-height 0.3s ease;
+            overflow: hidden;
+        }
+
+        .param-group[data-mode],
+        .param-group[data-mode="backend"],
+        .param-group[data-mode="backend-whisper"],
+        .param-group[data-mode="backend-deepgram"],
+        .param-group[data-mode="frontend"] {
+            opacity: 1;
+            max-height: 2000px;
+        }
+
+        .param-group[data-mode][style*="display: none"],
+        .param-group[data-mode="backend"][style*="display: none"],
+        .param-group[data-mode="backend-whisper"][style*="display: none"],
+        .param-group[data-mode="backend-deepgram"][style*="display: none"],
+        .param-group[data-mode="frontend"][style*="display: none"] {
+            opacity: 0;
+            max-height: 0;
+            margin-bottom: 0;
         }
 
         .param-group-title {
@@ -213,6 +234,27 @@
         /* Slider Parameters */
         .param {
             margin-bottom: 12px;
+            transition: opacity 0.2s ease, max-height 0.3s ease;
+            overflow: hidden;
+        }
+
+        .param[data-mode],
+        .param[data-mode="backend"],
+        .param[data-mode="backend-whisper"],
+        .param[data-mode="backend-deepgram"],
+        .param[data-mode="frontend"] {
+            opacity: 1;
+            max-height: 500px;
+        }
+
+        .param[data-mode][style*="display: none"],
+        .param[data-mode="backend"][style*="display: none"],
+        .param[data-mode="backend-whisper"][style*="display: none"],
+        .param[data-mode="backend-deepgram"][style*="display: none"],
+        .param[data-mode="frontend"][style*="display: none"] {
+            opacity: 0;
+            max-height: 0;
+            margin-bottom: 0;
         }
 
         .param-header {
@@ -674,7 +716,7 @@
                 </div>
                 <div class="config-scroll">
                     <!-- Audio Parameters -->
-                    <div class="param-group">
+                    <div class="param-group" data-mode="backend-whisper">
                         <div class="param-group-title">Audio</div>
                         
                         <div class="param">
@@ -712,7 +754,7 @@
                     </div>
 
                     <!-- VAD Parameters -->
-                    <div class="param-group">
+                    <div class="param-group" data-mode="backend-whisper">
                         <div class="param-group-title">Voice Detection</div>
 
                         <div class="param">
@@ -742,7 +784,7 @@
                                 <span class="param-label">Min Silence Duration</span>
                                 <span class="param-value" id="vad_min_silence_duration_ms_value">1000ms</span>
                             </div>
-                            <input type="range" class="slider" id="vad_min_silence_duration_ms" min="500" max="3000" step="100" value="1000">
+                            <input type="range" class="slider" id="vad_min_silence_duration_ms" min="250" max="3000" step="50" value="1000">
                             <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
                                 🔇 Pause between speech segments. Shorter = splits sentences faster
                             </div>
@@ -753,7 +795,7 @@
                     <div class="param-group">
                         <div class="param-group-title">Buffer</div>
 
-                        <div class="param">
+                        <div class="param" data-mode="frontend">
                             <div class="param-header">
                                 <span class="param-label">Frontend Pause Threshold</span>
                                 <span class="param-value" id="frontend_pause_threshold_value">1500ms</span>
@@ -764,7 +806,7 @@
                             </div>
                         </div>
 
-                        <div class="param">
+                        <div class="param" data-mode="backend">
                             <div class="param-header">
                                 <span class="param-label">Backend Segment Pause</span>
                                 <span class="param-value" id="backend_segment_pause_value">3000ms</span>
@@ -778,7 +820,7 @@
                             </div>
                         </div>
 
-                        <div class="param">
+                        <div class="param" data-mode="backend-whisper">
                             <div class="param-header">
                                 <span class="param-label">Buffer Duration</span>
                                 <span class="param-value" id="buffer_duration_value">3.0s</span>
@@ -789,7 +831,7 @@
                             </div>
                         </div>
 
-                        <div class="param">
+                        <div class="param" data-mode="backend-whisper">
                             <div class="param-header">
                                 <span class="param-label">Max Buffer Duration</span>
                                 <span class="param-value" id="max_buffer_duration_value">10.0s</span>
@@ -800,7 +842,7 @@
                             </div>
                         </div>
 
-                        <div class="param">
+                        <div class="param" data-mode="backend-whisper">
                             <div class="param-header">
                                 <span class="param-label">Min Bytes (8kHz)</span>
                                 <span class="param-value" id="min_bytes_8k_value">48000</span>
@@ -811,7 +853,7 @@
                             </div>
                         </div>
 
-                        <div class="param">
+                        <div class="param" data-mode="backend-whisper">
                             <div class="param-header">
                                 <span class="param-label">Min Bytes (16kHz)</span>
                                 <span class="param-value" id="min_bytes_16k_value">96000</span>
@@ -823,8 +865,8 @@
                         </div>
                     </div>
 
-                    <!-- Feature Flags -->
-                    <div class="param-group">
+                    <!-- Feature Flags - Whisper -->
+                    <div class="param-group" data-mode="backend-whisper">
                         <div class="param-group-title">Flags</div>
                         <div class="checkbox-group">
                             <div class="checkbox-item">
@@ -852,6 +894,21 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Feature Flags - Deepgram -->
+                    <div class="param-group" data-mode="backend-deepgram">
+                        <div class="param-group-title">Streaming Options</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="deepgram_show_interim">
+                                <label for="deepgram_show_interim">Show interim results</label>
+                            </div>
+                            <div style="font-size: 9px; color: var(--text-muted); margin-left: 30px; margin-top: -2px; margin-bottom: 4px;">
+                                ✨ Display real-time interim transcriptions (gray/italic) while speaking. Final results replace them (white/bold).
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </aside>
 
@@ -865,8 +922,23 @@
                             <span id="statusText">Ready</span>
                         </div>
                         <select class="btn" id="transcriptionMode" style="cursor: pointer;">
-                            <option value="backend">Backend (Whisper)</option>
+                            <option value="backend-whisper">Backend (Whisper)</option>
+                            <option value="backend-deepgram">Backend (Deepgram)</option>
                             <option value="frontend">Frontend (Web Speech)</option>
+                        </select>
+                        <select class="btn" id="transcription_language" style="cursor: pointer;">
+                            <option value="fr">🇫🇷 FR</option>
+                            <option value="en">🇬🇧 EN</option>
+                            <option value="es">🇪🇸 ES</option>
+                            <option value="de">🇩🇪 DE</option>
+                            <option value="it">🇮🇹 IT</option>
+                            <option value="pt">🇵🇹 PT</option>
+                            <option value="nl">🇳🇱 NL</option>
+                            <option value="ru">🇷🇺 RU</option>
+                            <option value="zh">🇨🇳 ZH</option>
+                            <option value="ja">🇯🇵 JA</option>
+                            <option value="ko">🇰🇷 KO</option>
+                            <option value="ar">🇸🇦 AR</option>
                         </select>
                     </div>
                     <div class="header-actions">
@@ -972,7 +1044,8 @@
             'vad_threshold', 'vad_min_speech_duration_ms', 'vad_min_silence_duration_ms',
             'buffer_duration', 'max_buffer_duration', 'min_bytes_8k', 'min_bytes_16k',
             'frontend_pause_threshold', 'backend_segment_pause',
-            'bypass_vad', 'bypass_min_duration', 'debug_show_hallucinations'
+            'bypass_vad', 'bypass_min_duration', 'debug_show_hallucinations',
+            'transcription_backend', 'transcription_language', 'deepgram_show_interim'
         ];
 
         // Initialize
@@ -980,6 +1053,7 @@
             loadConfiguration();
             setupEventListeners();
             setupVisualizer();
+            updateParameterVisibility(); // Initial visibility update
         });
 
         // Load current configuration from server
@@ -1005,12 +1079,23 @@
                 if (element) {
                     if (element.type === 'checkbox') {
                         element.checked = config[param];
+                    } else if (element.tagName === 'SELECT') {
+                        element.value = config[param];
                     } else {
                         element.value = config[param];
                         updateValueDisplay(param, config[param]);
                     }
                 }
             });
+
+            // Sync transcriptionMode dropdown with backend config
+            const backend = config.transcription_backend || 'whisper';
+            const modeDropdown = document.getElementById('transcriptionMode');
+            if (backend === 'whisper') {
+                modeDropdown.value = 'backend-whisper';
+            } else if (backend === 'deepgram') {
+                modeDropdown.value = 'backend-deepgram';
+            }
         }
 
         // Setup event listeners
@@ -1025,11 +1110,109 @@
                 }
             });
 
+            // Auto-save transcription mode and language when changed
+            document.getElementById('transcriptionMode').addEventListener('change', autoSaveTranscriptionSettings);
+            document.getElementById('transcription_language').addEventListener('change', autoSaveTranscriptionSettings);
+
+            // Auto-save interim results toggle (Deepgram only)
+            document.getElementById('deepgram_show_interim').addEventListener('change', async () => {
+                const checked = document.getElementById('deepgram_show_interim').checked;
+                await fetch('/api/config/transcription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deepgram_show_interim: checked })
+                });
+                console.log(`✓ Saved: Show interim results = ${checked}`);
+            });
+
             document.getElementById('applyBtn').addEventListener('click', applyConfiguration);
             document.getElementById('resetBtn').addEventListener('click', resetConfiguration);
             document.getElementById('startRecordingBtn').addEventListener('click', startRecording);
             document.getElementById('stopRecordingBtn').addEventListener('click', stopRecording);
             document.getElementById('clearTranscriptionsBtn').addEventListener('click', clearTranscriptions);
+        }
+
+        // Auto-save transcription settings when mode or language changes
+        async function autoSaveTranscriptionSettings() {
+            const mode = document.getElementById('transcriptionMode').value;
+            const language = document.getElementById('transcription_language').value;
+
+            // Extract backend from mode
+            let backend = 'whisper';
+            if (mode === 'backend-deepgram') {
+                backend = 'deepgram';
+            } else if (mode === 'backend-whisper') {
+                backend = 'whisper';
+            }
+
+            const updates = {
+                transcription_backend: backend,
+                transcription_language: language
+            };
+
+            try {
+                const response = await fetch('/api/config/transcription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentConfig = data.config;
+                    console.log(`✓ Saved: ${backend} / ${language}`);
+                }
+            } catch (error) {
+                console.error('Error saving transcription settings:', error);
+            }
+
+            // Update parameter visibility based on mode
+            updateParameterVisibility();
+        }
+
+        // Update parameter visibility based on selected mode
+        function updateParameterVisibility() {
+            const mode = document.getElementById('transcriptionMode').value;
+            const isFrontend = mode === 'frontend';
+            const isWhisper = mode === 'backend-whisper';
+            const isDeepgram = mode === 'backend-deepgram';
+            const isAnyBackend = isWhisper || isDeepgram;
+
+            // Frontend-only parameters
+            document.querySelectorAll('.param[data-mode="frontend"]').forEach(param => {
+                param.style.display = isFrontend ? 'block' : 'none';
+            });
+
+            // Backend-whisper specific parameters (Audio, VAD, Buffer, Flags)
+            document.querySelectorAll('.param-group[data-mode="backend-whisper"]').forEach(group => {
+                group.style.display = isWhisper ? 'block' : 'none';
+            });
+
+            document.querySelectorAll('.param[data-mode="backend-whisper"]').forEach(param => {
+                param.style.display = isWhisper ? 'block' : 'none';
+            });
+
+            // Backend-deepgram specific parameters (currently none, but keeping for future)
+            document.querySelectorAll('.param-group[data-mode="backend-deepgram"]').forEach(group => {
+                group.style.display = isDeepgram ? 'block' : 'none';
+            });
+
+            document.querySelectorAll('.param[data-mode="backend-deepgram"]').forEach(param => {
+                param.style.display = isDeepgram ? 'block' : 'none';
+            });
+
+            // Common backend parameters (both Whisper and Deepgram) - e.g., Backend Segment Pause
+            document.querySelectorAll('.param-group[data-mode="backend"]').forEach(group => {
+                group.style.display = isAnyBackend ? 'block' : 'none';
+            });
+
+            document.querySelectorAll('.param[data-mode="backend"]').forEach(param => {
+                param.style.display = isAnyBackend ? 'block' : 'none';
+            });
+
+            // Show visual feedback of current mode
+            let modeName = isFrontend ? 'Frontend (Web Speech)' : (isWhisper ? 'Backend (Whisper)' : 'Backend (Deepgram)');
+            console.log(`📊 Parameters visible for: ${modeName}`);
         }
 
         // Update value display
@@ -1063,6 +1246,8 @@
                 if (element) {
                     if (element.type === 'checkbox') {
                         updates[param] = element.checked;
+                    } else if (element.tagName === 'SELECT') {
+                        updates[param] = element.value;
                     } else if (element.type === 'range') {
                         let value = parseFloat(element.value);
                         if (param.includes('ms') || param === 'min_bytes_8k' || param === 'min_bytes_16k' ||
@@ -1160,7 +1345,10 @@
 
             if (mode === 'frontend') {
                 startWebSpeechRecognition();
+            } else if (mode === 'backend-whisper' || mode === 'backend-deepgram') {
+                startBackendRecording();
             } else {
+                // Fallback for old "backend" value
                 startBackendRecording();
             }
         }
@@ -1198,7 +1386,15 @@
                 recognition.continuous = true;
                 recognition.interimResults = true;  // Enable streaming interim results
                 recognition.maxAlternatives = 1;
-                recognition.lang = 'fr-FR'; // French language for transcription
+
+                // Set language from dropdown (convert to Web Speech format)
+                const langCode = document.getElementById('transcription_language').value;
+                const langMap = {
+                    'fr': 'fr-FR', 'en': 'en-US', 'es': 'es-ES', 'de': 'de-DE',
+                    'it': 'it-IT', 'pt': 'pt-PT', 'nl': 'nl-NL', 'ru': 'ru-RU',
+                    'zh': 'zh-CN', 'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA'
+                };
+                recognition.lang = langMap[langCode] || 'fr-FR';
 
                 recognition.onstart = () => {
                     isRecognitionActive = true;
@@ -1315,6 +1511,21 @@
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     if (data.type === 'transcription') {
+                        const isFinal = data.is_final !== undefined ? data.is_final : true;
+
+                        // Handle interim results (Deepgram streaming only)
+                        if (!isFinal) {
+                            console.log(`💭 Interim: "${data.text}"`);
+                            updateInterimTranscription(data.text);
+                            return;
+                        }
+
+                        // Final result - remove interim display
+                        if (currentInterimElement) {
+                            currentInterimElement.remove();
+                            currentInterimElement = null;
+                        }
+
                         // Get the backend segment pause threshold
                         const segmentPauseMs = parseInt(document.getElementById('backend_segment_pause').value);
 
@@ -1322,7 +1533,7 @@
                         const pauseDurationMs = data.pause_duration_ms || 0;
 
                         console.log(`⏱️ Backend: pause_duration=${pauseDurationMs}ms (threshold: ${segmentPauseMs}ms)`);
-                        console.log(`📝 Transcription text: "${data.text}"`);
+                        console.log(`📝 FINAL Transcription: "${data.text}"`);
 
                         // Decide whether to append or create new entry based on ACTUAL pause duration from VAD
                         // Short pause (< threshold) → append to current frame
@@ -1595,8 +1806,8 @@
         function drawThresholdLines(ctx, canvas) {
             const mode = document.getElementById('transcriptionMode').value;
 
-            // Only show for backend mode
-            if (mode !== 'backend') return;
+            // Only show for backend modes
+            if (mode === 'frontend') return;
 
             // Get current thresholds
             const minRms = parseFloat(document.getElementById('min_rms_16k').value);

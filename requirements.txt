@@ -14,9 +14,11 @@ flask
 flask-sock
 pydantic>=2.0
 pydantic-settings>=2.0
+python-dotenv  # Load environment variables from .env file
 
 # Optional integrations (uncomment if needed)
 twilio  # For Twilio Flex ACD integration and two-way calling
 pyannote.audio  # For speaker diarization
+deepgram-sdk  # For Deepgram Nova-3 real-time transcription
 # zenpy  # For Zendesk CRM integration
 # simple-salesforce  # For Salesforce CRM integration

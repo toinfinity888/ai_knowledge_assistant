@@ -40,6 +40,12 @@ class TranscriptionConfig:
     frontend_pause_threshold: int = 2000  # Pause threshold for Frontend mode (Web Speech API) in ms
     backend_segment_pause: int = 3000     # Pause threshold for Backend mode frame grouping in ms
 
+    # Transcription Backend
+    transcription_backend: str = 'whisper'  # 'whisper' or 'deepgram'
+    transcription_language: str = 'fr'      # Language code for transcription
+    deepgram_use_streaming: bool = True     # Use WebSocket streaming for Deepgram (faster)
+    deepgram_show_interim: bool = False     # Show interim results in real-time (Deepgram streaming only)
+
     # Feature Flags
     bypass_vad: bool = True           # Use simple byte-count triggering instead of VAD
     bypass_min_duration: bool = False # Skip minimum duration checks

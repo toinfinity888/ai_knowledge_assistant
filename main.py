@@ -1,3 +1,7 @@
+# Load environment variables from .env file FIRST (before any imports that need them)
+from dotenv import load_dotenv
+load_dotenv()
+
 from app import create_app
 from app.api.realtime_routes import realtime_bp, setup_websocket, broadcast_to_session
 from app.demo.web_demo_routes import demo_bp, register_demo_websocket_routes

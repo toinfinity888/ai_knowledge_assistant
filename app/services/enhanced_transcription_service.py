@@ -17,6 +17,7 @@ import torchaudio
 
 from app.services.speaker_diarization_service import get_diarization_service
 from app.services.realtime_transcription_service import get_transcription_service
+from app.services.deepgram_transcription_service import get_deepgram_service
 from app.config.transcription_config import get_transcription_config
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class EnhancedTranscriptionService:
         self.openai_client = OpenAI()
         self.diarization_service = get_diarization_service()
         self.transcription_service = get_transcription_service()
+        self.deepgram_service = get_deepgram_service()
 
         # Get configuration instance (singleton)
         self.config = get_transcription_config()
@@ -57,12 +59,17 @@ class EnhancedTranscriptionService:
         # Audio buffer management
         self.audio_buffers: Dict[str, Dict] = {}
 
+        # Streaming connections for Deepgram WebSocket
+        self.streaming_connections: Dict[str, Any] = {}
+
         # Transcription settings
         self.sample_rate = 16000  # Default sample rate for WAV files (Whisper native rate)
         self.channels = 1 # mono
         self.sample_width = 2  # 16-bit
 
         logger.info(f"EnhancedTranscriptionService initialized with config:")
+        logger.info(f"  Backend: {self.config.transcription_backend}, Language: {self.config.transcription_language}")
+        logger.info(f"  Deepgram streaming: {self.config.deepgram_use_streaming}")
         logger.info(f"  VAD bypass: {self.config.bypass_vad}, min_duration bypass: {self.config.bypass_min_duration}")
         logger.info(f"  Silence detection: min_rms_8k={self.config.min_rms_8k}, min_rms_16k={self.config.min_rms_16k}")
         logger.info(f"  Buffer durations: buffer={self.config.buffer_duration}s, max={self.config.max_buffer_duration}s")
@@ -92,6 +99,36 @@ class EnhancedTranscriptionService:
         Returns:
             Transcription result if segment complete, None otherwise
         """
+        # ========================================
+        # DEEPGRAM STREAMING MODE
+        # ========================================
+        # If Deepgram streaming is enabled, send audio directly to WebSocket
+        # instead of buffering (much lower latency)
+        if (self.config.transcription_backend == 'deepgram' and
+            self.config.deepgram_use_streaming):
+
+            buffer_key = f"{session_id}_{speaker}"
+
+            # Check if streaming connection exists for this session
+            if buffer_key in self.streaming_connections:
+                connection = self.streaming_connections[buffer_key]
+
+                # Send audio chunk directly to Deepgram WebSocket
+                await connection.send_audio(audio_chunk)
+
+                # Streaming results are handled via callback
+                # No return value needed here - transcriptions come via on_transcript callback
+                return None
+            else:
+                # No streaming connection - fall through to buffered mode
+                logger.warning(
+                    f"[{buffer_key}] Deepgram streaming enabled but no connection found. "
+                    f"Call initialize_session() first or falling back to buffered mode."
+                )
+
+        # ========================================
+        # BUFFERED MODE (Whisper or Deepgram REST)
+        # ========================================
         # Use separate buffer keys for each speaker to avoid interference
         buffer_key = f"{session_id}_{speaker}"
 
@@ -464,22 +501,36 @@ class EnhancedTranscriptionService:
             wav_buffer = self._create_wav_buffer(combined_audio, sample_rate=audio_sample_rate)
             logger.info(f"[{session_id}] ✅ Created WAV buffer at {audio_sample_rate}Hz")
 
-            # Transcribe with Whisper
-            logger.info(f"[{session_id}] Sending {len(combined_audio)} bytes to Whisper API...")
-            transcription_result = await self._transcribe_with_whisper(
-                wav_buffer,
-                language='fr'  # French by default for technicians
-            )
+            # Get transcription backend from config
+            backend = self.config.transcription_backend
+            language = self.config.transcription_language
+
+            # Transcribe with selected backend
+            logger.info(f"[{session_id}] 🎤 Sending {len(combined_audio)} bytes to {backend.upper()} API...")
+
+            if backend == 'deepgram':
+                # Use Deepgram Nova-3
+                transcription_result = await self.deepgram_service.transcribe(
+                    wav_buffer,
+                    language=language,
+                    sample_rate=audio_sample_rate
+                )
+            else:
+                # Default to Whisper
+                transcription_result = await self._transcribe_with_whisper(
+                    wav_buffer,
+                    language=language
+                )
 
             if not transcription_result:
-                logger.warning(f"[{session_id}] Whisper API returned None")
+                logger.warning(f"[{session_id}] {backend.upper()} API returned None")
                 return None
 
             if not transcription_result.get('text'):
-                logger.warning(f"[{session_id}] Whisper returned empty text: {transcription_result}")
+                logger.warning(f"[{session_id}] {backend.upper()} returned empty text: {transcription_result}")
                 return None
 
-            logger.info(f"[{session_id}] Whisper transcription: '{transcription_result.get('text')[:100]}'...")
+            logger.info(f"[{session_id}] {backend.upper()} transcription: '{transcription_result.get('text')[:100]}'...")
 
             # Combine transcription with speaker info
             result = {
@@ -592,7 +643,7 @@ class EnhancedTranscriptionService:
             "amara.org",
             "générique",
             "credits",
-            "❤️ par SousTitreur.com ",
+            "❤️ par SousTitreur.com",
 
             # Thank you/goodbye hallucinations (common with silence)
             "merci d'avoir regardé",
@@ -709,7 +760,7 @@ class EnhancedTranscriptionService:
         
             optimized_prompt = (
                 "Technical support conversation, real-time streaming, technical terms, "
-                "fragmented speech, incomplete sentences... Transcription only, no corrections."
+                "fragmented speech, incomplete sentences Transcription only, no corrections."
             )
 
             response = self.openai_client.audio.transcriptions.create(
@@ -805,7 +856,7 @@ class EnhancedTranscriptionService:
 
             # Valid transcription
             result = {
-                'text': response.text,
+                'text': response.text + '',
                 'language': response.language,
                 'duration': response.duration,
                 'confidence': getattr(response, 'confidence', 0.9)  # Not always available
@@ -856,7 +907,7 @@ class EnhancedTranscriptionService:
         except Exception as e:
             logger.error(f"Agent processing error: {e}")
 
-    def initialize_session(
+    async def initialize_session(
         self,
         session_id: str,
         technician_id: str,
@@ -888,11 +939,106 @@ class EnhancedTranscriptionService:
             speaker_role='support_agent'
         )
 
+        # Initialize Deepgram streaming connections if enabled
+        if (self.config.transcription_backend == 'deepgram' and
+            self.config.deepgram_use_streaming):
+
+            logger.info(
+                f"[{session_id}] Initializing Deepgram streaming connections..."
+            )
+
+            # Create streaming connection for technician
+            technician_key = f"{session_id}_technician"
+            technician_connection = await self.deepgram_service.transcribe_streaming(
+                session_id=technician_key,
+                language=self.config.transcription_language,
+                sample_rate=8000,  # Twilio audio is 8kHz
+                on_transcript=self._create_streaming_callback(session_id, 'technician')
+            )
+
+            if technician_connection and technician_connection.is_connected:
+                self.streaming_connections[technician_key] = technician_connection
+                logger.info(f"✅ Deepgram streaming ready for technician ({technician_key})")
+            else:
+                logger.error(f"❌ Failed to initialize Deepgram streaming for technician")
+
+            # Create streaming connection for agent (browser audio is 16kHz)
+            agent_key = f"{session_id}_agent"
+            agent_connection = await self.deepgram_service.transcribe_streaming(
+                session_id=agent_key,
+                language=self.config.transcription_language,
+                sample_rate=16000,  # Browser audio is 16kHz
+                on_transcript=self._create_streaming_callback(session_id, 'agent')
+            )
+
+            if agent_connection and agent_connection.is_connected:
+                self.streaming_connections[agent_key] = agent_connection
+                logger.info(f"✅ Deepgram streaming ready for agent ({agent_key})")
+            else:
+                logger.error(f"❌ Failed to initialize Deepgram streaming for agent")
+
         logger.info(
             f"Session initialized: {session_id} with technician {technician_name}"
         )
 
-    def end_session(self, session_id: str) -> Dict[str, Any]:
+    def _create_streaming_callback(self, session_id: str, speaker: str):
+        """
+        Create callback function for Deepgram streaming results
+
+        Args:
+            session_id: Session identifier
+            speaker: Speaker role ('technician' or 'agent')
+
+        Returns:
+            Callback function that handles transcription results
+        """
+        def on_transcript(result: Dict[str, Any]):
+            """Handle streaming transcription result"""
+            try:
+                is_final = result.get('is_final', False)
+                text = result.get('text', '')
+                confidence = result.get('confidence', 0.0)
+
+                # Only process final results (interim results are for UI feedback only)
+                if is_final and text:
+                    logger.info(
+                        f"[{session_id}] 📝 Streaming FINAL result ({speaker}): "
+                        f"'{text[:80]}...' (conf: {confidence:.2f})"
+                    )
+
+                    # Create transcription result in expected format
+                    speaker_name = 'Agent' if speaker == 'agent' else 'Technicien'
+                    transcription_result = {
+                        'session_id': session_id,
+                        'text': text,
+                        'speaker_id': speaker,
+                        'speaker_name': speaker_name,
+                        'speaker_role': speaker,
+                        'confidence': confidence,
+                        'speaker_confidence': 1.0,
+                        'start_time': timestamp if 'timestamp' in locals() else 0.0,
+                        'end_time': timestamp if 'timestamp' in locals() else 0.0,
+                        'duration': result.get('duration', 0.0),
+                        'language': result.get('language', self.config.transcription_language),
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'pause_duration_ms': 0.0  # Streaming mode doesn't track pauses
+                    }
+
+                    # Process with agents (async call needs to be scheduled)
+                    asyncio.create_task(self._process_with_agents(transcription_result))
+
+                elif not is_final and text:
+                    # Interim result - log for debugging
+                    logger.debug(
+                        f"[{session_id}] 💭 Streaming interim ({speaker}): '{text[:50]}...'"
+                    )
+
+            except Exception as e:
+                logger.error(f"[{session_id}] Error in streaming callback: {e}", exc_info=True)
+
+        return on_transcript
+
+    async def end_session(self, session_id: str) -> Dict[str, Any]:
         """
         End a session and get statistics
 
@@ -902,6 +1048,20 @@ class EnhancedTranscriptionService:
         Returns:
             Session statistics
         """
+        # Close Deepgram streaming connections if any
+        streaming_keys_to_delete = [
+            key for key in self.streaming_connections.keys()
+            if key.startswith(f"{session_id}_")
+        ]
+        for stream_key in streaming_keys_to_delete:
+            connection = self.streaming_connections[stream_key]
+            try:
+                await connection.close()
+                logger.info(f"✅ Closed Deepgram streaming connection: {stream_key}")
+            except Exception as e:
+                logger.error(f"Error closing streaming connection {stream_key}: {e}")
+            del self.streaming_connections[stream_key]
+
         # Get speaker stats
         stats = self.diarization_service.get_speaker_stats(session_id)
 

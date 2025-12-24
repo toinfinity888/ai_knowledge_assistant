@@ -48,10 +48,91 @@ def register_config_websocket_routes(sock):
 
         # Get transcription service
         transcription_service = get_enhanced_transcription_service()
+        config = transcription_service.config
 
         # Audio buffer
         audio_buffer = bytearray()
         chunk_count = 0
+
+        # Deepgram streaming connection (if enabled)
+        deepgram_connection = None
+
+        # Callback for Deepgram streaming results
+        def on_streaming_result(result):
+            """Send Deepgram streaming results to WebSocket"""
+            logger.info(f"[{session_id}] 📨 on_streaming_result callback received: {result}")
+            try:
+                is_final = result.get('is_final', False)
+                text = result.get('text', '')
+                confidence = result.get('confidence', 0.0)
+
+                # Check if we should send interim results
+                if not is_final and not config.deepgram_show_interim:
+                    logger.info(f"[{session_id}] Skipping interim result (interim disabled)")
+                    return  # Skip interim results if disabled
+
+                # Prepare message
+                message = {
+                    'type': 'transcription',
+                    'text': text,
+                    'is_final': is_final,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'confidence': confidence,
+                    'language': result.get('language', config.transcription_language),
+                    'pause_duration_ms': 0.0,  # Streaming doesn't track pauses
+                    'model': result.get('model', 'deepgram-nova-3-streaming')
+                }
+
+                # Send to WebSocket
+                logger.info(f"[{session_id}] 📤 Sending to WebSocket: {message}")
+                ws.send(json.dumps(message))
+                logger.info(f"[{session_id}] ✅ WebSocket send successful")
+
+                logger.info(
+                    f"[{session_id}] Streaming {'FINAL' if is_final else 'interim'}: "
+                    f"'{text[:50]}...' (conf: {confidence:.2f})"
+                )
+
+            except Exception as e:
+                logger.error(f"[{session_id}] ❌ Error sending streaming result: {e}", exc_info=True)
+
+        # Initialize Deepgram streaming if enabled
+        if (config.transcription_backend == 'deepgram' and
+            config.deepgram_use_streaming):
+
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Create streaming connection
+            try:
+                deepgram_service = transcription_service.deepgram_service
+                logger.info(f"[{session_id}] Creating Deepgram streaming connection...")
+                logger.info(f"[{session_id}] API key present: {bool(deepgram_service.api_key)}")
+
+                deepgram_connection = loop.run_until_complete(
+                    deepgram_service.transcribe_streaming(
+                        session_id=session_id,
+                        language=config.transcription_language,
+                        sample_rate=16000,  # Browser audio is 16kHz
+                        on_transcript=on_streaming_result
+                    )
+                )
+
+                if deepgram_connection and deepgram_connection.is_connected:
+                    logger.info(
+                        f"[{session_id}] ✅ Deepgram streaming initialized "
+                        f"(interim: {config.deepgram_show_interim})"
+                    )
+                else:
+                    logger.error(f"[{session_id}] ❌ Deepgram connection created but not connected")
+                    deepgram_connection = None
+            except Exception as e:
+                logger.error(f"[{session_id}] ❌ Failed to initialize Deepgram streaming: {e}", exc_info=True)
+                deepgram_connection = None
 
         try:
             while True:
@@ -75,7 +156,7 @@ def register_config_websocket_routes(sock):
                         pcm_data = base64.b64decode(audio_base64)
 
                         chunk_count += 1
-                        logger.info(f"[{session_id}] Received audio chunk #{chunk_count}: {len(pcm_data)} bytes PCM")
+                        logger.debug(f"[{session_id}] Received audio chunk #{chunk_count}: {len(pcm_data)} bytes PCM")
 
                         # Calculate audio metrics from PCM data
                         import struct
@@ -102,39 +183,48 @@ def register_config_websocket_routes(sock):
                             'buffer_size': buffer_size
                         }))
 
-                        # Process through transcription service
-                        import asyncio
+                        # If Deepgram streaming is active, send audio directly
+                        if deepgram_connection and deepgram_connection.is_connected:
+                            import asyncio
+                            # Send audio to Deepgram WebSocket (synchronous - queues audio for async sender)
+                            deepgram_connection.send_audio(pcm_data)
+                            # Results will come via on_streaming_result callback
 
-                        # Create event loop if needed
-                        try:
-                            loop = asyncio.get_event_loop()
-                        except RuntimeError:
-                            loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(loop)
+                        else:
+                            # Buffered mode (Whisper or Deepgram REST)
+                            import asyncio
 
-                        # Process audio (already 16kHz PCM from browser)
-                        result = loop.run_until_complete(
-                            transcription_service.process_audio_stream(
-                                session_id=session_id,
-                                audio_chunk=pcm_data,
-                                timestamp=datetime.now().timestamp(),
-                                speaker='agent',  # Browser audio = agent
-                                sample_rate=16000
+                            # Create event loop if needed
+                            try:
+                                loop = asyncio.get_event_loop()
+                            except RuntimeError:
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+
+                            # Process audio (already 16kHz PCM from browser)
+                            result = loop.run_until_complete(
+                                transcription_service.process_audio_stream(
+                                    session_id=session_id,
+                                    audio_chunk=pcm_data,
+                                    timestamp=datetime.now().timestamp(),
+                                    speaker='agent',  # Browser audio = agent
+                                    sample_rate=16000
+                                )
                             )
-                        )
 
-                        # Send transcription back to client if available
-                        if result:
-                            pause_ms = result.get('pause_duration_ms', 0.0)
-                            logger.info(f"[{session_id}] Transcription (pause={pause_ms:.0f}ms): {result.get('text', '')[:50]}...")
-                            ws.send(json.dumps({
-                                'type': 'transcription',
-                                'text': result.get('text', ''),
-                                'timestamp': result.get('timestamp', datetime.utcnow().isoformat()),
-                                'confidence': result.get('confidence', 0.0),
-                                'language': result.get('language', 'unknown'),
-                                'pause_duration_ms': pause_ms
-                            }))
+                            # Send transcription back to client if available
+                            if result:
+                                pause_ms = result.get('pause_duration_ms', 0.0)
+                                logger.info(f"[{session_id}] Transcription (pause={pause_ms:.0f}ms): {result.get('text', '')[:50]}...")
+                                ws.send(json.dumps({
+                                    'type': 'transcription',
+                                    'text': result.get('text', ''),
+                                    'is_final': True,  # Buffered results are always final
+                                    'timestamp': result.get('timestamp', datetime.utcnow().isoformat()),
+                                    'confidence': result.get('confidence', 0.0),
+                                    'language': result.get('language', 'unknown'),
+                                    'pause_duration_ms': pause_ms
+                                }))
 
                     elif message_type == 'ping':
                         # Heartbeat
@@ -161,9 +251,31 @@ def register_config_websocket_routes(sock):
             logger.error(f"[{session_id}] WebSocket error: {e}", exc_info=True)
 
         finally:
+            # Close Deepgram streaming connection if active
+            if deepgram_connection:
+                try:
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    loop.run_until_complete(deepgram_connection.close())
+                    logger.info(f"[{session_id}] Deepgram streaming connection closed")
+                except Exception as e:
+                    logger.error(f"[{session_id}] Error closing Deepgram connection: {e}")
+
             # Cleanup session
             try:
-                transcription_service.end_session(session_id)
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                loop.run_until_complete(transcription_service.end_session(session_id))
                 logger.info(f"[{session_id}] Session ended, processed {chunk_count} audio chunks")
             except Exception as e:
                 logger.error(f"[{session_id}] Error ending session: {e}")
