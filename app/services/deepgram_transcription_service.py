@@ -212,7 +212,7 @@ class DeepgramTranscriptionService:
             on_transcript: Callback function for transcription results
 
         Returns:
-            DeepgramStreamingConnection instance for sending audio
+            DeepgramAsyncConnection instance for sending audio
 
         Example:
             connection = await service.transcribe_streaming(
@@ -222,16 +222,16 @@ class DeepgramTranscriptionService:
             )
 
             # Send audio chunks
-            await connection.send_audio(audio_chunk)
+            connection.send_audio(audio_chunk)
 
             # When done
-            await connection.close()
+            connection.close()
         """
         if not self.api_key:
             logger.error("Deepgram API key not configured")
             return None
 
-        # Use the new async connection that properly uses async with
+        # Use the async connection class (which uses sync SDK internally)
         from .deepgram_streaming_async import DeepgramAsyncConnection
 
         connection = DeepgramAsyncConnection(
@@ -244,266 +244,13 @@ class DeepgramTranscriptionService:
             on_transcript=on_transcript
         )
 
-        # Connect (runs in background thread with proper async/await)
+        # Connect (synchronous call - runs in current thread)
         success = connection.connect()
         if not success:
             logger.error(f"[{session_id}] Failed to establish Deepgram connection")
             return None
 
         return connection
-
-
-class DeepgramStreamingConnection:
-    """
-    WebSocket connection for streaming audio to Deepgram Nova-3
-
-    Manages the lifecycle of a WebSocket connection and handles
-    interim and final transcription results.
-
-    Uses Deepgram SDK v5.x API with context manager pattern.
-    """
-
-    def __init__(
-        self,
-        api_key: str,
-        session_id: str,
-        language: str = 'fr',
-        sample_rate: int = 16000,
-        encoding: str = 'linear16',
-        channels: int = 1,
-        on_transcript: Optional[Callable[[Dict[str, Any]], None]] = None
-    ):
-        self.api_key = api_key
-        self.session_id = session_id
-        self.language = language
-        self.sample_rate = sample_rate
-        self.encoding = encoding
-        self.channels = channels
-        self.on_transcript = on_transcript
-
-        self.socket = None
-        self.context_manager = None
-        self.is_connected = False
-        self.deepgram_client = None
-        self._receiver_thread = None
-        self._keepalive_thread = None
-        self._stop_receiving = False
-
-    async def connect(self):
-        """Establish WebSocket connection to Deepgram"""
-        import threading
-
-        try:
-            # Import Deepgram SDK
-            logger.info(f"[{self.session_id}] Importing Deepgram SDK v5.x...")
-            try:
-                from deepgram import DeepgramClient
-                logger.info(f"[{self.session_id}] Deepgram SDK imported successfully")
-            except ImportError as e:
-                logger.error(
-                    f"Deepgram SDK not installed. Run: pip install deepgram-sdk. Error: {e}"
-                )
-                return False
-
-            # Create Deepgram client with custom config
-            logger.info(f"[{self.session_id}] Creating Deepgram client...")
-            from deepgram import DeepgramClientOptions
-
-            # Configure client with longer keepalive timeout
-            config = DeepgramClientOptions(
-                options={
-                    "keepalive": "true",
-                    "termination_exception_connect": "true",
-                    "termination_exception_send": "true"
-                }
-            )
-            self.deepgram_client = DeepgramClient(api_key=self.api_key, config=config)
-
-            # Create WebSocket connection using v1.connect()
-            logger.info(f"[{self.session_id}] Creating WebSocket connection...")
-            self.context_manager = self.deepgram_client.listen.v1.connect(
-                model='nova-3',
-                language=self.language,
-                encoding=self.encoding,
-                sample_rate=str(self.sample_rate),
-                channels=str(self.channels),
-                interim_results='true',
-                punctuate='true',
-                smart_format='true',
-                utterance_end_ms='1000',
-                # Increase keepalive timeout to prevent early disconnection
-                keepalive='true'
-            )
-
-            # Enter context manager to get socket
-            self.socket = self.context_manager.__enter__()
-
-            if not self.socket:
-                logger.error(f"[{self.session_id}] Failed to create Deepgram connection")
-                return False
-
-            logger.info(
-                f"[{self.session_id}] ✅ Deepgram WebSocket connection established "
-                f"(Nova-3, {self.language}, {self.sample_rate}Hz)"
-            )
-
-            # Start receiver thread to process incoming transcriptions
-            self._stop_receiving = False
-            self._receiver_thread = threading.Thread(
-                target=self._receive_loop,
-                daemon=True,
-                name=f"deepgram-receiver-{self.session_id}"
-            )
-            self._receiver_thread.start()
-
-            # Start keepalive thread to prevent connection timeout
-            self._keepalive_thread = threading.Thread(
-                target=self._keepalive_loop,
-                daemon=True,
-                name=f"deepgram-keepalive-{self.session_id}"
-            )
-            self._keepalive_thread.start()
-
-            self.is_connected = True
-            return True
-
-        except Exception as e:
-            logger.error(f"[{self.session_id}] Deepgram connection error: {e}", exc_info=True)
-            return False
-
-    def _keepalive_loop(self):
-        """Background thread to send periodic keepalive messages"""
-        import time
-        from deepgram.extensions.types.sockets.listen_v1_control_message import ListenV1ControlMessage
-
-        logger.info(f"[{self.session_id}] 💓 Keepalive thread started (interval: 3s)")
-        keepalive_count = 0
-
-        while not self._stop_receiving and self.is_connected:
-            try:
-                # Send keepalive every 3 seconds (Deepgram requires frequent keepalives)
-                time.sleep(3)
-
-                if self.socket and self.is_connected and not self._stop_receiving:
-                    keepalive_msg = ListenV1ControlMessage(type='KeepAlive')
-                    self.socket.send_control(keepalive_msg)
-                    keepalive_count += 1
-                    logger.info(f"[{self.session_id}] 💓 Keepalive #{keepalive_count} sent successfully")
-
-            except Exception as e:
-                if not self._stop_receiving:
-                    logger.error(f"[{self.session_id}] ❌ Keepalive error: {e}")
-                break
-
-        logger.info(f"[{self.session_id}] 💓 Keepalive thread ended (sent {keepalive_count} keepalives)")
-
-    def _receive_loop(self):
-        """Background thread to receive transcription results"""
-        logger.info(f"[{self.session_id}] 🎧 Receiver thread started")
-        result_count = 0
-
-        try:
-            for result in self.socket.recv():
-                if self._stop_receiving:
-                    break
-
-                result_count += 1
-                logger.info(f"[{self.session_id}] 📥 Received result #{result_count}: {type(result).__name__}")
-                self._process_result(result)
-
-        except Exception as e:
-            if not self._stop_receiving:
-                logger.info(f"[{self.session_id}] ⚠️ Receiver stopped with error: {e}")
-
-        logger.info(f"[{self.session_id}] 🎧 Receiver thread ended (processed {result_count} results)")
-
-    def _process_result(self, result):
-        """Process a transcription result from Deepgram"""
-        try:
-            # Log result attributes for debugging
-            result_type_name = type(result).__name__
-            attrs = [a for a in dir(result) if not a.startswith('_')][:15]
-            logger.info(f"[{self.session_id}] 📋 Result attrs: {attrs}")
-
-            # The result is a dict-like object
-            # Check for transcript data
-            if hasattr(result, 'channel'):
-                channel = result.channel
-                logger.info(f"[{self.session_id}] 📥 Has channel: {channel is not None}")
-
-                if channel and hasattr(channel, 'alternatives') and channel.alternatives:
-                    alternative = channel.alternatives[0]
-                    transcript = alternative.transcript if hasattr(alternative, 'transcript') else ''
-                    logger.info(f"[{self.session_id}] 📥 Transcript: '{transcript[:50] if transcript else '(empty)'}...'")
-
-                    if transcript:
-                        is_final = result.is_final if hasattr(result, 'is_final') else False
-                        confidence = alternative.confidence if hasattr(alternative, 'confidence') else 0.0
-                        duration = result.duration if hasattr(result, 'duration') else 0.0
-
-                        transcription_result = {
-                            'text': transcript,
-                            'confidence': confidence,
-                            'language': self.language,
-                            'is_final': is_final,
-                            'duration': duration,
-                            'model': 'deepgram-nova-3-streaming'
-                        }
-
-                        result_type = "FINAL" if is_final else "interim"
-                        logger.info(
-                            f"[{self.session_id}] 🎯 Deepgram {result_type}: "
-                            f"'{transcript[:50]}...' (conf: {confidence:.2f})"
-                        )
-
-                        if self.on_transcript:
-                            logger.info(f"[{self.session_id}] 📤 Calling on_transcript callback...")
-                            self.on_transcript(transcription_result)
-                            logger.info(f"[{self.session_id}] 📤 Callback completed")
-                        else:
-                            logger.warning(f"[{self.session_id}] ⚠️ No on_transcript callback set!")
-                    else:
-                        logger.info(f"[{self.session_id}] 📥 Empty transcript (silence), skipping")
-                else:
-                    logger.info(f"[{self.session_id}] 📥 No alternatives in channel (or channel is None)")
-            else:
-                logger.info(f"[{self.session_id}] 📥 Result type '{result_type_name}' has no channel - might be metadata")
-
-        except Exception as e:
-            logger.error(f"[{self.session_id}] Error processing transcript: {e}", exc_info=True)
-
-    async def send_audio(self, audio_chunk: bytes):
-        """
-        Send audio chunk to Deepgram
-
-        Args:
-            audio_chunk: Raw PCM audio bytes
-        """
-        if not self.is_connected or not self.socket:
-            logger.warning(f"[{self.session_id}] Cannot send audio - not connected")
-            return False
-
-        try:
-            self.socket.send_media(audio_chunk)
-            return True
-        except Exception as e:
-            logger.error(f"[{self.session_id}] Error sending audio: {e}")
-            return False
-
-    async def close(self):
-        """Close WebSocket connection"""
-        self._stop_receiving = True
-
-        if self.context_manager:
-            try:
-                self.context_manager.__exit__(None, None, None)
-                logger.info(f"[{self.session_id}] Deepgram connection closed")
-            except Exception as e:
-                logger.debug(f"[{self.session_id}] Error closing connection: {e}")
-
-        self.is_connected = False
-        self.socket = None
-        self.context_manager = None
 
 
 # Singleton instance

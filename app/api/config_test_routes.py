@@ -11,6 +11,7 @@ from flask import Blueprint, render_template
 from simple_websocket import Server, ConnectionClosed
 
 from app.services.enhanced_transcription_service import get_enhanced_transcription_service
+from app.config.transcription_config import get_transcription_config
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def register_config_websocket_routes(sock):
 
         # Get transcription service
         transcription_service = get_enhanced_transcription_service()
-        config = transcription_service.config
+        # Note: We'll read config dynamically in callbacks to respect runtime changes
 
         # Audio buffer
         audio_buffer = bytearray()
@@ -66,10 +67,18 @@ def register_config_websocket_routes(sock):
                 text = result.get('text', '')
                 confidence = result.get('confidence', 0.0)
 
+                # IMPORTANT: Read config DYNAMICALLY at call time (not from captured closure)
+                # This ensures changes to deepgram_show_interim are respected immediately
+                current_config = get_transcription_config()
+                
                 # Check if we should send interim results
-                if not is_final and not config.deepgram_show_interim:
-                    logger.info(f"[{session_id}] Skipping interim result (interim disabled)")
+                if not is_final and not current_config.deepgram_show_interim:
+                    logger.info(f"[{session_id}] Skipping interim result (interim disabled, show_interim={current_config.deepgram_show_interim})")
                     return  # Skip interim results if disabled
+                
+                # Log what we're sending
+                result_type = "FINAL" if is_final else "INTERIM"
+                logger.info(f"[{session_id}] 📤 Sending {result_type} result to WebSocket: '{text[:50]}...'")
 
                 # Prepare message
                 message = {
@@ -78,24 +87,22 @@ def register_config_websocket_routes(sock):
                     'is_final': is_final,
                     'timestamp': datetime.utcnow().isoformat(),
                     'confidence': confidence,
-                    'language': result.get('language', config.transcription_language),
+                    'language': result.get('language', current_config.transcription_language),
                     'pause_duration_ms': 0.0,  # Streaming doesn't track pauses
                     'model': result.get('model', 'deepgram-nova-3-streaming')
                 }
 
                 # Send to WebSocket
-                logger.info(f"[{session_id}] 📤 Sending to WebSocket: {message}")
+                logger.info(f"[{session_id}] 📤 Sending to WebSocket: is_final={is_final}, text='{text[:30]}...'")
                 ws.send(json.dumps(message))
-                logger.info(f"[{session_id}] ✅ WebSocket send successful")
-
-                logger.info(
-                    f"[{session_id}] Streaming {'FINAL' if is_final else 'interim'}: "
-                    f"'{text[:50]}...' (conf: {confidence:.2f})"
-                )
+                logger.info(f"[{session_id}] ✅ WebSocket send successful ({result_type})")
 
             except Exception as e:
                 logger.error(f"[{session_id}] ❌ Error sending streaming result: {e}", exc_info=True)
 
+        # Get initial config for connection setup
+        config = get_transcription_config()
+        
         # Initialize Deepgram streaming if enabled
         if (config.transcription_backend == 'deepgram' and
             config.deepgram_use_streaming):
@@ -112,7 +119,9 @@ def register_config_websocket_routes(sock):
                 deepgram_service = transcription_service.deepgram_service
                 logger.info(f"[{session_id}] Creating Deepgram streaming connection...")
                 logger.info(f"[{session_id}] API key present: {bool(deepgram_service.api_key)}")
+                logger.info(f"[{session_id}] Initial config: show_interim={config.deepgram_show_interim}")
 
+                # transcribe_streaming is async but internally calls sync connect()
                 deepgram_connection = loop.run_until_complete(
                     deepgram_service.transcribe_streaming(
                         session_id=session_id,
@@ -125,7 +134,7 @@ def register_config_websocket_routes(sock):
                 if deepgram_connection and deepgram_connection.is_connected:
                     logger.info(
                         f"[{session_id}] ✅ Deepgram streaming initialized "
-                        f"(interim: {config.deepgram_show_interim})"
+                        f"(interim_results=True, show_interim config will be checked per-result)"
                     )
                 else:
                     logger.error(f"[{session_id}] ❌ Deepgram connection created but not connected")
@@ -185,8 +194,7 @@ def register_config_websocket_routes(sock):
 
                         # If Deepgram streaming is active, send audio directly
                         if deepgram_connection and deepgram_connection.is_connected:
-                            import asyncio
-                            # Send audio to Deepgram WebSocket (synchronous - queues audio for async sender)
+                            # Send audio to Deepgram WebSocket (synchronous - queues audio for sender thread)
                             deepgram_connection.send_audio(pcm_data)
                             # Results will come via on_streaming_result callback
 
@@ -254,14 +262,7 @@ def register_config_websocket_routes(sock):
             # Close Deepgram streaming connection if active
             if deepgram_connection:
                 try:
-                    import asyncio
-                    try:
-                        loop = asyncio.get_event_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-
-                    loop.run_until_complete(deepgram_connection.close())
+                    deepgram_connection.close()
                     logger.info(f"[{session_id}] Deepgram streaming connection closed")
                 except Exception as e:
                     logger.error(f"[{session_id}] Error closing Deepgram connection: {e}")
