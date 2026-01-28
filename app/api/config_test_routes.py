@@ -45,11 +45,18 @@ def register_config_websocket_routes(sock):
         and sends back transcriptions
         """
         session_id = f"config-test-{datetime.now().timestamp()}"
+        print(f"\n{'='*60}")
+        print(f"🔌 WEBSOCKET CONNECTED: {session_id}")
+        print(f"{'='*60}\n")
         logger.info(f"[{session_id}] Configuration test WebSocket connected")
 
         # Get transcription service
         transcription_service = get_enhanced_transcription_service()
         # Note: We'll read config dynamically in callbacks to respect runtime changes
+
+        # DEBUG: Log service details
+        logger.info(f"[{session_id}] Transcription service: {transcription_service}")
+        logger.info(f"[{session_id}] Has deepgram_service: {hasattr(transcription_service, 'deepgram_service')}")
 
         # Audio buffer
         audio_buffer = bytearray()
@@ -60,52 +67,59 @@ def register_config_websocket_routes(sock):
 
         # Callback for Deepgram streaming results
         def on_streaming_result(result):
-            """Send Deepgram streaming results to WebSocket"""
-            logger.info(f"[{session_id}] 📨 on_streaming_result callback received: {result}")
+            """
+            Send Deepgram streaming results to WebSocket
+            Handles both interim and final results with speech_final flag for phrase boundaries
+            """
             try:
                 is_final = result.get('is_final', False)
+                speech_final = result.get('speech_final', False)  # NEW: Deepgram's utterance detection
                 text = result.get('text', '')
                 confidence = result.get('confidence', 0.0)
 
-                # IMPORTANT: Read config DYNAMICALLY at call time (not from captured closure)
-                # This ensures changes to deepgram_show_interim are respected immediately
+                # IMPORTANT: Read config DYNAMICALLY at call time
                 current_config = get_transcription_config()
-                
+
                 # Check if we should send interim results
                 if not is_final and not current_config.deepgram_show_interim:
-                    logger.info(f"[{session_id}] Skipping interim result (interim disabled, show_interim={current_config.deepgram_show_interim})")
+                    logger.debug(f"[{session_id}] Skipping interim result (interim disabled)")
                     return  # Skip interim results if disabled
-                
-                # Log what we're sending
-                result_type = "FINAL" if is_final else "INTERIM"
-                logger.info(f"[{session_id}] 📤 Sending {result_type} result to WebSocket: '{text[:50]}...'")
 
-                # Prepare message
+                # Log streaming result
+                result_type = "FINAL" if is_final else "INTERIM"
+                speech_status = " [SPEECH_FINAL]" if speech_final else ""
+                logger.info(f"[{session_id}] 🎯 {result_type}{speech_status}: '{text[:80]}'")
+
+                # Prepare message with speech_final flag
                 message = {
                     'type': 'transcription',
                     'text': text,
-                    'is_final': is_final,
+                    'is_final': is_final,              # SDK's final flag
+                    'speech_final': speech_final,      # Utterance end detection (for frame closure)
                     'timestamp': datetime.utcnow().isoformat(),
                     'confidence': confidence,
                     'language': result.get('language', current_config.transcription_language),
-                    'pause_duration_ms': 0.0,  # Streaming doesn't track pauses
-                    'model': result.get('model', 'deepgram-nova-3-streaming')
+                    'pause_duration_ms': 0.0,
+                    'model': 'deepgram-nova-3-streaming'
                 }
 
                 # Send to WebSocket
-                logger.info(f"[{session_id}] 📤 Sending to WebSocket: is_final={is_final}, text='{text[:30]}...'")
                 ws.send(json.dumps(message))
-                logger.info(f"[{session_id}] ✅ WebSocket send successful ({result_type})")
+                logger.debug(f"[{session_id}] ✅ Sent to frontend: {result_type} (speech_final={speech_final})")
 
             except Exception as e:
                 logger.error(f"[{session_id}] ❌ Error sending streaming result: {e}", exc_info=True)
 
         # Get initial config for connection setup
         config = get_transcription_config()
-        
+        print(f"📊 CONFIG: backend={config.transcription_backend}, streaming={config.deepgram_use_streaming}")
+        logger.info(f"[{session_id}] Config backend: {config.transcription_backend}, streaming: {config.deepgram_use_streaming}")
+
         # Initialize Deepgram streaming if enabled
         if (config.transcription_backend == 'deepgram' and
             config.deepgram_use_streaming):
+            print(f"✅ ENTERING DEEPGRAM INITIALIZATION")
+            logger.info(f"[{session_id}] ✓ Entering Deepgram streaming initialization block")
 
             import asyncio
             try:
@@ -117,6 +131,8 @@ def register_config_websocket_routes(sock):
             # Create streaming connection
             try:
                 deepgram_service = transcription_service.deepgram_service
+                print(f"🔑 API key present: {bool(deepgram_service.api_key)}")
+                print(f"🎤 Creating Deepgram connection...")
                 logger.info(f"[{session_id}] Creating Deepgram streaming connection...")
                 logger.info(f"[{session_id}] API key present: {bool(deepgram_service.api_key)}")
                 logger.info(f"[{session_id}] Initial config: show_interim={config.deepgram_show_interim}")
@@ -165,6 +181,7 @@ def register_config_websocket_routes(sock):
                         pcm_data = base64.b64decode(audio_base64)
 
                         chunk_count += 1
+                        print(f"🎙️ AUDIO RECEIVED from browser: {len(pcm_data)} bytes (chunk #{chunk_count})")
                         logger.debug(f"[{session_id}] Received audio chunk #{chunk_count}: {len(pcm_data)} bytes PCM")
 
                         # Calculate audio metrics from PCM data

@@ -173,12 +173,13 @@ class RealtimeTranscriptionService:
         Decide whether to process this transcription segment
 
         Criteria:
-        1. Speaker is customer (if process_only_customer is True)
+        1. Speaker is customer/technician (if process_only_customer is True)
         2. Enough time has passed since last processing (throttling)
         3. Text is not empty or too short
         """
-        # Check speaker
-        if self.process_only_customer and speaker != "customer":
+        # Check speaker - accept both "customer" and "technician" as the person seeking help
+        # In the Twilio demo, "technician" = person calling for support = customer
+        if self.process_only_customer and speaker not in ("customer", "technician"):
             return False
 
         # Check text length

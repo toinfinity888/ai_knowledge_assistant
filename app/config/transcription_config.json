@@ -15,7 +15,7 @@
   "transcription_language": "fr",
   "deepgram_use_streaming": true,
   "deepgram_show_interim": true,
-  "bypass_vad": false,
+  "bypass_vad": true,
   "bypass_min_duration": false,
   "debug_show_hallucinations": false
 }

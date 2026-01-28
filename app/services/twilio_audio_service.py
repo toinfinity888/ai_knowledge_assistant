@@ -457,22 +457,29 @@ class TwilioAudioService:
             raise
 
 
-# Singleton instance
+# Thread-safe singleton instance
+import threading
 _twilio_service: Optional[TwilioAudioService] = None
+_twilio_service_lock = threading.Lock()
 
 
 def get_twilio_service() -> TwilioAudioService:
-    """Get or create Twilio audio service instance"""
+    """Get or create Twilio audio service instance (thread-safe)"""
     global _twilio_service
 
+    # Double-checked locking pattern for thread safety
     if _twilio_service is None:
-        from app.config.twilio_config import get_twilio_settings
+        with _twilio_service_lock:
+            # Check again inside the lock
+            if _twilio_service is None:
+                from app.config.twilio_config import get_twilio_settings
 
-        settings = get_twilio_settings()
-        _twilio_service = TwilioAudioService(
-            account_sid=settings.account_sid,
-            auth_token=settings.auth_token,
-            phone_number=settings.phone_number
-        )
+                settings = get_twilio_settings()
+                _twilio_service = TwilioAudioService(
+                    account_sid=settings.account_sid,
+                    auth_token=settings.auth_token,
+                    phone_number=settings.phone_number
+                )
+                logger.info(f"TwilioAudioService singleton created with id: {id(_twilio_service)}")
 
     return _twilio_service

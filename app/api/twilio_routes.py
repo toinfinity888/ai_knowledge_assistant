@@ -15,6 +15,8 @@ from datetime import datetime
 from app.services.twilio_audio_service import get_twilio_service
 from app.services.enhanced_transcription_service import get_enhanced_transcription_service
 from app.config.twilio_config import get_twilio_settings
+from app.services.deepgram_twilio_bridge import get_deepgram_twilio_bridge
+from app.services.realtime_transcription_service import get_transcription_service
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +134,15 @@ def voice_webhook():
     The TwiML App in Twilio Console calls this webhook to get instructions.
     """
     try:
+        # DEBUG: Use print() to bypass any logger filtering
+        print(f"🔥 VOICE WEBHOOK CALLED - Form keys: {list(request.form.keys())}")
+        print(f"🔥 VOICE WEBHOOK - Full form data: {dict(request.form)}")
+
+        # DEBUG: Log ALL form data and values received from Twilio
+        logger.info(f"📋 DEBUG: Form data keys: {list(request.form.keys())}")
+        logger.info(f"📋 DEBUG: Values keys: {list(request.values.keys())}")
+        logger.info(f"📋 DEBUG: Full form data: {dict(request.form)}")
+
         # Get the phone number to call from the request
         to_number = request.form.get('To', request.values.get('To'))
         from_number = request.form.get('From', request.values.get('From'))
@@ -141,6 +152,11 @@ def voice_webhook():
 
         logger.info(f"📞 Browser calling {to_number} from {from_number}")
         logger.info(f"📋 Session ID from frontend: {session_id}")
+
+        # CRITICAL: If session_id is None, log a clear warning
+        if not session_id:
+            logger.error(f"📋 ❌ CRITICAL: session_id is None! WebSocket matching will FAIL!")
+            logger.error(f"📋 ❌ This means frontend didn't pass session_id in params, or Twilio stripped it")
 
         settings = get_twilio_settings()
 
@@ -165,8 +181,10 @@ def voice_webhook():
         dial.number(to_number)
         response.append(dial)
 
+        twiml_output = str(response)
         logger.info(f"✅ Generated TwiML for call to {to_number}")
-        return str(response), 200, {'Content-Type': 'text/xml'}
+        logger.info(f"📜 TwiML output:\n{twiml_output}")
+        return twiml_output, 200, {'Content-Type': 'text/xml'}
 
     except Exception as e:
         logger.error(f"❌ Error in voice webhook: {e}", exc_info=True)
@@ -306,12 +324,33 @@ def register_websocket_routes(sock):
         Twilio sends JSON messages with audio data
         We process, transcribe, and can send audio back
         """
+        import audioop
+        import base64
+        import uuid
+        import time
+
         session_id = None
         stream_sid = None
         audio_buffer = []
 
         # Get services
         twilio_service = get_twilio_service()
+        deepgram_bridge = get_deepgram_twilio_bridge()
+
+        # Deepgram connection (will be created when stream starts)
+        customer_deepgram = None
+
+        # Utterance tracking: maps speaker_role -> current utterance_id
+        current_utterance_ids = {}
+
+        # Timestamp tracking for pause-based segmentation (maps speaker_role -> last_timestamp)
+        last_transcript_time = {}
+
+        # Finalized text accumulation: maps speaker_role -> finalized text (locked-in from final results)
+        finalized_text = {}
+
+        # Pause threshold in milliseconds (from transcription_config.json: backend_segment_pause)
+        PAUSE_THRESHOLD_MS = 2000
 
         try:
             logger.info("Twilio media stream WebSocket connected")
@@ -328,6 +367,8 @@ def register_websocket_routes(sock):
                     data = json.loads(message)
                     event_type = data.get('event')
 
+                    if event_type != 'media':  # Skip verbose media events
+                        print(f"🔥 MEDIA STREAM EVENT: {event_type}")
                     logger.info(f"Event type: {event_type}")
 
                     if event_type == 'start':
@@ -336,14 +377,32 @@ def register_websocket_routes(sock):
                         custom_params = data['start'].get('customParameters', {})
                         session_id = custom_params.get('session_id', stream_sid)
 
+                        # CRITICAL DEBUG with print()
+                        print(f"🔥 START EVENT - stream_sid: {stream_sid}")
+                        print(f"🔥 START EVENT - customParameters: {custom_params}")
+                        print(f"🔥 START EVENT - session_id extracted: {session_id}")
+                        print(f"🔥 START EVENT - twilio_service id: {id(twilio_service)}")
+
+                        # Check what's already in active_streams
+                        all_sessions = list(twilio_service.active_streams.keys())
+                        print(f"🔥 START EVENT - All sessions in active_streams: {all_sessions}")
+
+                        if session_id in twilio_service.active_streams:
+                            existing = twilio_service.active_streams[session_id]
+                            print(f"🔥 START EVENT - Existing session data keys: {list(existing.keys())}")
+                            if 'technician' in existing:
+                                tech_data = existing['technician']
+                                print(f"🔥 START EVENT - Existing technician keys: {list(tech_data.keys())}")
+                                print(f"🔥 START EVENT - transcription_ws exists: {'transcription_ws' in tech_data}")
+                            else:
+                                print(f"🔥 START EVENT - NO 'technician' key in existing session!")
+                        else:
+                            print(f"🔥 START EVENT - session_id NOT in active_streams yet!")
+
                         # Log detailed start info including track configuration
                         logger.info(f"📞 Media stream started: stream_sid={stream_sid}, session_id={session_id}")
                         logger.info(f"📞 Start event tracks: {data['start'].get('tracks', 'unknown')}")
                         logger.info(f"📞 Custom params: {custom_params}")
-
-                        # DEBUG: Log ALL known session IDs in active_streams
-                        all_sessions = list(twilio_service.active_streams.keys())
-                        logger.info(f"📞 DEBUG: All known sessions in active_streams: {all_sessions}")
 
                         # Initialize stream tracking which holds WebSocket and metadata for this session
                         # IMPORTANT: Merge with existing data to preserve transcription_ws from earlier connection
@@ -381,14 +440,140 @@ def register_websocket_routes(sock):
 
                         logger.info(f"📞 Stream initialized. tech_ws preserved: {transcription_ws is not None}, agent_ws preserved: {agent_ws is not None}")
 
+                        # Create Deepgram stream for TECHNICIAN (phone audio)
+                        def on_phone_technician_transcript(result):
+                            """Send phone technician transcriptions to frontend with pause-based segmentation"""
+                            try:
+                                print(f"🔥 PHONE TRANSCRIPT: '{result.get('text', '')[:50]}' (is_final={result.get('is_final')})")
+                                logger.info(f"[{session_id}] 📞 PHONE TRANSCRIPT CALLBACK FIRED: '{result.get('text', '')[:50]}...' (is_final={result.get('is_final')})")
+
+                                if session_id in twilio_service.active_streams:
+                                    tech_ws = twilio_service.active_streams[session_id].get('technician', {}).get('transcription_ws')
+
+                                    # DEBUG: Log the state of active_streams for this session
+                                    session_data = twilio_service.active_streams[session_id]
+                                    tech_data = session_data.get('technician', {})
+                                    logger.info(f"[{session_id}] 📞 DEBUG: session has keys={list(session_data.keys())}, technician has keys={list(tech_data.keys())}")
+
+                                    if tech_ws:
+                                        speaker_role = 'technician'
+                                        current_time = time.time()
+
+                                        # Check if pause exceeded threshold (time-based segmentation)
+                                        if speaker_role in last_transcript_time:
+                                            pause_duration_ms = (current_time - last_transcript_time[speaker_role]) * 1000
+                                            logger.info(f"[{session_id}] 🕐 Technician (phone) pause check: {pause_duration_ms:.0f}ms (threshold: {PAUSE_THRESHOLD_MS}ms)")
+                                            if pause_duration_ms > PAUSE_THRESHOLD_MS:
+                                                # Pause exceeded threshold - start new bubble
+                                                if speaker_role in current_utterance_ids:
+                                                    old_id = current_utterance_ids[speaker_role]
+                                                    logger.info(f"[{session_id}] ⏸️ Technician (phone) pause {pause_duration_ms:.0f}ms detected, closing utterance {old_id[:8]}")
+                                                    del current_utterance_ids[speaker_role]
+                                                    # Clear finalized text for new bubble
+                                                    if speaker_role in finalized_text:
+                                                        del finalized_text[speaker_role]
+                                        else:
+                                            logger.info(f"[{session_id}] 🆕 First technician (phone) transcript, no pause check")
+
+                                        # Get or create utterance_id for this speaker
+                                        if speaker_role not in current_utterance_ids:
+                                            # New utterance - generate new UUID
+                                            current_utterance_ids[speaker_role] = str(uuid.uuid4())
+
+                                        utterance_id = current_utterance_ids[speaker_role]
+
+                                        # Get current segment text from Deepgram (cumulative within segment)
+                                        current_segment = result['text'].strip()
+
+                                        # Build full text: finalized text + current segment
+                                        if speaker_role in finalized_text and finalized_text[speaker_role]:
+                                            # We have finalized text, append current segment
+                                            full_text = finalized_text[speaker_role] + " " + current_segment
+                                        else:
+                                            # No finalized text yet, just use current segment
+                                            full_text = current_segment
+
+                                        # If this is a final result, update finalized_text
+                                        if result['is_final']:
+                                            finalized_text[speaker_role] = full_text
+
+                                        message = {
+                                            'type': 'transcription',
+                                            'utterance_id': utterance_id,
+                                            'speaker_role': speaker_role,
+                                            'speaker_label': 'Technicien',
+                                            'text': full_text,
+                                            'is_final': result['is_final'],
+                                            'speech_final': result.get('speech_final', False),
+                                            'confidence': result['confidence'],
+                                            'timestamp': datetime.utcnow().isoformat(),
+                                            'language': result['language'],
+                                            'model': result['model']
+                                        }
+                                        tech_ws.send(json.dumps(message))
+                                        print(f"🔥 ✅ TRANSCRIPT SENT TO FRONTEND: '{message['text'][:40]}' (is_final={message['is_final']})")
+                                        logger.debug(f"[{session_id}] Technician (phone) [{utterance_id[:8]}]: {result['text'][:30]}...")
+
+                                        # Update timestamp for this speaker
+                                        last_transcript_time[speaker_role] = current_time
+
+                                        # ============================================================
+                                        # TRIGGER AGENT PIPELINE FOR RAG/KNOWLEDGE BASE SUGGESTIONS
+                                        # Process when speech_final=True (complete utterance from speaker)
+                                        # This sends the transcription to the agent orchestrator which:
+                                        # 1. Analyzes context to determine if enough info for KB query
+                                        # 2. Generates optimized queries for Qdrant vector search
+                                        # 3. Retrieves relevant knowledge and generates suggestions
+                                        # ============================================================
+                                        if result.get('speech_final', False) and full_text.strip():
+                                            try:
+                                                transcription_service = get_transcription_service()
+                                                if transcription_service:
+                                                    # Use speaker="technician" - the person calling for help
+                                                    # The orchestrator expects "technician" for customer_last_message
+                                                    logger.info(f"[{session_id}] 🧠 TRIGGERING AGENT PIPELINE for: '{full_text[:50]}...'")
+                                                    run_async(transcription_service.process_transcription_segment(
+                                                        session_id=session_id,
+                                                        speaker="technician",  # Person on phone seeking help
+                                                        text=full_text,
+                                                        start_time=0.0,  # We don't have exact timing from Deepgram streaming
+                                                        end_time=0.0,
+                                                        confidence=result.get('confidence', 0.0),
+                                                        language=result.get('language', 'en'),
+                                                    ))
+                                                    logger.info(f"[{session_id}] ✅ Agent pipeline triggered successfully")
+                                                else:
+                                                    logger.warning(f"[{session_id}] ⚠️ Transcription service not initialized")
+                                            except Exception as agent_error:
+                                                logger.error(f"[{session_id}] ❌ Error triggering agent pipeline: {agent_error}", exc_info=True)
+                                    else:
+                                        logger.warning(f"[{session_id}] No tech_ws available to send transcript")
+                                else:
+                                    logger.warning(f"[{session_id}] Session not in active_streams")
+
+                            except Exception as e:
+                                logger.error(f"[{session_id}] Error sending phone technician transcript: {e}", exc_info=True)
+
+                        phone_technician_deepgram = deepgram_bridge.create_customer_stream(
+                            session_id=session_id,
+                            language='en',  # TESTING: Changed from 'fr' to 'en' to diagnose empty transcripts
+                            on_transcript=on_phone_technician_transcript
+                        )
+
+                        if phone_technician_deepgram:
+                            logger.info(f"[{session_id}] Phone Technician Deepgram stream ready (is_connected={phone_technician_deepgram.is_connected})")
+                        else:
+                            logger.error(f"[{session_id}] Failed to create phone technician Deepgram stream")
+
                     elif event_type == 'media':
                         # Audio data received - process it synchronously
                         if session_id:
                             # IMPORTANT: Filter by track to avoid mixing audio sources
-                            # With track='both_tracks', Twilio sends:
-                            #   - 'inbound' track: audio FROM the remote party (technician on phone)
-                            #   - 'outbound' track: audio TO the remote party (could include agent's voice)
-                            # We only want to transcribe the INBOUND track (technician's voice)
+                            # With track='both_tracks' in browser-initiated calls to phone:
+                            #   - 'inbound' track: audio FROM the browser/agent (the caller)
+                            #   - 'outbound' track: audio FROM the phone/customer (the callee)
+                            # We only want to transcribe the OUTBOUND track (phone customer's voice)
+                            # Browser audio is already captured directly via browser MediaRecorder
                             track = data['media'].get('track', 'unknown')
 
                             # Log ALL tracks received for debugging
@@ -398,19 +583,51 @@ def register_websocket_routes(sock):
                                 inbound_count = audio_buffer.count('inbound')
                                 outbound_count = audio_buffer.count('outbound')
                                 other_count = len(audio_buffer) - inbound_count - outbound_count
-                                logger.info(f"[{session_id}] 📥 Twilio media #{len(audio_buffer)}: track='{track}' (inbound:{inbound_count}, outbound:{outbound_count}, other:{other_count})")
+                                logger.info(f"[{session_id}] Twilio media #{len(audio_buffer)}: track='{track}' (inbound:{inbound_count}, outbound:{outbound_count}, other:{other_count})")
 
-                            if track != 'inbound':
-                                # Skip outbound track to avoid transcribing agent's voice as technician
+                                # DEBUG: Log tech_ws availability periodically
+                                if session_id in twilio_service.active_streams:
+                                    tech_ws_check = twilio_service.active_streams[session_id].get('technician', {}).get('transcription_ws')
+                                    logger.info(f"[{session_id}] 🔍 DEBUG tech_ws check: available={tech_ws_check is not None}")
+                                else:
+                                    logger.warning(f"[{session_id}] 🔍 DEBUG: session_id NOT in active_streams!")
+
+                            # Only process OUTBOUND track (phone customer's voice)
+                            if track != 'outbound':
+                                # Skip inbound track - browser audio is already captured via browser WebSocket
                                 continue
 
                             payload = data['media']['payload']
 
-                            # Process audio chunk synchronously
-                            run_async(twilio_service._process_audio_chunk_sync(
-                                session_id=session_id,
-                                payload=payload
-                            ))
+                            # DEBUG: Log that we're processing OUTBOUND/phone audio (only first 3 and every 500th)
+                            if len(audio_buffer) <= 3 or len(audio_buffer) % 500 == 0:
+                                print(f"🔥 OUTBOUND/PHONE AUDIO: chunk #{len(audio_buffer)}, payload_len={len(payload) if payload else 0}")
+
+                            # Decode mulaw audio and CONVERT TO PCM before sending to Deepgram
+                            if payload and phone_technician_deepgram and phone_technician_deepgram.is_connected:
+                                # Decode base64 mulaw
+                                mulaw_data = base64.b64decode(payload)
+
+                                # Convert mulaw to PCM (16-bit linear)
+                                # Deepgram expects PCM, not raw mulaw
+                                pcm_data = audioop.ulaw2lin(mulaw_data, 2)
+
+                                # Send PCM to Deepgram (phone = technician)
+                                sent = deepgram_bridge.send_customer_audio(session_id, pcm_data)
+                                if len(audio_buffer) <= 3:
+                                    print(f"🔥 AUDIO SENT TO DEEPGRAM: chunk #{len(audio_buffer)}, pcm_bytes={len(pcm_data)}, sent={sent}")
+                            elif payload:
+                                # Log why we're not sending audio
+                                if not phone_technician_deepgram:
+                                    logger.warning(f"[{session_id}] ❌ phone_technician_deepgram is None - cannot send audio!")
+                                elif not phone_technician_deepgram.is_connected:
+                                    logger.warning(f"[{session_id}] ❌ phone_technician_deepgram is not connected yet!")
+
+                            # Old transcription service removed - now using Deepgram bridge exclusively
+                            # run_async(twilio_service._process_audio_chunk_sync(
+                            #     session_id=session_id,
+                            #     payload=payload
+                            # ))
                         else:
                             logger.warning(f"📥 Received media event but session_id is None!")
 
@@ -429,6 +646,10 @@ def register_websocket_routes(sock):
         except Exception as e:
             logger.error(f"WebSocket error: {e}", exc_info=True)
         finally:
+            # Close Deepgram connection
+            if session_id:
+                deepgram_bridge.close_session(session_id)
+
             # Clean up - close WAV file if open
             if session_id and session_id in twilio_service.active_streams:
                 stream = twilio_service.active_streams[session_id]
@@ -514,14 +735,33 @@ def register_websocket_routes(sock):
         Receives PCM audio data from browser's getUserMedia
         """
         import struct
+        import uuid
+        import time
+
+        # Utterance tracking for technician
+        current_utterance_ids = {}
+
+        # Timestamp tracking for pause-based segmentation
+        last_transcript_time = {}
+
+        # Finalized text accumulation: maps speaker_role -> finalized text (locked-in from final results)
+        finalized_text = {}
+
+        # Pause threshold in milliseconds (from transcription_config.json: backend_segment_pause)
+        PAUSE_THRESHOLD_MS = 2000
 
         try:
             logger.info(f"Agent audio stream WebSocket connected for session {session_id}")
 
-            # Get Twilio service
+            # Get services
             twilio_service = get_twilio_service()
+            deepgram_bridge = get_deepgram_twilio_bridge()
 
             # Initialize stream tracking for agent
+            print(f"🔥 AGENT WS - Before init, session exists: {session_id in twilio_service.active_streams}")
+            if session_id in twilio_service.active_streams:
+                print(f"🔥 AGENT WS - Existing keys: {list(twilio_service.active_streams[session_id].keys())}")
+
             if session_id not in twilio_service.active_streams:
                 twilio_service.active_streams[session_id] = {}
 
@@ -531,6 +771,8 @@ def register_websocket_routes(sock):
                 'audio_buffer': []
             }
 
+            print(f"🔥 AGENT WS - After init, keys: {list(twilio_service.active_streams[session_id].keys())}")
+            print(f"🔥 AGENT WS - twilio_service id: {id(twilio_service)}")
             logger.info(f"📝 Registered agent WebSocket for session {session_id}")
 
             # Send confirmation to frontend that WebSocket is registered
@@ -539,6 +781,88 @@ def register_websocket_routes(sock):
                 'session_id': session_id,
                 'type': 'agent_audio'
             }))
+
+            # Create Deepgram stream for AGENT (browser audio)
+            def on_agent_transcript(result):
+                """Send agent (browser) transcriptions to frontend with pause-based segmentation"""
+                try:
+                    if session_id in twilio_service.active_streams:
+                        tech_ws = twilio_service.active_streams[session_id].get('technician', {}).get('transcription_ws')
+
+                        if tech_ws:
+                            speaker_role = 'agent'
+                            current_time = time.time()
+
+                            # Check if pause exceeded threshold (time-based segmentation)
+                            if speaker_role in last_transcript_time:
+                                pause_duration_ms = (current_time - last_transcript_time[speaker_role]) * 1000
+                                logger.info(f"[{session_id}] 🕐 Agent (browser) pause check: {pause_duration_ms:.0f}ms (threshold: {PAUSE_THRESHOLD_MS}ms)")
+                                if pause_duration_ms > PAUSE_THRESHOLD_MS:
+                                    # Pause exceeded threshold - start new bubble
+                                    if speaker_role in current_utterance_ids:
+                                        old_id = current_utterance_ids[speaker_role]
+                                        logger.info(f"[{session_id}] ⏸️ Agent (browser) pause {pause_duration_ms:.0f}ms detected, closing utterance {old_id[:8]}")
+                                        del current_utterance_ids[speaker_role]
+                                        # Clear finalized text for new bubble
+                                        if speaker_role in finalized_text:
+                                            del finalized_text[speaker_role]
+                            else:
+                                logger.info(f"[{session_id}] 🆕 First agent (browser) transcript, no pause check")
+
+                            # Get or create utterance_id for this speaker
+                            if speaker_role not in current_utterance_ids:
+                                # New utterance - generate new UUID
+                                current_utterance_ids[speaker_role] = str(uuid.uuid4())
+
+                            utterance_id = current_utterance_ids[speaker_role]
+
+                            # Get current segment text from Deepgram (cumulative within segment)
+                            current_segment = result['text'].strip()
+
+                            # Build full text: finalized text + current segment
+                            if speaker_role in finalized_text and finalized_text[speaker_role]:
+                                # We have finalized text, append current segment
+                                full_text = finalized_text[speaker_role] + " " + current_segment
+                            else:
+                                # No finalized text yet, just use current segment
+                                full_text = current_segment
+
+                            # If this is a final result, update finalized_text
+                            if result['is_final']:
+                                finalized_text[speaker_role] = full_text
+
+                            message = {
+                                'type': 'transcription',
+                                'utterance_id': utterance_id,
+                                'speaker_role': speaker_role,
+                                'speaker_label': 'Agent',
+                                'text': full_text,
+                                'is_final': result['is_final'],
+                                'speech_final': result.get('speech_final', False),
+                                'confidence': result['confidence'],
+                                'timestamp': datetime.utcnow().isoformat(),
+                                'language': result['language'],
+                                'model': result['model']
+                            }
+                            tech_ws.send(json.dumps(message))
+                            logger.debug(f"[{session_id}] Agent (browser) [{utterance_id[:8]}]: {result['text'][:30]}...")
+
+                            # Update timestamp for this speaker
+                            last_transcript_time[speaker_role] = current_time
+
+                except Exception as e:
+                    logger.error(f"[{session_id}] Error sending agent (browser) transcript: {e}")
+
+            agent_deepgram = deepgram_bridge.create_technician_stream(
+                session_id=session_id,
+                language='en',  # TESTING: Changed from 'fr' to 'en' to diagnose empty transcripts
+                on_transcript=on_agent_transcript
+            )
+
+            if agent_deepgram:
+                logger.info(f"[{session_id}] ✅ Agent (browser) Deepgram stream ready")
+            else:
+                logger.error(f"[{session_id}] ❌ Failed to create agent (browser) Deepgram stream")
 
             while True:
                 message = ws.receive()
@@ -552,11 +876,15 @@ def register_websocket_routes(sock):
                         # No conversion needed - just use the data as-is
                         pcm_data = message
 
-                        # Process audio chunk
-                        run_async(twilio_service._process_agent_audio(
-                            session_id=session_id,
-                            audio_data=pcm_data
-                        ))
+                        # Send to Deepgram
+                        if agent_deepgram and agent_deepgram.is_connected:
+                            deepgram_bridge.send_technician_audio(session_id, pcm_data)
+
+                        # Old transcription service removed - now using Deepgram bridge exclusively
+                        # run_async(twilio_service._process_agent_audio(
+                        #     session_id=session_id,
+                        #     audio_data=pcm_data
+                        # ))
 
                     # Handle JSON control messages
                     elif isinstance(message, str):
@@ -584,6 +912,7 @@ def register_websocket_routes(sock):
         Frontend connects here to display technician's speech transcriptions
         """
         try:
+            print(f"🔥 TECH TRANSCRIPTION WS CONNECTED for session: {session_id}")
             logger.info(f"✅ Technician transcription WebSocket connected for session {session_id}")
 
             # Get Twilio service
@@ -607,6 +936,10 @@ def register_websocket_routes(sock):
 
             # DEBUG: Verify the WebSocket was stored
             stored_ws = twilio_service.active_streams[session_id]['technician'].get('transcription_ws')
+            print(f"🔥 TECH WS STORED - session: {session_id}, stored: {stored_ws is not None}")
+            print(f"🔥 TECH WS - active_streams keys: {list(twilio_service.active_streams.keys())}")
+            print(f"🔥 TECH WS - session keys: {list(twilio_service.active_streams[session_id].keys())}")
+            print(f"🔥 TECH WS - twilio_service id: {id(twilio_service)}")
             logger.info(f"📝 Registered technician transcription WebSocket for session {session_id}")
             logger.info(f"📝 DEBUG: WebSocket stored successfully: {stored_ws is not None}")
 

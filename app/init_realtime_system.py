@@ -13,7 +13,37 @@ from app.agents.agent_orchestrator import create_agent_orchestrator
 from app.services.realtime_transcription_service import get_transcription_service
 from app.core.rag_singleton import get_rag_engine
 from app.llm.llm_openai import OpenAILLM
-from app.api.realtime_routes import broadcast_to_session
+from app.demo.web_demo_routes import broadcast_suggestion
+
+
+async def broadcast_suggestions_to_demo(payload: dict):
+    """
+    Wrapper callback for RealtimeTranscriptionService that broadcasts
+    suggestions to the demo WebSocket connections.
+
+    Args:
+        payload: Dict containing session_id, suggestions, and clarifying_questions
+    """
+    session_id = payload.get('session_id')
+    suggestions = payload.get('suggestions', [])
+    clarifying_questions = payload.get('clarifying_questions', [])
+
+    if not session_id:
+        return
+
+    # Broadcast each suggestion
+    for suggestion in suggestions:
+        broadcast_suggestion(session_id, suggestion)
+
+    # Broadcast clarifying questions as suggestions with type 'clarification_question'
+    for question in clarifying_questions:
+        question_suggestion = {
+            'type': 'clarification_question',
+            **question
+        }
+        broadcast_suggestion(session_id, question_suggestion)
+
+    print(f"📤 Broadcasted {len(suggestions)} suggestions and {len(clarifying_questions)} questions to session {session_id}")
 
 
 def initialize_realtime_system(config: dict = None):
@@ -66,7 +96,7 @@ def initialize_realtime_system(config: dict = None):
     transcription_service = get_transcription_service(
         session_manager=session_manager,
         orchestrator=orchestrator,
-        on_suggestions_ready=broadcast_to_session,  # WebSocket callback
+        on_suggestions_ready=broadcast_suggestions_to_demo,  # WebSocket callback to demo UI
     )
     print("✓ Transcription Service ready")
 

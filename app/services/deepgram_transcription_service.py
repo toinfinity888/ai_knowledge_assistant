@@ -85,6 +85,7 @@ class DeepgramTranscriptionService:
             params = {
                 'model': 'nova-3',           # Latest Nova model
                 'language': language,
+                'interim_results': 'True',   # Final results only
                 'smart_format': 'true',      # Smart formatting
                 'punctuate': 'true',         # Add punctuation
                 'diarize': 'false',          # We handle diarization separately
@@ -231,25 +232,24 @@ class DeepgramTranscriptionService:
             logger.error("Deepgram API key not configured")
             return None
 
-        # Use the async connection class (which uses sync SDK internally)
-        from .deepgram_streaming_async import DeepgramAsyncConnection
+        # Use the OFFICIAL event-based pattern (SDK v5.3.0)
+        from .deepgram_streaming_v5 import DeepgramStreamingConnection
 
-        connection = DeepgramAsyncConnection(
+        connection = DeepgramStreamingConnection(
             api_key=self.api_key,
             session_id=session_id,
             language=language,
-            sample_rate=sample_rate,
-            encoding=encoding,
-            channels=channels,
+            equipment_list=[],  # Can be populated with camera models for better accuracy
             on_transcript=on_transcript
         )
 
-        # Connect (synchronous call - runs in current thread)
+        # Connect (starts background threads and event handlers)
         success = connection.connect()
         if not success:
-            logger.error(f"[{session_id}] Failed to establish Deepgram connection")
+            logger.error(f"[{session_id}] Failed to establish Deepgram streaming connection")
             return None
 
+        logger.info(f"[{session_id}] ✅ Deepgram streaming connection established (Nova-3, {language}, interim_results=True)")
         return connection
 
 

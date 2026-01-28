@@ -199,7 +199,7 @@
 
         .main-container {
             display: grid;
-            grid-template-columns: 300px 380px 1fr;
+            grid-template-columns: 300px 1fr 1fr;
             height: calc(100vh - 45px - 57px);
             gap: 1rem;
             padding: 1rem;
@@ -834,7 +834,7 @@
 
         function startSuggestionPolling() { startSuggestionsWebSocket(); }
 
-        function updateCallDuration() { if (!callStartTime) return; const e = Math.floor((Date.now() - callStartTime) / 1000); const d = document.getElementById('callDuration'); d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`; d.style.display = 'inline'; }
+        function updateCallDuration() { if (!callStartTime) return; const e = Math.floor((Date.now() - callStartTime) / 1000); const d = document.getElementById('callDuration'); if (!d) return; d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`; d.style.display = 'inline'; }
 
         function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
 
@@ -858,14 +858,82 @@
         const audioWorkletCode = `class AudioStreamProcessor extends AudioWorkletProcessor { constructor() { super(); this.bufferSize = 4096; this.buffer = new Float32Array(this.bufferSize); this.bufferIndex = 0; } process(inputs) { const input = inputs[0]; if (!input || !input[0]) return true; const ch = input[0]; for (let i = 0; i < ch.length; i++) { this.buffer[this.bufferIndex++] = ch[i]; if (this.bufferIndex >= this.bufferSize) { this.port.postMessage({ type: 'audio', buffer: this.buffer.slice() }); this.bufferIndex = 0; } } return true; } } registerProcessor('audio-stream-processor', AudioStreamProcessor);`;
 
         async function connectTranscriptionWebSockets() {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                console.log(`🔌 Connecting WebSockets for session: ${sessionId}`);
+                console.log(`   Tech WS URL: ${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
+                console.log(`   Agent WS URL: ${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
+
                 technicianTranscriptionWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
                 agentAudioWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
-                let t = false, a = false; const check = () => { if (t && a) resolve(); };
-                technicianTranscriptionWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.event === 'connected' && d.type === 'technician_transcription') { t = true; check(); } else if (d.type === 'transcription') addTranscriptionBubble(d.text, d.speaker_label || 'Technicien', d.speaker_role || 'technician'); } catch {} };
-                agentAudioWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.event === 'connected' && d.type === 'agent_audio') { a = true; check(); } else if (d.type === 'transcription') addTranscriptionBubble(d.text, d.speaker_label || 'Agent', d.speaker_role || 'agent'); } catch {} };
-                setTimeout(resolve, 5000);
+
+                let t = false, a = false;
+                const check = () => {
+                    console.log(`🔍 WS Status check: tech=${t}, agent=${a}`);
+                    if (t && a) {
+                        console.log('✅ Both WebSockets connected!');
+                        resolve();
+                    }
+                };
+
+                // Technician transcription WebSocket handlers
+                technicianTranscriptionWebSocket.onopen = () => {
+                    console.log('✅ Technician transcription WebSocket opened');
+                };
+                technicianTranscriptionWebSocket.onmessage = (e) => {
+                    try {
+                        const d = JSON.parse(e.data);
+                        console.log('📨 Tech WS message:', d);
+                        console.log('📨 Tech WS - speaker_role:', d.speaker_role, 'speaker_label:', d.speaker_label, 'text:', d.text);
+                        if (d.event === 'connected' && d.type === 'technician_transcription') {
+                            t = true;
+                            check();
+                        } else if (d.type === 'transcription') {
+                            console.log('📨 ADDING BUBBLE - role:', d.speaker_role, 'label:', d.speaker_label, 'text:', d.text?.substring(0, 30));
+                            addTranscriptionBubble(d.text, d.speaker_label || 'Technicien', d.speaker_role || 'technician', d.is_final !== false, d.confidence || 1.0, d.utterance_id);
+                        }
+                    } catch (err) {
+                        console.error('❌ Error parsing tech WS message:', err);
+                    }
+                };
+                technicianTranscriptionWebSocket.onerror = (err) => {
+                    console.error('❌ Technician transcription WebSocket error:', err);
+                };
+                technicianTranscriptionWebSocket.onclose = (e) => {
+                    console.warn('🔌 Technician transcription WebSocket closed:', e.code, e.reason);
+                };
+
+                // Agent audio WebSocket handlers
+                agentAudioWebSocket.onopen = () => {
+                    console.log('✅ Agent audio WebSocket opened');
+                };
+                agentAudioWebSocket.onmessage = (e) => {
+                    try {
+                        const d = JSON.parse(e.data);
+                        console.log('📨 Agent WS message:', d);
+                        if (d.event === 'connected' && d.type === 'agent_audio') {
+                            a = true;
+                            check();
+                        } else if (d.type === 'transcription') {
+                            addTranscriptionBubble(d.text, d.speaker_label || 'Agent', d.speaker_role || 'agent', d.is_final !== false, d.confidence || 1.0, d.utterance_id);
+                        }
+                    } catch (err) {
+                        console.error('❌ Error parsing agent WS message:', err);
+                    }
+                };
+                agentAudioWebSocket.onerror = (err) => {
+                    console.error('❌ Agent audio WebSocket error:', err);
+                };
+                agentAudioWebSocket.onclose = (e) => {
+                    console.warn('🔌 Agent audio WebSocket closed:', e.code, e.reason);
+                };
+
+                // Timeout fallback - resolve anyway after 5 seconds
+                setTimeout(() => {
+                    console.warn('⏱️ WebSocket connection timeout (5s) - proceeding anyway');
+                    console.warn(`   Final status: tech=${t}, agent=${a}`);
+                    resolve();
+                }, 5000);
             });
         }
 
@@ -876,23 +944,86 @@
                 const blob = new Blob([audioWorkletCode], { type: 'application/javascript' }), url = URL.createObjectURL(blob);
                 try { await agentAudioContext.audioWorklet.addModule(url); } catch { await startTranscriptionFallback(); return; } finally { URL.revokeObjectURL(url); }
                 agentAudioWorkletNode = new AudioWorkletNode(agentAudioContext, 'audio-stream-processor');
-                agentAudioWorkletNode.port.onmessage = (e) => { if (e.data.type !== 'audio' || isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.data.buffer, i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 2.5)) * 32767); agentAudioWebSocket.send(i.buffer); };
+                agentAudioWorkletNode.port.onmessage = (e) => { if (e.data.type !== 'audio' || isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.data.buffer, i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767); agentAudioWebSocket.send(i.buffer); };
                 const src = agentAudioContext.createMediaStreamSource(agentMediaStream); src.connect(agentAudioWorkletNode); agentAudioWorkletNode.connect(agentAudioContext.destination);
             } catch { alert('Erreur de transcription. Autorisez le microphone.'); }
         }
 
         async function startTranscriptionFallback() {
             const src = agentAudioContext.createMediaStreamSource(agentMediaStream), proc = agentAudioContext.createScriptProcessor(4096, 1, 1);
-            proc.onaudioprocess = (e) => { if (isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.inputBuffer.getChannelData(0), i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 2.5)) * 32767); agentAudioWebSocket.send(i.buffer); };
+            proc.onaudioprocess = (e) => { if (isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.inputBuffer.getChannelData(0), i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767); agentAudioWebSocket.send(i.buffer); };
             src.connect(proc); proc.connect(agentAudioContext.destination); agentAudioWorkletNode = proc;
         }
 
-        function addTranscriptionBubble(text, label, role) {
+        function addTranscriptionBubble(text, label, role, is_final = true, confidence = 1.0, utterance_id = null) {
             const c = document.getElementById('transcriptionContent'), empty = c.querySelector('.transcription-empty');
             if (empty) empty.remove();
-            const line = document.createElement('div'); line.className = `transcript-line ${role}`;
-            line.innerHTML = `<div class="transcript-speaker">${label}</div><div class="transcript-text">${text}</div>`;
-            c.appendChild(line); c.scrollTop = c.scrollHeight;
+
+            // Use utterance_id for unique tracking (fixes multi-speaker race conditions)
+            const trackingId = utterance_id || `${role}-${Date.now()}`;
+
+            // DEBUG: Log utterance tracking
+            console.log(`🔍 Transcript received:`, {
+                text: text.substring(0, 30) + '...',
+                role,
+                is_final,
+                utterance_id,
+                trackingId: trackingId.substring(0, 8) + '...'
+            });
+
+            // Check if this is an update to an existing bubble with same utterance_id
+            const existingBubble = c.querySelector(`[data-utterance-id="${trackingId}"]`);
+
+            console.log(`🔍 Existing bubble found:`, existingBubble !== null);
+
+            if (existingBubble) {
+                // UPDATE existing bubble (accumulate text in same bubble)
+                existingBubble.querySelector('.transcript-text').textContent = text;
+                if (existingBubble.querySelector('.transcript-confidence')) {
+                    existingBubble.querySelector('.transcript-confidence').textContent = `${(confidence * 100).toFixed(0)}%`;
+                }
+
+                // Update styling based on is_final
+                if (is_final) {
+                    // Make it look final (remove italic, "En cours...")
+                    const statusEl = existingBubble.querySelector('.transcript-status');
+                    if (statusEl) statusEl.remove();
+                    existingBubble.style.fontStyle = 'normal';
+                    existingBubble.style.opacity = '1';
+                } else {
+                    // Keep interim styling
+                    existingBubble.style.fontStyle = 'italic';
+                    existingBubble.style.opacity = '0.7';
+                }
+            } else {
+                // CREATE new bubble (different utterance_id or first message)
+                const line = document.createElement('div');
+                line.className = `transcript-line ${role}`;
+                line.setAttribute('data-utterance-id', trackingId);  // Use data-utterance-id instead of data-interim-id
+
+                // Set initial styling based on is_final
+                if (!is_final) {
+                    line.style.fontStyle = 'italic';
+                    line.style.opacity = '0.7';
+                }
+
+                const statusHTML = !is_final ? '<span class="transcript-status" style="color: #999;">En cours...</span>' : '';
+
+                line.innerHTML = `
+                    <div class="transcript-speaker">${label}</div>
+                    <div class="transcript-text">${text}</div>
+                    <div class="transcript-meta" style="font-size: 11px; color: var(--sf-text-muted); margin-top: 4px; display: flex; gap: 8px;">
+                        <span class="transcript-time">${new Date().toLocaleTimeString('fr-FR')}</span>
+                        <span class="transcript-confidence">${(confidence * 100).toFixed(0)}%</span>
+                        ${statusHTML}
+                    </div>
+                `;
+                c.appendChild(line);
+                console.log('📨 NEW BUBBLE CREATED - role:', role, 'childCount:', c.children.length);
+            }
+
+            c.scrollTop = c.scrollHeight;
+            console.log('📨 transcriptionContent now has', c.children.length, 'children');
         }
 
         function displaySolutions(suggestions) {

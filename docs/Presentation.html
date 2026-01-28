@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UpperTool - Assistant IA pour le Support Technique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a5f;
+            --primary-light: #2d4a6f;
+            --primary-dark: #0f2847;
+            --accent: #3d8bcd;
+            --accent-muted: #5a9fd4;
+            --surface: #0d1b2a;
+            --surface-elevated: #152238;
+            --surface-card: #1a2d47;
+            --border: rgba(61, 139, 205, 0.15);
+            --border-hover: rgba(61, 139, 205, 0.3);
+            --text: #e8eef4;
+            --text-secondary: #a0b4c8;
+            --text-muted: #6b8299;
+            --success: #2d8a6e;
+            --warning: #c4a35a;
+            --danger: #b85450;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--surface);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* Slide Base */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            scroll-snap-align: start;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ==================== */
+        /* SLIDE 0: INTRO       */
+        /* ==================== */
+        .slide-intro {
+            background: #000;
+            background-image: url('images/Im_for_presentation/Logo.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .slide-intro::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+            animation: fadeFromDarkness 4s ease-out forwards;
+        }
+
+        @keyframes fadeFromDarkness {
+            0% {
+                background: rgba(0, 0, 0, 1);
+            }
+            100% {
+                background: rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            opacity: 0;
+            animation: fadeInLogo 2s ease-out forwards;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes fadeInLogo {
+            0% {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .logo-icon-large {
+            display: none;
+        }
+
+        .logo-text-large {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.03em;
+            text-shadow:
+                0 2px 10px rgba(0, 0, 0, 1),
+                0 4px 20px rgba(0, 0, 0, 0.8),
+                2px 2px 4px rgba(0, 0, 0, 1);
+        }
+
+        .logo-tagline {
+            font-size: 1.25rem;
+            color: var(--text);
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-shadow:
+                0 2px 8px rgba(0, 0, 0, 1),
+                0 3px 12px rgba(0, 0, 0, 0.8),
+                1px 1px 3px rgba(0, 0, 0, 1);
+        }
+
+        /* ==================== */
+        /* SLIDE 1: PROBLEM     */
+        /* ==================== */
+        .slide-problem {
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0a1929 100%);
+            padding: 0;
+            position: relative;
+        }
+
+        /* Content wrapper */
+        .problem-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 3rem 4rem;
+        }
+
+        /* Page Subtitle */
+        .page-subtitle {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 3rem;
+            letter-spacing: 0.02em;
+            line-height: 1.3;
+        }
+
+        /* Main Content Area */
+        .problem-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            flex: 1;
+            margin-bottom: 2rem;
+        }
+
+        /* Problem Columns */
+        .problem-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 2rem;
+        }
+
+        .problem-column-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid #ff6b35;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .problem-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .problem-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .problem-list li:hover {
+            transform: translateX(8px);
+        }
+
+        .problem-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .problem-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(1.2);
+        }
+
+        .problem-text {
+            flex: 1;
+            padding-top: 0.5rem;
+        }
+
+        .problem-text-content {
+            color: #e8eef4;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .accent-number {
+            color: #ff6b35;
+            font-weight: 700;
+        }
+
+        /* Large stat item */
+        .large-stat {
+            margin-bottom: 2rem;
+        }
+
+        .large-stat-number {
+            font-size: 5rem;
+            font-weight: 800;
+            color: #ff6b35;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .large-stat-text {
+            color: #e8eef4;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Bottom section */
+        .problem-bottom {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 2rem 4rem;
+            border-top: 2px solid rgba(255, 107, 53, 0.3);
+        }
+
+        .bottom-icon {
+            width: 64px;
+            height: 64px;
+            min-width: 64px;
+        }
+
+        .bottom-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(1.2);
+        }
+
+        .bottom-text {
+            color: #e8eef4;
+            font-size: 1.15rem;
+            line-height: 1.6;
+            max-width: 800px;
+            font-style: italic;
+        }
+
+        .bottom-text strong {
+            color: #ff6b35;
+            font-weight: 600;
+        }
+
+
+        /* Slide Navigation Hint */
+        .scroll-hint {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            opacity: 0.6;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-hint-arrow {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--text-muted);
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            40% {
+                transform: translateX(-50%) translateY(-8px);
+            }
+            60% {
+                transform: translateX(-50%) translateY(-4px);
+            }
+        }
+
+        /* Slide Number */
+        .slide-number {
+            position: absolute;
+            bottom: 2rem;
+            right: 3rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Keyboard Navigation */
+        .nav-hint {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+            z-index: 100;
+        }
+
+        /* ==================== */
+        /* SLIDE 2: SOLUTION    */
+        /* ==================== */
+        .slide-solution {
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0a1929 100%);
+            padding: 0;
+            position: relative;
+        }
+
+        .solution-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 4rem;
+        }
+
+        /* Header section */
+        .solution-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .solution-logo {
+            width: 360px;
+            height: auto;
+            margin-bottom: 0.75rem;
+        }
+
+        .solution-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .solution-subtitle {
+            font-size: 1.1rem;
+            color: #e8eef4;
+            text-align: center;
+            max-width: 700px;
+        }
+
+        /* Steps section */
+        .solution-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 0 2rem;
+        }
+
+        .solution-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+
+        .step-image {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 1rem;
+            object-fit: contain;
+        }
+
+        .step-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ff6b35;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .step-description {
+            font-size: 0.95rem;
+            color: #e8eef4;
+            line-height: 1.5;
+            max-width: 280px;
+        }
+
+        /* Arrow between steps */
+        .step-arrow {
+            font-size: 2.5rem;
+            color: #ff6b35;
+            margin: 0 0.75rem;
+            align-self: center;
+            margin-bottom: 3.5rem;
+        }
+
+        /* Features section */
+        .solution-features {
+            background: rgba(255, 107, 53, 0.1);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .features-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ff6b35;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            color: #e8eef4;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .features-list li::before {
+            content: "•";
+            color: #ff6b35;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .problem-wrapper {
+                padding: 2rem;
+            }
+
+            .problem-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .page-subtitle {
+                font-size: 1.4rem;
+            }
+
+            .problem-column-title {
+                font-size: 1.6rem;
+            }
+
+            .large-stat-number {
+                font-size: 4rem;
+            }
+
+            .problem-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .solution-wrapper {
+                padding: 2rem;
+            }
+
+            .solution-steps {
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .step-arrow {
+                transform: rotate(90deg);
+                margin: 1rem 0;
+            }
+
+            .features-list {
+                grid-template-columns: 1fr;
+            }
+
+            .solution-logo {
+                width: 240px;
+            }
+
+            .step-image {
+                width: 100px;
+                height: 100px;
+            }
+
+            .solution-title {
+                font-size: 1.6rem;
+            }
+
+            .solution-subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SLIDE 0: INTRO -->
+    <section class="slide slide-intro" id="slide-0">
+        <div class="logo-container">
+            <div class="logo-icon-large">U</div>
+        </div>
+        <div class="scroll-hint">
+            <span>Appuyez sur Espace ou &#8595;</span>
+            <div class="scroll-hint-arrow"></div>
+        </div>
+    </section>
+
+    <!-- SLIDE 1: PROBLEM -->
+    <section class="slide slide-problem" id="slide-1">
+        <div class="problem-wrapper">
+            <!-- Page Subtitle -->
+            <h1 class="page-subtitle">Support Inefficiency: The Silent Margin Killer in Security Systems</h1>
+
+            <!-- Main Content: Left and Right Columns -->
+            <div class="problem-content">
+
+                <!-- Left Column: The Chaos -->
+                <div class="problem-column">
+                    <h2 class="problem-column-title">The Chaos</h2>
+                    <ul class="problem-list">
+                        <li>
+                            <div class="problem-icon">
+                                <img src="images/page_1/timer_arrow_down_80dp_999999_FILL0_wght400_GRAD0_opsz48.png" alt="Timer">
+                            </div>
+                            <div class="problem-text">
+                                <div class="problem-text-content">Endless manual document searching</div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="problem-icon">
+                                <img src="images/page_1/replay_80dp_999999_FILL0_wght400_GRAD0_opsz48.png" alt="Replay">
+                            </div>
+                            <div class="problem-text">
+                                <div class="problem-text-content"><span class="accent-number">60%</span> of queries are identical and repetitive</div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="problem-icon">
+                                <img src="images/page_1/cognition_80dp_999999_FILL0_wght400_GRAD0_opsz48.png" alt="Cognition">
+                            </div>
+                            <div class="problem-text">
+                                <div class="problem-text-content">Steep learning curve for new employees</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right Column: The Impact -->
+                <div class="problem-column">
+                    <h2 class="problem-column-title">The Impact</h2>
+
+                    <!-- Large stat -->
+                    <div class="large-stat">
+                        <div class="large-stat-number">40%</div>
+                        <div class="large-stat-text">Share of working time spent searching for information instead of solving problems.</div>
+                    </div>
+
+                    <ul class="problem-list">
+                        <li>
+                            <div class="problem-icon">
+                                <span style="font-size: 2.5rem;">€↑</span>
+                            </div>
+                            <div class="problem-text">
+                                <div class="problem-text-content">High cost of errors</div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="problem-icon">
+                                <img src="images/page_1/sentiment_stressed_80dp_999999_FILL0_wght400_GRAD0_opsz48.png" alt="Stressed">
+                            </div>
+                            <div class="problem-text">
+                                <div class="problem-text-content">High turnover due to burnout and stress</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="problem-bottom">
+                <div class="bottom-icon">
+                    <img src="images/page_1/shopping_bag_80dp_999999_FILL0_wght400_GRAD0_opsz48.png" alt="Shopping bag">
+                </div>
+                <div class="bottom-text">
+                    Current support is a <strong>"single-use" model</strong>. Every ticket starts from scratch. It's like buying a new bag every time instead of using a reusable one.
+                </div>
+            </div>
+
+            <div class="slide-number">01 / 10</div>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: SOLUTION -->
+    <section class="slide slide-solution" id="slide-2">
+        <div class="solution-wrapper">
+            <!-- Header -->
+            <div class="solution-header">
+                <img src="images/page_2/logo_without_back.png" alt="Logo" class="solution-logo">
+                <h1 class="solution-title">Assistant IA en temps r&eacute;el.</h1>
+                <p class="solution-subtitle">Faire le lien entre des manuels complexes et des r&eacute;sultats instantan&eacute;s</p>
+            </div>
+
+            <!-- Steps -->
+            <div class="solution-steps">
+                <!-- Step 1: Écouter -->
+                <div class="solution-step">
+                    <img src="images/page_2/Listen.png" alt="Écouter" class="step-image">
+                    <h3 class="step-title">&Eacute;couter</h3>
+                    <p class="step-description">
+                        L'IA &eacute;coute et retranscrit en temps r&eacute;el la conversation entre le technicien et l'agent.
+                    </p>
+                </div>
+
+                <!-- Arrow 1 -->
+                <div class="step-arrow">→</div>
+
+                <!-- Step 2: Comprendre -->
+                <div class="solution-step">
+                    <img src="images/page_2/Reasoning.png" alt="Comprendre" class="step-image">
+                    <h3 class="step-title">Comprendre</h3>
+                    <p class="step-description">
+                        Le syst&egrave;me capte instantan&eacute;ment les sp&eacute;cifications de l'&eacute;quipement, les nuances du probl&egrave;me et le contexte.
+                    </p>
+                </div>
+
+                <!-- Arrow 2 -->
+                <div class="step-arrow">→</div>
+
+                <!-- Step 3: Résoudre -->
+                <div class="solution-step">
+                    <img src="images/page_2/Solution.png" alt="Résoudre" class="step-image">
+                    <h3 class="step-title">R&eacute;soudre</h3>
+                    <p class="step-description">
+                        L'assistant fournit une r&eacute;ponse pr&eacute;cise issue de la base de connaissances, directement &agrave; l'&eacute;cran.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="solution-features">
+                <h3 class="features-title">Fonctionnalit&eacute;s cl&eacute;s</h3>
+                <ul class="features-list">
+                    <li>Compr&eacute;hension du lexique technique</li>
+                    <li>Collecte du contexte : l'IA pose des questions compl&eacute;mentaires afin d'obtenir une vision compl&egrave;te</li>
+                    <li>Prise en compte des solutions pr&eacute;c&eacute;demment identifi&eacute;es dans des situations similaires</li>
+                </ul>
+            </div>
+
+            <div class="slide-number">02 / 10</div>
+        </div>
+    </section>
+
+    <div class="nav-hint">&#8592; &#8594; ou Espace pour naviguer</div>
+
+    <script>
+        // Keyboard navigation
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function goToSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+            currentSlide = index;
+            slides[currentSlide].scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                goToSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                goToSlide(currentSlide - 1);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                goToSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                goToSlide(totalSlides - 1);
+            }
+        });
+
+        // Update current slide on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const slideIndex = Array.from(slides).indexOf(entry.target);
+                    currentSlide = slideIndex;
+                }
+            });
+        }, { threshold: 0.5 });
+
+        slides.forEach(slide => observer.observe(slide));
+    </script>
+</body>
+</html>
