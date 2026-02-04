@@ -13,5 +13,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
-    CMD ["sh", "-c", "gunicorn main:app --bind 0.0.0.0:8080"]
+    CMD ["gunicorn", "wsgi:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "1"]
