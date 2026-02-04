@@ -1,11 +1,5 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-<<<<<<< Updated upstream
-=======
-from contextlib import contextmanager
-import os
-from dotenv import load_dotenv
->>>>>>> Stashed changes
 
 from app.config.postgresql_config import PostgresqlSettings
 
