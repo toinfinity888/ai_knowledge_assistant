@@ -1,0 +1,281 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Companies{% endblock %}
+{% block page_title %}Companies{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2>All Companies</h2>
+    <button class="btn btn-primary" onclick="openCreateModal()">
+      <span>&#x2795;</span> Create Company
+    </button>
+  </div>
+  <div class="card-body">
+    {% if companies %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Slug</th>
+            <th>Plan</th>
+            <th>Users</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for company in companies %}
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 0.9rem;">
+                  {{ company.name[0] if company.name else 'C' }}
+                </div>
+                <div>
+                  <div style="font-weight: 500;">{{ company.name }}</div>
+                </div>
+              </div>
+            </td>
+            <td><code style="background: var(--gray-100); padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">{{ company.slug }}</code></td>
+            <td><span class="badge badge-primary">{{ company.plan | title }}</span></td>
+            <td>{{ company.user_count | default(0) }}</td>
+            <td>
+              {% if company.is_active %}
+              <span class="badge badge-success">Active</span>
+              {% else %}
+              <span class="badge badge-danger">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="white-space: nowrap;">{{ company.created_at.strftime('%Y-%m-%d') if company.created_at else '-' }}</td>
+            <td>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-secondary" onclick="editCompany({{ company.id }}, '{{ company.name }}', '{{ company.plan }}', {{ 'true' if company.is_active else 'false' }})">
+                  Edit
+                </button>
+                {% if company.is_active %}
+                <button class="btn btn-sm btn-danger" onclick="confirmDeactivate({{ company.id }}, '{{ company.name }}')">
+                  Deactivate
+                </button>
+                {% else %}
+                <button class="btn btn-sm btn-secondary" onclick="activateCompany({{ company.id }})">
+                  Activate
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total > limit %}
+    <div class="pagination">
+      <div class="pagination-info">
+        Showing {{ offset + 1 }} - {{ [offset + limit, total] | min }} of {{ total }} companies
+      </div>
+      <div class="pagination-buttons">
+        {% if offset > 0 %}
+        <a href="?offset={{ offset - limit }}&limit={{ limit }}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        {% if offset + limit < total %}
+        <a href="?offset={{ offset + limit }}&limit={{ limit }}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F3E2;</div>
+      <h3>No companies yet</h3>
+      <p>Create your first company to get started.</p>
+      <button class="btn btn-primary" style="margin-top: 16px;" onclick="openCreateModal()">
+        <span>&#x2795;</span> Create Company
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Create Company Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create Company</h3>
+      <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+    </div>
+    <form method="POST" action="/admin/companies/create">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="name">Company Name *</label>
+          <input type="text" id="name" name="name" placeholder="e.g., ACME Corporation" required>
+        </div>
+        <div class="form-group">
+          <label for="slug">Slug *</label>
+          <input type="text" id="slug" name="slug" placeholder="e.g., acme-corp" pattern="[a-z0-9-]+" required>
+          <p style="font-size: 0.8rem; color: var(--gray-600); margin-top: 4px;">Lowercase letters, numbers, and hyphens only</p>
+        </div>
+        <div class="form-group">
+          <label for="plan">Plan</label>
+          <select id="plan" name="plan">
+            <option value="free">Free</option>
+            <option value="starter">Starter</option>
+            <option value="pro" selected>Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Company</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Company Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Company</h3>
+      <button class="modal-close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <form method="POST" action="/admin/companies/update" id="editForm">
+      <input type="hidden" name="company_id" id="edit_company_id">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit_name">Company Name *</label>
+          <input type="text" id="edit_name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="edit_plan">Plan</label>
+          <select id="edit_plan" name="plan">
+            <option value="free">Free</option>
+            <option value="starter">Starter</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="edit_is_active" name="is_active" value="true">
+            Active
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal-overlay" id="deactivateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Deactivate Company</h3>
+      <button class="modal-close" onclick="closeDeactivateModal()">&times;</button>
+    </div>
+    <form method="POST" action="/admin/companies/deactivate" id="deactivateForm">
+      <input type="hidden" name="company_id" id="deactivate_company_id">
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <strong>Warning:</strong> Deactivating a company will prevent all users from accessing the platform.
+        </div>
+        <p>Are you sure you want to deactivate <strong id="deactivate_company_name"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeDeactivateModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger">Deactivate</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto-generate slug from name
+  document.getElementById('name').addEventListener('input', function() {
+    const slug = this.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    document.getElementById('slug').value = slug;
+  });
+
+  // Create Modal
+  function openCreateModal() {
+    document.getElementById('createModal').classList.add('active');
+  }
+
+  function closeCreateModal() {
+    document.getElementById('createModal').classList.remove('active');
+  }
+
+  // Edit Modal
+  function editCompany(id, name, plan, isActive) {
+    document.getElementById('edit_company_id').value = id;
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_plan').value = plan;
+    document.getElementById('edit_is_active').checked = isActive;
+    document.getElementById('editModal').classList.add('active');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+  }
+
+  // Deactivate Modal
+  function confirmDeactivate(id, name) {
+    document.getElementById('deactivate_company_id').value = id;
+    document.getElementById('deactivate_company_name').textContent = name;
+    document.getElementById('deactivateModal').classList.add('active');
+  }
+
+  function closeDeactivateModal() {
+    document.getElementById('deactivateModal').classList.remove('active');
+  }
+
+  // Activate company
+  function activateCompany(id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/companies/activate';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'company_id';
+    input.value = id;
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
+    });
+  });
+
+  // Close modals on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.classList.remove('active');
+      });
+    }
+  });
+</script>
+{% endblock %}

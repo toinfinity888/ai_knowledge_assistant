@@ -2,10 +2,13 @@
 from pydantic_settings import BaseSettings
 
 class PostgresqlSettings(BaseSettings):
-    DATABASE_URL: str
+    KEY: str
+    PASSWORD: str
+    DB_NAME: str
 
     class Config:
         env_file = '.env'
+        env_prefix = 'POSTGRESQL_'
         extra = 'ignore'
     
 

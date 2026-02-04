@@ -28,7 +28,9 @@ class CallSessionManager:
         self,
         call_id: str,
         agent_id: str,
+        company_id: int,
         agent_name: Optional[str] = None,
+        agent_user_id: Optional[int] = None,
         customer_id: Optional[str] = None,
         customer_phone: Optional[str] = None,
         customer_name: Optional[str] = None,
@@ -41,7 +43,9 @@ class CallSessionManager:
         Args:
             call_id: External ACD system call identifier
             agent_id: Support agent identifier
+            company_id: Company ID for multi-tenancy isolation
             agent_name: Support agent name
+            agent_user_id: Authenticated user ID (optional)
             customer_id: CRM customer identifier
             customer_phone: Customer phone number
             customer_name: Customer name from CRM
@@ -59,8 +63,10 @@ class CallSessionManager:
         session = CallSession(
             call_id=call_id,
             session_id=session_id,
+            company_id=company_id,
             agent_id=agent_id,
             agent_name=agent_name,
+            agent_user_id=agent_user_id,
             customer_id=customer_id,
             customer_phone=customer_phone,
             customer_name=customer_name,
@@ -80,17 +86,39 @@ class CallSessionManager:
 
         return session
 
-    def get_session(self, session_id: str) -> Optional[CallSession]:
-        """Get session by session_id (checks cache first, then DB)"""
+    def get_session(
+        self,
+        session_id: str,
+        company_id: Optional[int] = None
+    ) -> Optional[CallSession]:
+        """
+        Get session by session_id (checks cache first, then DB)
+
+        Args:
+            session_id: Session identifier
+            company_id: Optional company ID for tenant isolation
+
+        Returns:
+            CallSession or None if not found (or access denied)
+        """
         # Try cache first
         if session_id in self._active_sessions:
-            return self._active_sessions[session_id]
+            cached = self._active_sessions[session_id]
+            # If company_id specified, verify ownership
+            if company_id is not None and cached.company_id != company_id:
+                return None
+            return cached
 
         # Query database
         with get_db_session() as db:
-            session = db.query(CallSession).filter(
+            query = db.query(CallSession).filter(
                 CallSession.session_id == session_id
-            ).first()
+            )
+            # Apply company filter if provided
+            if company_id is not None:
+                query = query.filter(CallSession.company_id == company_id)
+
+            session = query.first()
             if session and session.status == CallStatus.ACTIVE:
                 self._active_sessions[session_id] = session
             return session
@@ -385,13 +413,43 @@ class CallSessionManager:
         if session_id in self._active_sessions:
             del self._active_sessions[session_id]
 
-    def get_active_sessions(self) -> List[CallSession]:
-        """Get all currently active call sessions"""
+    def get_active_sessions(self, company_id: Optional[int] = None) -> List[CallSession]:
+        """
+        Get all currently active call sessions
+
+        Args:
+            company_id: Optional company ID to filter by (for tenant isolation)
+
+        Returns:
+            List of active CallSession objects
+        """
         with get_db_session() as db:
-            sessions = db.query(CallSession).filter(
+            query = db.query(CallSession).filter(
                 CallSession.status == CallStatus.ACTIVE
-            ).all()
+            )
+            if company_id is not None:
+                query = query.filter(CallSession.company_id == company_id)
+
+            sessions = query.all()
             return sessions
+
+    def verify_session_ownership(
+        self,
+        session_id: str,
+        company_id: int
+    ) -> bool:
+        """
+        Verify that a session belongs to a company
+
+        Args:
+            session_id: Session identifier
+            company_id: Company ID to verify ownership
+
+        Returns:
+            True if session belongs to company, False otherwise
+        """
+        session = self.get_session(session_id, company_id=company_id)
+        return session is not None
 
 
 # Singleton instance

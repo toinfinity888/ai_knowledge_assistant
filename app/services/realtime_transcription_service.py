@@ -43,6 +43,34 @@ class RealtimeTranscriptionService:
         self.min_processing_interval = 2.0  # Min seconds between processing for same session
         self.process_only_customer = True  # Only process customer speech by default
 
+    async def store_transcription_segment(
+        self,
+        session_id: str,
+        speaker: str,
+        text: str,
+        start_time: float = 0.0,
+        end_time: float = 0.0,
+        confidence: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Store a transcription segment without triggering the agent pipeline.
+        Used by the manual-trigger gatekeeper architecture.
+        """
+        try:
+            segment = self.session_manager.add_transcription(
+                session_id=session_id,
+                speaker=speaker,
+                text=text,
+                start_time=start_time,
+                end_time=end_time,
+                confidence=confidence,
+            )
+            logger.info(f"Stored transcription for session {session_id}: {speaker} - {text[:50]}...")
+            return {"status": "stored", "segment_id": segment.id}
+        except Exception as e:
+            logger.error(f"Error storing transcription for session {session_id}: {e}")
+            return {"status": "error", "error": str(e)}
+
     async def process_transcription_segment(
         self,
         session_id: str,
@@ -53,6 +81,7 @@ class RealtimeTranscriptionService:
         confidence: Optional[float] = None,
         metadata: Optional[Dict[str, Any]] = None,
         language: Optional[str] = None,
+        company_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Process a new transcription segment
@@ -66,6 +95,7 @@ class RealtimeTranscriptionService:
             confidence: Transcription confidence
             metadata: Additional metadata
             language: Language code (e.g., 'en', 'fr', 'es')
+            company_id: Company ID for multi-tenant KB filtering
 
         Returns:
             Processing result with suggestions and status
@@ -99,7 +129,10 @@ class RealtimeTranscriptionService:
 
             # Process with agent pipeline (non-blocking)
             async with self._processing_locks[session_id]:
-                result = await self._process_with_agents(session_id, text, speaker, language=language)
+                result = await self._process_with_agents(
+                    session_id, text, speaker,
+                    language=language, company_id=company_id
+                )
 
                 # Update last processing time
                 self._last_processing_time[session_id] = datetime.utcnow().timestamp()
@@ -129,15 +162,17 @@ class RealtimeTranscriptionService:
         transcription: str,
         speaker: str,
         language: Optional[str] = None,
+        company_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Run the agent orchestration pipeline"""
-        logger.info(f"Processing with agents: session={session_id}, speaker={speaker}, language={language}")
+        logger.info(f"Processing with agents: session={session_id}, speaker={speaker}, language={language}, company_id={company_id}")
 
         result = await self.orchestrator.process_transcription_update(
             session_id=session_id,
             new_transcription=transcription,
             speaker=speaker,
             language=language,
+            company_id=company_id,
         )
 
         logger.info(
@@ -200,7 +235,9 @@ class RealtimeTranscriptionService:
         self,
         call_id: str,
         agent_id: str,
+        company_id: int,
         agent_name: Optional[str] = None,
+        agent_user_id: Optional[int] = None,
         customer_id: Optional[str] = None,
         customer_phone: Optional[str] = None,
         customer_name: Optional[str] = None,
@@ -213,7 +250,9 @@ class RealtimeTranscriptionService:
         Args:
             call_id: External ACD call ID
             agent_id: Support agent ID
+            company_id: Company ID for multi-tenancy isolation
             agent_name: Support agent name
+            agent_user_id: Authenticated user ID (optional)
             customer_id: Customer ID from CRM
             customer_phone: Customer phone number
             customer_name: Customer name
@@ -227,7 +266,9 @@ class RealtimeTranscriptionService:
             session = self.session_manager.create_session(
                 call_id=call_id,
                 agent_id=agent_id,
+                company_id=company_id,
                 agent_name=agent_name,
+                agent_user_id=agent_user_id,
                 customer_id=customer_id,
                 customer_phone=customer_phone,
                 customer_name=customer_name,
@@ -235,12 +276,13 @@ class RealtimeTranscriptionService:
                 crm_metadata=crm_metadata,
             )
 
-            logger.info(f"Created call session: {session.session_id} for call {call_id}")
+            logger.info(f"Created call session: {session.session_id} for call {call_id} (company: {company_id})")
 
             return {
                 "status": "success",
                 "session_id": session.session_id,
                 "call_id": call_id,
+                "company_id": company_id,
             }
 
         except Exception as e:

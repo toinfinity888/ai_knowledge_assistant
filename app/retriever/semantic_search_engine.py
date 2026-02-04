@@ -30,10 +30,26 @@ class SemanticSearchEngine(BaseSearchEngine):
         self.vector_store = vector_store
         self.retriever_name = retriever_name
 
-    def search(self, query: Query) -> List[EmbeddedChunk]:
-        vector = self.embedder.embed_query(query).embedding # Take embedding from embed_query object
-        resoult = self.vector_store.search(vector)
-        if not resoult:
+    def search(
+        self,
+        query: Query,
+        company_id: Optional[int] = None,
+        top_k: int = 5
+    ) -> List[EmbeddedChunk]:
+        """
+        Search for relevant documents based on query
+
+        Args:
+            query: Query object containing search text
+            company_id: Optional company ID for multi-tenant filtering
+            top_k: Number of results to return
+
+        Returns:
+            List of embedded chunks matching the query
+        """
+        vector = self.embedder.embed_query(query).embedding  # Take embedding from embed_query object
+        result = self.vector_store.search(vector, top_k=top_k, company_id=company_id)
+        if not result:
             logger.info('No found anything')
-        return [EmbeddedChunk.from_point(p) for p in resoult]
+        return [EmbeddedChunk.from_point(p) for p in result]
 

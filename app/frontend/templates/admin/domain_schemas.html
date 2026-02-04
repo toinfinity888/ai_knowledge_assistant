@@ -1,0 +1,289 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Domain Schemas{% endblock %}
+{% block page_title %}Domain Schemas{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2>Domain Schema Registry</h2>
+    <div style="display: flex; gap: 8px;">
+      <form method="POST" action="/admin/domain-schemas/seed-defaults" style="margin: 0;">
+        <button type="submit" class="btn btn-secondary" onclick="return confirm('Seed default schemas (CCTV, Access Control, etc.)?')">
+          Seed Defaults
+        </button>
+      </form>
+      <button class="btn btn-primary" onclick="openCreateSchemaModal()">
+        <span>&#x2795;</span> New Schema
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    {% if schemas %}
+      {% for schema in schemas %}
+      <div class="schema-card" style="border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 16px; overflow: hidden;">
+        <div style="padding: 16px 20px; background: var(--gray-50); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-weight: 600; font-size: 1rem;">{{ schema.name }}</span>
+            <code style="background: var(--gray-200); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 8px;">{{ schema.slug }}</code>
+            {% if schema.is_active %}
+            <span class="badge badge-success" style="margin-left: 8px;">Active</span>
+            {% else %}
+            <span class="badge badge-danger" style="margin-left: 8px;">Inactive</span>
+            {% endif %}
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm btn-secondary" onclick="openEditSchemaModal({{ schema.id }}, '{{ schema.name }}', '{{ schema.slug }}', '{{ schema.description or '' }}', {{ 'true' if schema.is_active else 'false' }})">Edit</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddFieldModal({{ schema.id }})">+ Field</button>
+            <form method="POST" action="/admin/domain-schemas/delete" style="margin: 0;">
+              <input type="hidden" name="schema_id" value="{{ schema.id }}">
+              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this schema and all its fields?')">Delete</button>
+            </form>
+          </div>
+        </div>
+        {% if schema.description %}
+        <div style="padding: 8px 20px; font-size: 0.85rem; color: var(--gray-500);">{{ schema.description }}</div>
+        {% endif %}
+        <div style="padding: 0 20px 16px;">
+          {% if schema.fields %}
+          <table style="width: 100%; margin-top: 8px;">
+            <thead>
+              <tr style="font-size: 0.8rem; text-transform: uppercase; color: var(--gray-500);">
+                <th style="padding: 8px 0;">Field</th>
+                <th>Slug</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Options</th>
+                <th style="width: 100px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for field in schema.fields %}
+              <tr style="border-top: 1px solid var(--gray-100);">
+                <td style="padding: 8px 0; font-weight: 500;">{{ field.name }}</td>
+                <td><code style="font-size: 0.8rem;">{{ field.slug }}</code></td>
+                <td><span class="badge">{{ field.field_type }}</span></td>
+                <td>
+                  {% if field.is_required %}
+                  <span style="color: var(--danger); font-weight: 600;">Required</span>
+                  {% else %}
+                  <span style="color: var(--gray-400);">Recommended</span>
+                  {% endif %}
+                </td>
+                <td style="font-size: 0.8rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                  {% if field.options %}{{ field.options | join(', ') }}{% endif %}
+                </td>
+                <td>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn btn-sm btn-secondary" onclick="openEditFieldModal({{ field.id }}, '{{ field.name }}', '{{ field.slug }}', '{{ field.description or '' }}', '{{ field.field_type }}', {{ 'true' if field.is_required else 'false' }}, '{{ field.options | join(', ') if field.options else '' }}')">Edit</button>
+                    <form method="POST" action="/admin/domain-schemas/fields/delete" style="margin: 0;">
+                      <input type="hidden" name="field_id" value="{{ field.id }}">
+                      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this field?')">X</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div style="padding: 16px 0; color: var(--gray-400); font-size: 0.9rem;">No fields defined. Click "+ Field" to add one.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div style="text-align: center; padding: 40px 20px; color: var(--gray-400);">
+      <div style="font-size: 2rem; margin-bottom: 12px;">&#x1F4CB;</div>
+      <div style="font-weight: 500; margin-bottom: 8px;">No domain schemas configured</div>
+      <div style="font-size: 0.9rem;">Click "Seed Defaults" to create the standard security domain schemas, or create a custom one.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Create Schema Modal -->
+<div id="createSchemaModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:480px; max-width:90%;">
+    <h3 style="margin-bottom:16px;">Create Domain Schema</h3>
+    <form method="POST" action="/admin/domain-schemas/create">
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Name</label>
+        <input type="text" name="name" required placeholder="e.g., Video Surveillance (CCTV)" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Slug</label>
+        <input type="text" name="slug" required placeholder="e.g., video_surveillance" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Description</label>
+        <textarea name="description" rows="2" placeholder="Brief description..." style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;"></textarea>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('createSchemaModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Schema Modal -->
+<div id="editSchemaModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:480px; max-width:90%;">
+    <h3 style="margin-bottom:16px;">Edit Domain Schema</h3>
+    <form method="POST" action="/admin/domain-schemas/update">
+      <input type="hidden" name="schema_id" id="editSchemaId">
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Name</label>
+        <input type="text" name="name" id="editSchemaName" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Slug</label>
+        <input type="text" name="slug" id="editSchemaSlug" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Description</label>
+        <textarea name="description" id="editSchemaDesc" rows="2" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;"></textarea>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+          <input type="checkbox" name="is_active" id="editSchemaActive" value="true">
+          Active
+        </label>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editSchemaModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Field Modal -->
+<div id="addFieldModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:480px; max-width:90%;">
+    <h3 style="margin-bottom:16px;">Add Field</h3>
+    <form method="POST" action="/admin/domain-schemas/fields/create">
+      <input type="hidden" name="schema_id" id="addFieldSchemaId">
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Name</label>
+        <input type="text" name="name" required placeholder="e.g., Brand" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Slug</label>
+        <input type="text" name="slug" required placeholder="e.g., brand" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Description</label>
+        <input type="text" name="description" placeholder="Brief help text" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Type</label>
+        <select name="field_type" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+          <option value="text">Text</option>
+          <option value="select">Select (dropdown)</option>
+          <option value="number">Number</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+          <input type="checkbox" name="is_required" value="true">
+          Required (blocks search if missing)
+        </label>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Options (for select type, comma-separated)</label>
+        <input type="text" name="options" placeholder="e.g., Hikvision, Dahua, Axis" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addFieldModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Field</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Field Modal -->
+<div id="editFieldModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:480px; max-width:90%;">
+    <h3 style="margin-bottom:16px;">Edit Field</h3>
+    <form method="POST" action="/admin/domain-schemas/fields/update">
+      <input type="hidden" name="field_id" id="editFieldId">
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Name</label>
+        <input type="text" name="name" id="editFieldName" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Slug</label>
+        <input type="text" name="slug" id="editFieldSlug" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Description</label>
+        <input type="text" name="description" id="editFieldDesc" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Type</label>
+        <select name="field_type" id="editFieldType" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+          <option value="text">Text</option>
+          <option value="select">Select (dropdown)</option>
+          <option value="number">Number</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+          <input type="checkbox" name="is_required" id="editFieldRequired" value="true">
+          Required (blocks search if missing)
+        </label>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.85rem; font-weight:500; margin-bottom:4px;">Options (comma-separated)</label>
+        <input type="text" name="options" id="editFieldOptions" style="width:100%; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px;">
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editFieldModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openCreateSchemaModal() {
+  document.getElementById('createSchemaModal').style.display = 'flex';
+}
+
+function openEditSchemaModal(id, name, slug, desc, active) {
+  document.getElementById('editSchemaId').value = id;
+  document.getElementById('editSchemaName').value = name;
+  document.getElementById('editSchemaSlug').value = slug;
+  document.getElementById('editSchemaDesc').value = desc;
+  document.getElementById('editSchemaActive').checked = active;
+  document.getElementById('editSchemaModal').style.display = 'flex';
+}
+
+function openAddFieldModal(schemaId) {
+  document.getElementById('addFieldSchemaId').value = schemaId;
+  document.getElementById('addFieldModal').style.display = 'flex';
+}
+
+function openEditFieldModal(id, name, slug, desc, type, required, options) {
+  document.getElementById('editFieldId').value = id;
+  document.getElementById('editFieldName').value = name;
+  document.getElementById('editFieldSlug').value = slug;
+  document.getElementById('editFieldDesc').value = desc;
+  document.getElementById('editFieldType').value = type;
+  document.getElementById('editFieldRequired').checked = required;
+  document.getElementById('editFieldOptions').value = options;
+  document.getElementById('editFieldModal').style.display = 'flex';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// Close modals on background click
+document.querySelectorAll('#createSchemaModal, #editSchemaModal, #addFieldModal, #editFieldModal').forEach(modal => {
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+});
+</script>
+{% endblock %}

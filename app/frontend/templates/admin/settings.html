@@ -1,0 +1,199 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Account Settings{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+
+{% block content %}
+<!-- Company Info Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>Company Information</h2>
+  </div>
+  <div class="card-body">
+    <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--gray-50); border-radius: 8px; margin-bottom: 20px;">
+      <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.5rem;">
+        {{ company_name[0] if company_name else 'C' }}
+      </div>
+      <div>
+        <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">{{ company_name or 'No Company' }}</h3>
+        <p style="font-size: 0.875rem; color: var(--gray-600);">{{ company_plan or 'Standard' }} Plan</p>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label>Your Role</label>
+      <div>
+        <span class="badge role-{{ user_role }}">{{ user_role.replace('_', ' ') | title }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Personal Information Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>Personal Information</h2>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="/admin/settings">
+      <input type="hidden" name="action" value="update_profile">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="full_name">Full Name</label>
+          <input
+            type="text"
+            id="full_name"
+            name="full_name"
+            value="{{ user.full_name or '' }}"
+            placeholder="Enter your full name"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value="{{ user.email or '' }}"
+            disabled
+            style="background: var(--gray-100); cursor: not-allowed;"
+          >
+          <p style="font-size: 0.8rem; color: var(--gray-600); margin-top: 6px;">Contact admin to change your email address</p>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Security Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>Security</h2>
+  </div>
+  <div class="card-body">
+    <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 16px;">Change Password</h4>
+
+    <form method="POST" action="/admin/settings">
+      <input type="hidden" name="action" value="change_password">
+
+      <div class="form-group">
+        <label for="current_password">Current Password</label>
+        <input
+          type="password"
+          id="current_password"
+          name="current_password"
+          placeholder="Enter your current password"
+          required
+        >
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="new_password">New Password</label>
+          <input
+            type="password"
+            id="new_password"
+            name="new_password"
+            placeholder="Enter new password"
+            minlength="8"
+            required
+          >
+          <p style="font-size: 0.8rem; color: var(--gray-600); margin-top: 6px;">Minimum 8 characters</p>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm New Password</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            placeholder="Confirm new password"
+            required
+          >
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">Update Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Session Info Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>Session</h2>
+  </div>
+  <div class="card-body">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--gray-50); border-radius: 8px;">
+      <div>
+        <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700);">Current Session</h4>
+        <p style="font-size: 0.85rem; color: var(--gray-600); margin-top: 4px;">Logged in as {{ user.email }}</p>
+      </div>
+      <a href="/logout" class="btn btn-danger">
+        <span>&#x1F6AA;</span> Logout
+      </a>
+    </div>
+
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+      <form method="POST" action="/api/auth/logout-all" id="logoutAllForm">
+        <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 12px;">
+          If you suspect unauthorized access to your account, you can log out from all devices.
+        </p>
+        <button type="button" class="btn btn-secondary" onclick="confirmLogoutAll()">
+          Logout from All Devices
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Password confirmation validation
+  const newPassword = document.getElementById('new_password');
+  const confirmPassword = document.getElementById('confirm_password');
+
+  function validatePassword() {
+    if (newPassword.value !== confirmPassword.value) {
+      confirmPassword.setCustomValidity('Passwords do not match');
+    } else {
+      confirmPassword.setCustomValidity('');
+    }
+  }
+
+  newPassword.addEventListener('change', validatePassword);
+  confirmPassword.addEventListener('keyup', validatePassword);
+
+  // Logout all confirmation
+  function confirmLogoutAll() {
+    if (confirm('Are you sure you want to logout from all devices? You will need to log in again.')) {
+      // Get the access token from cookie and call the API
+      fetch('/api/auth/logout-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Logged out from all devices. ' + (data.tokens_revoked || 0) + ' session(s) revoked.');
+        window.location.href = '/logout';
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to logout from all devices. Please try again.');
+      });
+    }
+  }
+</script>
+{% endblock %}

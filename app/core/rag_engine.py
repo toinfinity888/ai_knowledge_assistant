@@ -3,20 +3,26 @@ from app.llm.base_llm import BaseLLM
 from app.retriever.base_search_engine import BaseSearchEngine
 from app.logging.logger import logger
 from app.retriever.semantic_search_engine import SemanticSearchEngine, create_query
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Optional
 
 class RAGEngine:
     def __init__(self, search_engine: BaseSearchEngine, llm: BaseLLM):
         self.search_engine = search_engine
         self.llm = llm
 
-    def ask(self, query: Union[str, Query], language: str = "en") -> Dict:
+    def ask(
+        self,
+        query: Union[str, Query],
+        language: str = "en",
+        company_id: Optional[int] = None
+    ) -> Dict:
         """
         Ask a question and get an answer with context
 
         Args:
             query: Either a string or a Query object
             language: Language code for response (e.g., 'en', 'fr', 'es')
+            company_id: Optional company ID for multi-tenant filtering
 
         Returns:
             Dictionary with 'answer' and 'context_chunks'
@@ -25,7 +31,7 @@ class RAGEngine:
         if isinstance(query, str):
             query = create_query(query)
 
-        chunks = self.search_engine.search(query)
+        chunks = self.search_engine.search(query, company_id=company_id)
         if not chunks:
             logger.info("Search engine has no answer")
 

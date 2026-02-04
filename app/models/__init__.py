@@ -1,0 +1,70 @@
+"""
+SQLAlchemy Models for AI Knowledge Assistant
+
+This module exports all database models for the application.
+All models share a common Base for consistent schema management.
+"""
+
+# Shared base - import this for metadata operations
+from app.models.base import Base
+
+# Multi-tenancy models
+from app.models.company import Company
+from app.models.user import User, UserRole
+from app.models.refresh_token import RefreshToken
+from app.models.invitation import Invitation
+from app.models.audit_log import AuditLog, ActionType, TargetType
+
+# Call session models
+from app.models.call_session import (
+    CallSession,
+    TranscriptionSegment,
+    AgentAction,
+    Suggestion,
+    CallStatus,
+)
+
+# Domain schema registry
+from app.models.domain_schema import DomainSchema, DomainSchemaField
+
+# Query logging
+from app.models.query_logs import QueryLogs
+
+# Data models (dataclasses, not ORM)
+from app.models.query import Query
+from app.models.text_chunk import TextChunk
+from app.models.text_chunk_for_mvp import TextChunkForMvp
+from app.models.embedded import EmbeddedChunk, EmbeddedQuery
+from app.models.response_status import ResponseStatus
+
+__all__ = [
+    # Base
+    'Base',
+    # Multi-tenancy
+    'Company',
+    'User',
+    'UserRole',
+    'RefreshToken',
+    'Invitation',
+    'AuditLog',
+    'ActionType',
+    'TargetType',
+    # Call sessions
+    'CallSession',
+    'TranscriptionSegment',
+    'AgentAction',
+    'Suggestion',
+    'CallStatus',
+    # Domain schema registry
+    'DomainSchema',
+    'DomainSchemaField',
+    # Query logs
+    'QueryLogs',
+    # Data models
+    'Query',
+    'TextChunk',
+    'TextChunkForMvp',
+    'EmbeddedChunk',
+    'EmbeddedQuery',
+    'ResponseStatus',
+]

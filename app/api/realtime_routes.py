@@ -2,7 +2,7 @@
 Real-time API Routes for ACD/CRM Integration
 Provides WebSocket and REST endpoints for call transcription and suggestions
 """
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, g
 from flask_sock import Sock
 import json
 import asyncio
@@ -11,6 +11,9 @@ import logging
 
 from app.services.call_session_manager import get_call_session_manager
 from app.services.realtime_transcription_service import get_transcription_service
+from app.middleware.auth_middleware import require_auth, optional_auth
+from app.middleware.tenant_context import get_current_tenant
+from app.middleware.websocket_auth import websocket_auth_required, WebSocketAuthenticator
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,7 @@ _active_connections: Dict[str, Any] = {}
 # ==================== REST API Endpoints ====================
 
 @realtime_bp.route('/call/start', methods=['POST'])
+@require_auth
 async def start_call():
     """
     Start a new call session
@@ -49,16 +53,21 @@ async def start_call():
     {
         "status": "success",
         "session_id": "uuid",
-        "call_id": "acd-call-12345"
+        "call_id": "acd-call-12345",
+        "company_id": 123
     }
+
+    Requires authentication. Company ID and agent_user_id are automatically
+    injected from the authenticated user's context.
     """
     try:
+        tenant = get_current_tenant()
         data = request.get_json()
 
-        if not data.get('call_id') or not data.get('agent_id'):
+        if not data.get('call_id'):
             return jsonify({
                 "status": "error",
-                "error": "Missing required fields: call_id, agent_id"
+                "error": "Missing required field: call_id"
             }), 400
 
         transcription_service = get_transcription_service()
@@ -69,9 +78,12 @@ async def start_call():
                 "error": "Transcription service not initialized"
             }), 500
 
+        # Inject company_id and agent_user_id from authenticated user
         result = await transcription_service.handle_call_start(
             call_id=data['call_id'],
-            agent_id=data['agent_id'],
+            agent_id=data.get('agent_id', str(tenant.user_id)),
+            company_id=tenant.company_id,
+            agent_user_id=tenant.user_id,
             agent_name=data.get('agent_name'),
             customer_id=data.get('customer_id'),
             customer_phone=data.get('customer_phone'),
@@ -91,6 +103,7 @@ async def start_call():
 
 
 @realtime_bp.route('/call/end', methods=['POST'])
+@require_auth
 async def end_call():
     """
     End a call session
@@ -107,8 +120,12 @@ async def end_call():
         "status": "success",
         "session_id": "uuid"
     }
+
+    Requires authentication. Only sessions belonging to the user's company
+    can be ended.
     """
     try:
+        tenant = get_current_tenant()
         data = request.get_json()
 
         if not data.get('session_id'):
@@ -117,15 +134,24 @@ async def end_call():
                 "error": "Missing required field: session_id"
             }), 400
 
+        session_id = data['session_id']
+
+        # Verify session ownership
+        session_manager = get_call_session_manager()
+        if not session_manager.verify_session_ownership(session_id, tenant.company_id):
+            return jsonify({
+                "status": "error",
+                "error": "Session not found or access denied"
+            }), 404
+
         transcription_service = get_transcription_service()
 
         result = await transcription_service.handle_call_end(
-            session_id=data['session_id'],
+            session_id=session_id,
             status=data.get('status', 'completed'),
         )
 
         # Close WebSocket connection if exists
-        session_id = data['session_id']
         if session_id in _active_connections:
             try:
                 ws = _active_connections[session_id]
@@ -142,6 +168,7 @@ async def end_call():
 
 
 @realtime_bp.route('/transcription', methods=['POST'])
+@require_auth
 async def receive_transcription():
     """
     Receive transcription segment from ACD
@@ -165,8 +192,12 @@ async def receive_transcription():
         "suggestions_count": 2,
         "processing_time_ms": 450
     }
+
+    Requires authentication. Only transcriptions for sessions belonging
+    to the user's company can be submitted.
     """
     try:
+        tenant = get_current_tenant()
         data = request.get_json()
 
         required = ['session_id', 'speaker', 'text', 'start_time', 'end_time']
@@ -176,16 +207,27 @@ async def receive_transcription():
                 "error": f"Missing required fields: {required}"
             }), 400
 
+        session_id = data['session_id']
+
+        # Verify session ownership
+        session_manager = get_call_session_manager()
+        if not session_manager.verify_session_ownership(session_id, tenant.company_id):
+            return jsonify({
+                "status": "error",
+                "error": "Session not found or access denied"
+            }), 404
+
         transcription_service = get_transcription_service()
 
         result = await transcription_service.process_transcription_segment(
-            session_id=data['session_id'],
+            session_id=session_id,
             speaker=data['speaker'],
             text=data['text'],
             start_time=data['start_time'],
             end_time=data['end_time'],
             confidence=data.get('confidence'),
             metadata=data.get('metadata'),
+            company_id=tenant.company_id,  # Pass company_id for KB filtering
         )
 
         return jsonify(result), 200
@@ -195,7 +237,65 @@ async def receive_transcription():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@realtime_bp.route('/analyze', methods=['POST'])
+@require_auth
+def manual_analyze():
+    """
+    Manual analyze & search endpoint (Intelligence Gatekeeper).
+    Called when agent clicks "Analyze & Search" button.
+
+    POST /api/realtime/analyze
+    Body:
+    {
+        "session_id": "uuid",
+        "force_search": false,
+        "language": "en"
+    }
+    """
+    from app.init_realtime_system import get_gatekeeper_orchestrator
+
+    data = request.get_json()
+    session_id = data.get('session_id')
+    force_search = data.get('force_search', False)
+    language = data.get('language', 'en')
+
+    if not session_id:
+        return jsonify({"status": "error", "error": "Missing session_id"}), 400
+
+    gatekeeper = get_gatekeeper_orchestrator()
+    if gatekeeper is None:
+        return jsonify({
+            "status": "error",
+            "error": "Intelligence Gatekeeper not initialized. Check GROQ_API_KEY.",
+        }), 503
+
+    try:
+        tenant = get_current_tenant()
+
+        # Verify session ownership
+        session_manager = get_call_session_manager()
+        if not session_manager.verify_session_ownership(session_id, tenant.company_id):
+            return jsonify({
+                "status": "error",
+                "error": "Session not found or access denied"
+            }), 404
+
+        result = gatekeeper.analyze_and_search(
+            session_id=session_id,
+            company_id=tenant.company_id,
+            language=language,
+            force_search=force_search,
+        )
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.error(f"Error in manual analyze: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @realtime_bp.route('/suggestions/<session_id>', methods=['GET'])
+@require_auth
 async def get_suggestions(session_id: str):
     """
     Get all suggestions for a session
@@ -207,9 +307,21 @@ async def get_suggestions(session_id: str):
         "status": "success",
         "suggestions": [...]
     }
+
+    Requires authentication. Only suggestions for sessions belonging
+    to the user's company can be retrieved.
     """
     try:
+        tenant = get_current_tenant()
         limit = request.args.get('limit', 10, type=int)
+
+        # Verify session ownership
+        session_manager = get_call_session_manager()
+        if not session_manager.verify_session_ownership(session_id, tenant.company_id):
+            return jsonify({
+                "status": "error",
+                "error": "Session not found or access denied"
+            }), 404
 
         transcription_service = get_transcription_service()
 
@@ -226,6 +338,7 @@ async def get_suggestions(session_id: str):
 
 
 @realtime_bp.route('/suggestions/<int:suggestion_id>/feedback', methods=['POST'])
+@require_auth
 def record_feedback(suggestion_id: int):
     """
     Record agent feedback on a suggestion
@@ -240,6 +353,8 @@ def record_feedback(suggestion_id: int):
     {
         "status": "success"
     }
+
+    Requires authentication.
     """
     try:
         data = request.get_json()
@@ -264,6 +379,7 @@ def record_feedback(suggestion_id: int):
 # ==================== Server-Sent Events (SSE) ====================
 
 @realtime_bp.route('/stream/<session_id>')
+@require_auth
 def suggestion_stream(session_id: str):
     """
     Server-Sent Events stream for real-time suggestions
@@ -273,11 +389,24 @@ def suggestion_stream(session_id: str):
     Streams:
     data: {"type": "suggestion", "data": {...}}
     data: {"type": "question", "data": {...}}
+
+    Requires authentication. Only streams for sessions belonging
+    to the user's company are allowed.
     """
+    tenant = get_current_tenant()
+
+    # Verify session ownership
+    session_manager = get_call_session_manager()
+    if not session_manager.verify_session_ownership(session_id, tenant.company_id):
+        return jsonify({
+            "status": "error",
+            "error": "Session not found or access denied"
+        }), 404
+
     def generate():
         """SSE generator function"""
         # Send initial connection message
-        yield f"data: {json.dumps({'type': 'connected', 'session_id': session_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'connected', 'session_id': session_id, 'company_id': tenant.company_id})}\n\n"
 
         # TODO: Implement actual streaming logic
         # For now, this is a placeholder
@@ -305,7 +434,11 @@ def setup_websocket(sock_instance: Sock):
         """
         WebSocket endpoint for real-time bidirectional communication
 
-        WS /api/realtime/ws/<session_id>
+        WS /api/realtime/ws/<session_id>?token=<jwt_token>
+
+        Authentication:
+        - Pass JWT token as query parameter: ?token=<jwt_token>
+        - Or authenticate via first message: {"type": "auth", "token": "<jwt_token>"}
 
         Client -> Server:
         {
@@ -323,17 +456,44 @@ def setup_websocket(sock_instance: Sock):
             }
         }
         """
-        logger.info(f"WebSocket connected for session: {session_id}")
+        from flask import request as flask_request
+        from app.middleware.websocket_auth import authenticate_websocket
+
+        # Try to authenticate from query parameter first
+        token = flask_request.args.get('token')
+        tenant_context = authenticate_websocket(token) if token else None
+
+        # If no token in query, try message-based auth
+        if not tenant_context:
+            authenticator = WebSocketAuthenticator(ws)
+            tenant_context = authenticator.authenticate_from_message()
+            if not tenant_context:
+                return  # Connection closed by authenticator
+
+        # Verify session ownership
+        session_manager = get_call_session_manager()
+        if not session_manager.verify_session_ownership(session_id, tenant_context.company_id):
+            ws.send(json.dumps({
+                "type": "error",
+                "error": "Session not found or access denied"
+            }))
+            ws.close()
+            logger.warning(f"WebSocket access denied for session {session_id}")
+            return
+
+        logger.info(f"WebSocket connected for session: {session_id} (company: {tenant_context.company_id})")
 
         # Store connection
         _active_connections[session_id] = ws
 
         try:
             # Send welcome message
+            import time
             ws.send(json.dumps({
                 "type": "connected",
                 "session_id": session_id,
-                "timestamp": asyncio.get_event_loop().time()
+                "company_id": tenant_context.company_id,
+                "timestamp": time.time()
             }))
 
             # Listen for messages from client
@@ -352,7 +512,6 @@ def setup_websocket(sock_instance: Sock):
                         suggestion_id = data.get('suggestion_id')
                         feedback = data.get('feedback')
 
-                        session_manager = get_call_session_manager()
                         session_manager.record_suggestion_feedback(suggestion_id, feedback)
 
                         ws.send(json.dumps({

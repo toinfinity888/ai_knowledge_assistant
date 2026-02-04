@@ -1,30 +1,45 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
+"""
+Query Logs Model
+Tracks all queries made to the RAG engine for analytics and debugging
+"""
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime
-from sqlalchemy.orm import declarative_base
-from app.database.postgresql_session import engine
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, ForeignKey
 
-Base = declarative_base()
+from app.models.base import Base
+
 
 class QueryLogs(Base):
-    __tablename__= 'query_logs'
+    """
+    Logs all queries made to the knowledge base for analytics and debugging.
+    Optionally scoped to a company for multi-tenant environments.
+    """
+    __tablename__ = 'query_logs'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Multi-tenancy: Company isolation (nullable for backward compatibility)
+    company_id = Column(
+        Integer,
+        ForeignKey('companies.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True
+    )
+
+    # Query data
     query_text = Column(String, nullable=True)
     response_text = Column(String, nullable=True)
     has_response = Column(Boolean, nullable=False)
     response_status = Column(String, default='NO_RESPONSE')
     response_time_ms = Column(Integer, nullable=True)
+
+    # Engine info
     retriever_used = Column(String, nullable=True)
     llm_model_used = Column(String, nullable=True)
     retrieved_context = Column(JSON, default=list)
-    user_id = Column(String, default='anonymous')
-    timestamp: datetime = Column(DateTime, default=datetime.utcnow())
 
-# Create table
-Base.metadata.create_all(engine)
+    # User tracking
+    user_id = Column(String, default='anonymous')
+
+    # Timestamp
+    timestamp = Column(DateTime, default=datetime.utcnow)
     

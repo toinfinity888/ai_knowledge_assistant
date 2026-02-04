@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(python scripts/migrate_to_multitenancy.py:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(alembic revision --autogenerate -m \"add_domain_schema_registry\")",
+      "Bash(alembic upgrade:*)"
     ]
   }
 }

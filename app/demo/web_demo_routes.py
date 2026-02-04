@@ -135,6 +135,47 @@ def send_demo_transcription():
     }), 200
 
 
+@demo_bp.route('/analyze', methods=['POST'])
+def demo_analyze():
+    """
+    Manual analyze & search endpoint (Intelligence Gatekeeper).
+    Called when agent clicks "Analyze & Search" button.
+    """
+    from flask import session as flask_session
+    from app.init_realtime_system import get_gatekeeper_orchestrator
+
+    data = request.get_json()
+    session_id = data.get('session_id')
+    force_search = data.get('force_search', False)
+    language = data.get('language', 'fr')
+
+    if not session_id:
+        return jsonify({'error': 'Missing session_id'}), 400
+
+    gatekeeper = get_gatekeeper_orchestrator()
+    if gatekeeper is None:
+        return jsonify({
+            'error': 'Intelligence Gatekeeper not initialized. Check GROQ_API_KEY.',
+            'status': 'error',
+        }), 503
+
+    company_id = flask_session.get('company_id', 1)
+
+    result = gatekeeper.analyze_and_search(
+        session_id=session_id,
+        company_id=company_id,
+        language=language,
+        force_search=force_search,
+    )
+
+    # Broadcast results via WebSocket if available
+    if result.get('suggestions'):
+        for suggestion in result['suggestions']:
+            broadcast_suggestion(session_id, suggestion)
+
+    return jsonify(result), 200
+
+
 @demo_bp.route('/end-demo-call', methods=['POST'])
 def end_demo_call():
     """End demo call session"""

@@ -4,10 +4,10 @@ Tracks ongoing customer support conversations and their state
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, JSON, Text, Float, Boolean, ForeignKey
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from enum import Enum
 
-Base = declarative_base()
+from app.models.base import Base
 
 
 class CallStatus(str, Enum):
@@ -27,6 +27,14 @@ class CallSession(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    # Multi-tenancy: Company isolation
+    company_id = Column(
+        Integer,
+        ForeignKey('companies.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True
+    )
+
     # Call identifiers
     call_id = Column(String, unique=True, nullable=False, index=True)  # External ACD call ID
     session_id = Column(String, unique=True, nullable=False, index=True)  # Internal session ID
@@ -35,8 +43,16 @@ class CallSession(Base):
     customer_id = Column(String, nullable=True, index=True)  # CRM customer ID
     customer_phone = Column(String, nullable=True)
     customer_name = Column(String, nullable=True)
-    agent_id = Column(String, nullable=False, index=True)  # Support agent ID
+    agent_id = Column(String, nullable=False, index=True)  # Support agent ID (legacy string)
     agent_name = Column(String, nullable=True)
+
+    # Link to authenticated user (optional for backward compatibility)
+    agent_user_id = Column(
+        Integer,
+        ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True
+    )
 
     # Call metadata
     status = Column(String, default=CallStatus.ACTIVE, nullable=False)
@@ -59,6 +75,8 @@ class CallSession(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    company = relationship("Company", back_populates="call_sessions")
+    agent_user = relationship("User", back_populates="call_sessions", foreign_keys=[agent_user_id])
     transcriptions = relationship("TranscriptionSegment", back_populates="session", cascade="all, delete-orphan")
     agent_actions = relationship("AgentAction", back_populates="session", cascade="all, delete-orphan")
     suggestions = relationship("Suggestion", back_populates="session", cascade="all, delete-orphan")

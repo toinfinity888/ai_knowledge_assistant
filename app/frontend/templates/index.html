@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Assistant</title>
+    <title>Apertool AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
       body {
@@ -12,8 +12,81 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 60px 20px;
+        padding: 20px 20px 60px 20px;
         color: #212529;
+        min-height: 100vh;
+      }
+
+      .navbar {
+        width: 100%;
+        max-width: 900px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 40px;
+      }
+
+      .navbar-brand {
+        font-weight: 600;
+        color: #343a40;
+        text-decoration: none;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .navbar-brand img {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+      }
+
+      .navbar-user {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        text-align: right;
+        font-size: 0.9rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: #343a40;
+      }
+
+      .user-company {
+        color: #6c757d;
+        font-size: 0.8rem;
+      }
+
+      .btn-link {
+        color: #2423a5;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+
+      .btn-link:hover {
+        background: rgba(36, 35, 165, 0.1);
+      }
+
+      .btn-logout {
+        color: #dc3545;
+      }
+
+      .btn-logout:hover {
+        background: rgba(220, 53, 69, 0.1);
       }
 
       h1 {
@@ -44,13 +117,13 @@
       }
 
       input[type="text"]:focus {
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-        border-color: #80bdff;
+        box-shadow: 0 0 0 3px rgba(36, 35, 165, 0.25);
+        border-color: #4e9ee3;
       }
 
       button {
         padding: 12px 24px;
-        background: #0d6efd;
+        background: #2423a5;
         color: white;
         border: none;
         border-radius: 8px;
@@ -60,7 +133,7 @@
       }
 
       button:hover {
-        background: #0b5ed7;
+        background: #1a1978;
       }
 
       h3 {
@@ -77,7 +150,7 @@
         max-width: 600px;
         width: 100%;
         line-height: 1.6;
-        white-space: pre-wrap; /* чтобы сохранялись переносы строк */
+        white-space: pre-wrap;
       }
 
       @media (max-width: 600px) {
@@ -92,11 +165,39 @@
         button {
           width: 100%;
         }
+
+        .navbar {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .navbar-user {
+          width: 100%;
+          justify-content: space-between;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>RAG Assistant</h1>
+    <nav class="navbar">
+      <a href="/" class="navbar-brand">
+        <img src="/static/img/logo.png" alt="Logo">
+        Apertool AI
+      </a>
+      <div class="navbar-user">
+        {% if session.get('user_email') %}
+          <div class="user-info">
+            <div class="user-name">{{ session.get('user_name', 'User') }}</div>
+            <div class="user-company">{{ session.get('company_name', '') }}</div>
+          </div>
+          <a href="/logout" class="btn-link btn-logout">Logout</a>
+        {% else %}
+          <a href="/login" class="btn-link">Login</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <h1>Apertool AI</h1>
     <form method="POST">
       <input type="text" name="query" placeholder="Ask me anything...">
       <button type="submit">Ask</button>

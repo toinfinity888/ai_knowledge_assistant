@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Apertool AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #2423a5 0%, #4e9ee3 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .login-container {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 420px;
+        padding: 40px;
+      }
+
+      .logo {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .logo-img {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        border-radius: 12px;
+      }
+
+      .logo h1 {
+        font-size: 1.8rem;
+        color: #1a1a2e;
+        font-weight: 600;
+      }
+
+      .logo p {
+        color: #6c757d;
+        font-size: 0.95rem;
+        margin-top: 8px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 8px;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        font-size: 1rem;
+        font-family: inherit;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .form-group input:focus {
+        border-color: #2423a5;
+        box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
+      }
+
+      .form-group input::placeholder {
+        color: #adb5bd;
+      }
+
+      .error-message {
+        background: #fff5f5;
+        border: 1px solid #feb2b2;
+        color: #c53030;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .error-message::before {
+        content: "!";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        background: #c53030;
+        color: white;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .success-message {
+        background: #f0fff4;
+        border: 1px solid #9ae6b4;
+        color: #276749;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px 24px;
+        background: linear-gradient(135deg, #2423a5 0%, #4e9ee3 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(36, 35, 165, 0.4);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .divider {
+        text-align: center;
+        margin: 24px 0;
+        color: #adb5bd;
+        font-size: 0.85rem;
+        position: relative;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 1px;
+        background: #e9ecef;
+      }
+
+      .divider::before {
+        left: 0;
+      }
+
+      .divider::after {
+        right: 0;
+      }
+
+      .footer-links {
+        text-align: center;
+        margin-top: 24px;
+      }
+
+      .footer-links a {
+        color: #2423a5;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      /* Loading spinner */
+      .btn.loading {
+        position: relative;
+        color: transparent;
+      }
+
+      .btn.loading::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        top: 50%;
+        left: 50%;
+        margin-left: -10px;
+        margin-top: -10px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .login-container {
+          padding: 30px 24px;
+        }
+
+        .logo h1 {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="logo">
+        <img src="/static/img/logo.png" alt="Logo" class="logo-img">
+        <h1>Apertool AI</h1>
+        <p>Sign in to your account</p>
+      </div>
+
+      {% if error %}
+      <div class="error-message">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      {% if message %}
+      <div class="success-message">
+        {{ message }}
+      </div>
+      {% endif %}
+
+      <form id="loginForm" method="POST" action="/login">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Enter your email"
+            value="{{ email or '' }}"
+            required
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          Sign In
+        </button>
+      </form>
+
+      <div class="footer-links">
+        <a href="/">Back to Home</a>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('loginForm');
+      const submitBtn = document.getElementById('submitBtn');
+
+      form.addEventListener('submit', function() {
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+      });
+    </script>
+  </body>
+</html>

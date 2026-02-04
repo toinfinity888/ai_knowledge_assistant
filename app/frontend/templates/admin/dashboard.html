@@ -1,0 +1,224 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set is_super = role == 'super_admin' %}
+{% set is_admin = role in ['super_admin', 'admin'] %}
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+  {% if is_super %}
+  <!-- SUPER_ADMIN Stats -->
+  <div class="stat-card">
+    <div class="stat-card-icon primary">&#x1F3E2;</div>
+    <div class="stat-value">{{ stats.companies_total | default(0) }}</div>
+    <div class="stat-label">Total Companies</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon success">&#x2714;</div>
+    <div class="stat-value">{{ stats.companies_active | default(0) }}</div>
+    <div class="stat-label">Active Companies</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon warning">&#x1F465;</div>
+    <div class="stat-value">{{ stats.users_total | default(0) }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon danger">&#x1F4DE;</div>
+    <div class="stat-value">{{ stats.sessions_total | default(0) }}</div>
+    <div class="stat-label">Total Sessions</div>
+  </div>
+  {% elif is_admin %}
+  <!-- ADMIN Stats (Company-scoped) -->
+  <div class="stat-card">
+    <div class="stat-card-icon primary">&#x1F465;</div>
+    <div class="stat-value">{{ stats.users_total | default(0) }}</div>
+    <div class="stat-label">Team Members</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon success">&#x2714;</div>
+    <div class="stat-value">{{ stats.users_active | default(0) }}</div>
+    <div class="stat-label">Active Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon warning">&#x2709;</div>
+    <div class="stat-value">{{ stats.invitations_pending | default(0) }}</div>
+    <div class="stat-label">Pending Invitations</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon danger">&#x1F4DE;</div>
+    <div class="stat-value">{{ stats.sessions_total | default(0) }}</div>
+    <div class="stat-label">Total Sessions</div>
+  </div>
+  {% else %}
+  <!-- AGENT/VIEWER Stats -->
+  <div class="stat-card">
+    <div class="stat-card-icon primary">&#x1F4DE;</div>
+    <div class="stat-value">{{ stats.my_sessions | default(0) }}</div>
+    <div class="stat-label">My Sessions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon success">&#x2714;</div>
+    <div class="stat-value">{{ stats.sessions_today | default(0) }}</div>
+    <div class="stat-label">Sessions Today</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>{% if is_super %}Platform Overview{% elif is_admin %}Company Overview{% else %}Your Activity{% endif %}</h2>
+  </div>
+  <div class="card-body">
+    {% if is_super %}
+    <!-- SUPER_ADMIN: Platform overview -->
+    <div class="info-grid">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+        <!-- Companies by Plan -->
+        <div>
+          <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Companies by Plan</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for plan, count in (stats.by_plan | default({})).items() %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--gray-50); border-radius: 6px;">
+              <span style="font-size: 0.875rem; text-transform: capitalize;">{{ plan }}</span>
+              <span class="badge badge-primary">{{ count }}</span>
+            </div>
+            {% else %}
+            <div style="padding: 10px 12px; background: var(--gray-50); border-radius: 6px; font-size: 0.875rem; color: var(--gray-600);">No data available</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Users by Role -->
+        <div>
+          <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Users by Role</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for role_name, count in (stats.by_role | default({})).items() %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--gray-50); border-radius: 6px;">
+              <span style="font-size: 0.875rem; text-transform: capitalize;">{{ role_name.replace('_', ' ') }}</span>
+              <span class="badge role-{{ role_name }}">{{ count }}</span>
+            </div>
+            {% else %}
+            <div style="padding: 10px 12px; background: var(--gray-50); border-radius: 6px; font-size: 0.875rem; color: var(--gray-600);">No data available</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--gray-200);">
+      <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Quick Actions</h4>
+      <div class="btn-group">
+        <a href="/admin/companies" class="btn btn-primary">
+          <span>&#x2795;</span> Create Company
+        </a>
+        <a href="/admin/users" class="btn btn-secondary">
+          <span>&#x1F465;</span> View All Users
+        </a>
+        <a href="/admin/audit-logs" class="btn btn-secondary">
+          <span>&#x1F4DD;</span> View Audit Logs
+        </a>
+      </div>
+    </div>
+
+    {% elif is_admin %}
+    <!-- ADMIN: Company overview -->
+    <div class="company-info" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--gray-50); border-radius: 8px; margin-bottom: 24px;">
+      <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.5rem;">
+        {{ company.name[0] if company and company.name else 'C' }}
+      </div>
+      <div>
+        <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">{{ company.name if company else session.get('company_name', 'Your Company') }}</h3>
+        <p style="font-size: 0.875rem; color: var(--gray-600);">{{ (company.plan if company else 'standard') | title }} Plan</p>
+      </div>
+    </div>
+
+    <!-- Team Members by Role -->
+    <div style="margin-bottom: 24px;">
+      <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Team by Role</h4>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        {% for role_name, count in (stats.by_role | default({})).items() %}
+        <div style="padding: 12px 16px; background: var(--gray-50); border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--gray-800);">{{ count }}</div>
+          <div style="font-size: 0.75rem; color: var(--gray-600); text-transform: capitalize;">{{ role_name.replace('_', ' ') }}s</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="padding-top: 20px; border-top: 1px solid var(--gray-200);">
+      <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Quick Actions</h4>
+      <div class="btn-group">
+        <a href="/admin/invitations" class="btn btn-primary">
+          <span>&#x2709;</span> Invite Team Member
+        </a>
+        <a href="/admin/users" class="btn btn-secondary">
+          <span>&#x1F465;</span> Manage Team
+        </a>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- AGENT/VIEWER: Personal overview -->
+    <div style="text-align: center; padding: 40px 20px;">
+      <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F3A7;</div>
+      <h3 style="font-size: 1.1rem; color: var(--gray-700); margin-bottom: 8px;">Welcome, {{ session.get('user_name', 'User') }}!</h3>
+      <p style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 24px;">
+        You're logged in as <strong>{{ role.replace('_', ' ') | title }}</strong> at {{ session.get('company_name', 'your company') }}.
+      </p>
+      <a href="/" class="btn btn-primary">
+        <span>&#x1F3A7;</span> Open Support Console
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_admin %}
+<!-- Recent Activity -->
+<div class="card">
+  <div class="card-header">
+    <h2>Recent Activity</h2>
+    <a href="/admin/audit-logs" class="btn btn-sm btn-secondary">View All</a>
+  </div>
+  <div class="card-body">
+    {% if recent_logs %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs[:5] %}
+          <tr>
+            <td style="white-space: nowrap;">{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '-' }}</td>
+            <td>{{ log.actor_email or '-' }}</td>
+            <td><span class="badge badge-secondary">{{ log.action_type }}</span></td>
+            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">{{ log.description or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F4DD;</div>
+      <h3>No recent activity</h3>
+      <p>Activity logs will appear here as actions are performed.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

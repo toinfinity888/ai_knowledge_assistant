@@ -1,5 +1,14 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams, Distance, ScoredPoint
+from qdrant_client.models import (
+    PointStruct,
+    VectorParams,
+    Distance,
+    ScoredPoint,
+    Filter,
+    FieldCondition,
+    MatchValue,
+    PayloadSchemaType,
+)
 from app.vector_store.base_vector_store import BaseVectorStore
 from app.models.embedded import EmbeddedChunk
 from typing import List, Optional, Dict
@@ -71,10 +80,55 @@ class QdrantVectorStore(BaseVectorStore):
             self.client.upsert(collection_name=self.collection_name, points=points)
         logger.info(f'Upserted {len(points)} updated/new chunks.')
 
-    def search(self, query_vector: List[float], top_k: int = 5) -> List[ScoredPoint]:
+    def search(
+        self,
+        query_vector: List[float],
+        top_k: int = 5,
+        company_id: Optional[int] = None
+    ) -> List[ScoredPoint]:
+        """
+        Search for similar vectors in the collection
+
+        Args:
+            query_vector: Query embedding vector
+            top_k: Number of results to return
+            company_id: Optional company ID for multi-tenant filtering
+
+        Returns:
+            List of scored points matching the query
+        """
+        # Build filter for company_id if provided
+        query_filter = None
+        if company_id is not None:
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="company_id",
+                        match=MatchValue(value=company_id)
+                    )
+                ]
+            )
+
         return self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
+            query_filter=query_filter,
             limit=top_k,
             with_payload=True
-        ) 
+        )
+
+    def create_company_id_index(self) -> None:
+        """
+        Create a payload index on company_id for efficient filtered searches.
+        Should be called during migration or initialization.
+        """
+        try:
+            self.client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="company_id",
+                field_schema=PayloadSchemaType.INTEGER
+            )
+            logger.info(f"Created company_id index on collection '{self.collection_name}'")
+        except Exception as e:
+            # Index may already exist
+            logger.debug(f"Could not create company_id index (may already exist): {e}")

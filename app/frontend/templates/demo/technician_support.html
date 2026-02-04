@@ -1,557 +1,897 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support Technicien | Service Cloud</title>
+    <title>Support Console - Apertool AI</title>
     <script src="https://unpkg.com/@twilio/voice-sdk@2.11.0/dist/twilio.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
 
         :root {
-            --sf-blue: #0176d3;
-            --sf-blue-dark: #014486;
-            --sf-blue-light: #1b96ff;
-            --sf-nav-blue: #032d60;
-            --sf-white: #ffffff;
-            --sf-gray-1: #f3f3f3;
-            --sf-gray-2: #e5e5e5;
-            --sf-gray-3: #c9c9c9;
-            --sf-gray-4: #969492;
-            --sf-text: #181818;
-            --sf-text-secondary: #444444;
-            --sf-text-muted: #706e6b;
-            --sf-success: #2e844a;
-            --sf-success-light: #cdefc4;
-            --sf-warning: #dd7a01;
-            --sf-error: #ba0517;
-            --sf-border: #e5e5e5;
-            --sf-card-shadow: 0 2px 2px rgba(0,0,0,0.1);
-            --sf-border-radius: 0.25rem;
+            --primary: #2423a5;
+            --primary-dark: #4e9ee3;
+            --success: #2e844a;
+            --success-light: #d1e7dd;
+            --warning: #dd7a01;
+            --warning-light: #fff3cd;
+            --danger: #dc3545;
+            --danger-light: #f8d7da;
+            --gray-50: #f9fafb;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #6c757d;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+            --text: #212529;
+            --sidebar-width: 260px;
+            --sidebar-bg: #09092a;
+            --sidebar-text: #a0aec0;
+            --topbar-height: 60px;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --border-radius: 12px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--sf-gray-1);
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
             height: 100vh;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+
+        /* Sidebar collapsed state */
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar.collapsed .sidebar-brand span:not(.sidebar-brand-icon) {
+            display: none;
+        }
+
+        .sidebar.collapsed .nav-section-title {
+            opacity: 0;
+            height: 0;
+            margin: 0;
             overflow: hidden;
-            color: var(--sf-text);
-            font-size: 13px;
         }
 
-        .global-header {
-            background: var(--sf-nav-blue);
-            height: 45px;
-            display: flex;
-            align-items: center;
-            padding: 0 1rem;
-            gap: 1rem;
-        }
-
-        .sf-logo {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--sf-white);
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .sf-logo-icon {
-            width: 28px;
-            height: 28px;
-            background: var(--sf-white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
+        .sidebar.collapsed .nav-item {
             justify-content: center;
+            padding: 12px;
         }
 
-        .header-search {
-            flex: 1;
-            max-width: 400px;
+        .sidebar.collapsed .nav-item span:not(.nav-item-icon) {
+            display: none;
+        }
+
+        .sidebar.collapsed .nav-item-icon {
+            width: auto;
+            font-size: 1.2rem;
+        }
+
+        /* Tooltip for collapsed sidebar */
+        .sidebar.collapsed .nav-item {
             position: relative;
         }
 
-        .header-search input {
-            width: 100%;
-            padding: 6px 12px 6px 36px;
-            border: none;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.1);
-            color: var(--sf-white);
-            font-size: 13px;
-        }
-
-        .header-search input::placeholder { color: rgba(255,255,255,0.6); }
-
-        .header-search-icon {
+        .sidebar.collapsed .nav-item::after {
+            content: attr(data-tooltip);
             position: absolute;
-            left: 10px;
+            left: 100%;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255,255,255,0.6);
+            background: var(--gray-800);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            margin-left: 10px;
+            z-index: 1002;
         }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-left: auto;
+        .sidebar.collapsed .nav-item:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
 
-        .header-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
-            border: none;
-            background: transparent;
-            color: var(--sf-white);
+        .sidebar.collapsed .user-info {
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .sidebar.collapsed .user-details {
+            display: none;
+        }
+
+        .sidebar.collapsed .logout-btn span:last-child {
+            display: none;
+        }
+
+        .sidebar.collapsed .logout-btn {
+            padding: 10px;
+        }
+
+        .sidebar.collapsed + .sidebar-overlay + .main-content,
+        .main-content.sidebar-collapsed {
+            margin-left: 70px;
+        }
+
+        /* Sidebar toggle button */
+        .sidebar-toggle {
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--gray-300);
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            color: #fff;
+            font-size: 12px;
+            z-index: 1001;
+            transition: all 0.2s;
         }
 
-        .header-btn:hover { background: rgba(255,255,255,0.1); }
+        .sidebar-toggle:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
 
-        .user-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: var(--sf-blue-light);
-            color: var(--sf-white);
+        .sidebar.collapsed .sidebar-toggle {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-brand {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 1.1rem;
         }
 
-        .page-header {
-            background: var(--sf-white);
-            border-bottom: 1px solid var(--sf-border);
-            padding: 0.75rem 1.5rem;
+        .sidebar-brand-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-500);
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 4px;
         }
 
-        .page-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+        }
+
+        .nav-item-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .user-details { flex: 1; min-width: 0; }
+
+        .user-name {
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--sidebar-text);
+            text-transform: capitalize;
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 16px;
+            background: rgba(220, 53, 69, 0.15);
+            color: #f87171;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { background: rgba(220, 53, 69, 0.25); }
+
+        /* Main content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: margin-left 0.3s ease;
+        }
+
+        .topbar {
+            height: var(--topbar-height);
+            background: #fff;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--gray-700);
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .call-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .call-status-badge.active {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .call-status-badge.connecting {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+
+        .call-status-badge.error {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-400);
+        }
+
+        .call-status-badge.active .status-dot {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Console layout */
+        .console-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .console-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Cards */
+        .card {
+            background: #fff;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .card.flex-1 { flex: 1; min-height: 0; }
+        .card.flex-auto { flex: 0 0 auto; max-height: 45%; }
+
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--sf-white);
-            font-size: 18px;
+            color: #fff;
+            font-size: 0.85rem;
         }
 
-        .page-title-group { flex: 1; }
-
-        .page-pretitle {
-            font-size: 11px;
-            color: var(--sf-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .page-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--sf-text);
-        }
-
-        .page-actions { display: flex; gap: 8px; }
-
-        .sf-btn {
-            padding: 8px 16px;
-            border-radius: var(--sf-border-radius);
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.15s;
-            border: 1px solid transparent;
-        }
-
-        .sf-btn-neutral {
-            background: var(--sf-white);
-            border-color: var(--sf-gray-3);
-            color: var(--sf-text);
-        }
-
-        .sf-btn-neutral:hover { background: var(--sf-gray-1); }
-
-        .sf-btn-success {
-            background: var(--sf-success);
-            color: var(--sf-white);
-        }
-
-        .sf-btn-success:hover { background: #236b3b; }
-
-        .sf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .main-container {
-            display: grid;
-            grid-template-columns: 300px 1fr 1fr;
-            height: calc(100vh - 45px - 57px);
-            gap: 1rem;
-            padding: 1rem;
-            overflow: hidden;
-        }
-
-        .sf-card {
-            background: var(--sf-white);
-            border-radius: var(--sf-border-radius);
-            box-shadow: var(--sf-card-shadow);
-            border: 1px solid var(--sf-border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .sf-card-header {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--sf-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--sf-white);
-            flex-shrink: 0;
-        }
-
-        .sf-card-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--sf-text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sf-card-icon {
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--sf-white);
-            font-size: 12px;
-        }
-
-        .sf-card-body {
-            padding: 1rem;
+        .card-body {
+            padding: 16px;
             flex: 1;
             overflow-y: auto;
+            min-height: 0;
         }
 
-        .column-1 {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            overflow: hidden;
-        }
+        .card-body.no-padding { padding: 0; }
 
-        .record-header {
+        /* Contact card */
+        .contact-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--sf-border);
-            margin-bottom: 1rem;
+            gap: 14px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 16px;
         }
 
-        .record-avatar {
-            width: 48px;
-            height: 48px;
+        .contact-avatar {
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
-            color: var(--sf-white);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 1.1rem;
             font-weight: 700;
         }
 
-        .record-info h2 {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--sf-text);
-            margin-bottom: 2px;
-        }
-
-        .record-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            background: var(--sf-success-light);
-            color: var(--sf-success);
-            border-radius: 4px;
-            font-size: 11px;
+        .contact-info h2 {
+            font-size: 1rem;
             font-weight: 600;
-        }
-
-        .detail-list { display: flex; flex-direction: column; gap: 12px; }
-
-        .detail-item { display: flex; flex-direction: column; gap: 2px; }
-
-        .detail-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--sf-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .detail-value { font-size: 13px; color: var(--sf-text); }
-        .detail-value a { color: var(--sf-blue); text-decoration: none; }
-        .detail-value a:hover { text-decoration: underline; }
-
-        .phone-input-group {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--sf-border);
-        }
-
-        .phone-input-row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .phone-input-row .sf-input {
-            flex: 1;
-        }
-
-        .call-btn-inline {
-            width: 36px;
-            height: 36px;
-            background: var(--sf-success);
-            color: var(--sf-white);
-            border: none;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .call-btn-inline:hover { background: #236b3b; }
-        .call-btn-inline:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .sf-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--sf-gray-3);
-            border-radius: var(--sf-border-radius);
-            font-size: 13px;
-            font-family: inherit;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-
-        .sf-input:focus {
-            outline: none;
-            border-color: var(--sf-blue);
-            box-shadow: 0 0 3px var(--sf-blue);
-        }
-
-        .input-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--sf-text-muted);
+            color: var(--gray-800);
             margin-bottom: 4px;
         }
 
-        .call-status {
-            margin-top: 8px;
-            padding: 8px 12px;
-            border-radius: var(--sf-border-radius);
-            font-size: 12px;
+        .contact-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: var(--success-light);
+            color: var(--success);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .detail-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .detail-item { display: flex; flex-direction: column; gap: 3px; }
+
+        .detail-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 0.9rem;
+            color: var(--gray-800);
+        }
+
+        .detail-value a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .detail-value a:hover { text-decoration: underline; }
+
+        /* Phone input */
+        .phone-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
+        }
+
+        .call-btn {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--success) 0%, #236b3b 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .call-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(46, 132, 74, 0.4);
+        }
+
+        .call-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .call-btn.end-call {
+            background: linear-gradient(135deg, var(--danger) 0%, #a71d2a 100%);
+        }
+
+        .call-status-text {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
             display: none;
         }
 
-        .call-status.success { background: #cdefc4; color: var(--sf-success); }
-        .call-status.error { background: #fdd; color: var(--sf-error); }
-        .call-status.progress { background: #fef3cd; color: var(--sf-warning); }
+        .call-status-text.success { background: var(--success-light); color: var(--success); display: block; }
+        .call-status-text.error { background: var(--danger-light); color: var(--danger); display: block; }
+        .call-status-text.progress { background: var(--warning-light); color: var(--warning); display: block; }
+
+        /* Related items */
+        .related-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
 
         .related-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--sf-gray-2);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-100);
         }
 
         .related-item:last-child { border-bottom: none; }
 
         .related-item-name {
-            font-size: 13px;
-            color: var(--sf-blue);
+            font-size: 0.875rem;
+            color: var(--primary);
             cursor: pointer;
         }
 
         .related-item-name:hover { text-decoration: underline; }
 
         .related-item-qty {
-            background: var(--sf-gray-1);
-            padding: 2px 10px;
-            border-radius: 10px;
-            font-size: 12px;
+            background: var(--gray-100);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: var(--sf-text-secondary);
+            color: var(--gray-600);
         }
 
-        .column-2 {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            overflow: hidden;
-        }
-
-        .transcription-content { flex: 1; overflow-y: auto; padding: 0; }
-
+        /* Transcription */
         .transcription-empty {
             height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: var(--sf-text-muted);
-            padding: 2rem;
+            color: var(--gray-500);
             text-align: center;
+            padding: 40px 20px;
         }
 
-        .transcription-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+        .transcription-empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
 
-        .transcript-line { padding: 10px 1rem; border-bottom: 1px solid var(--sf-gray-2); }
+        .transcript-line {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
         .transcript-line:last-child { border-bottom: none; }
 
         .transcript-speaker {
-            font-size: 11px;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        .transcript-line.agent .transcript-speaker { color: var(--sf-blue); }
-        .transcript-line.technician .transcript-speaker { color: var(--sf-success); }
+        .transcript-line.agent .transcript-speaker { color: var(--primary); }
+        .transcript-line.technician .transcript-speaker { color: var(--success); }
 
-        .transcript-text { font-size: 13px; color: var(--sf-text); line-height: 1.5; }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            background: var(--sf-gray-1);
-            border-radius: 4px;
-            font-size: 12px;
-            color: var(--sf-text-muted);
+        .transcript-text {
+            font-size: 0.9rem;
+            color: var(--gray-800);
+            line-height: 1.6;
         }
 
-        .status-badge.active { background: var(--sf-success-light); color: var(--sf-success); }
+        .transcript-meta {
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            margin-top: 6px;
+            display: flex;
+            gap: 10px;
+        }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sf-gray-4); }
-        .status-badge.active .status-dot { background: var(--sf-success); animation: pulse 2s infinite; }
+        /* Chat */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
 
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .chat-message {
+            padding: 14px 20px;
+            display: flex;
+            gap: 12px;
+        }
 
-        .chat-messages { flex: 1; overflow-y: auto; padding: 0; }
-
-        .chat-message { padding: 10px 1rem; display: flex; gap: 10px; }
-        .chat-message.user { flex-direction: row-reverse; background: var(--sf-gray-1); }
+        .chat-message.user {
+            flex-direction: row-reverse;
+            background: var(--gray-50);
+        }
 
         .message-avatar {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 0.9rem;
             flex-shrink: 0;
-            background: var(--sf-gray-2);
+            background: var(--gray-200);
         }
 
         .chat-message.bot .message-avatar {
-            background: linear-gradient(135deg, #7f8de1 0%, #5867e8 100%);
-            color: var(--sf-white);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
         }
 
-        .message-bubble { flex: 1; font-size: 13px; line-height: 1.5; color: var(--sf-text); }
+        .message-bubble {
+            flex: 1;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--gray-800);
+        }
 
         .chat-input-container {
-            padding: 1rem;
-            border-top: 1px solid var(--sf-border);
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
             display: flex;
-            gap: 8px;
-            background: var(--sf-gray-1);
+            gap: 10px;
+            background: var(--gray-50);
         }
 
         .chat-input {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid var(--sf-gray-3);
-            border-radius: var(--sf-border-radius);
-            font-size: 13px;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.9rem;
             font-family: inherit;
-            background: var(--sf-white);
+            background: #fff;
         }
 
         .chat-input:focus {
             outline: none;
-            border-color: var(--sf-blue);
-            box-shadow: 0 0 3px var(--sf-blue);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
         }
 
         .chat-send-btn {
-            padding: 8px 16px;
-            background: var(--sf-blue);
-            color: var(--sf-white);
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
             border: none;
-            border-radius: var(--sf-border-radius);
-            font-size: 13px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .chat-send-btn:hover { background: var(--sf-blue-dark); }
+        .chat-send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(36, 35, 165, 0.35);
+        }
 
-        .solutions-content { flex: 1; overflow-y: auto; padding: 0; }
+        /* Gatekeeper */
+        .analyze-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .analyze-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(36, 35, 165, 0.35); }
+        .analyze-btn.loading { pointer-events: none; }
+        @keyframes analyzePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .analyze-btn.loading { animation: analyzePulse 1.5s infinite; }
 
-        .empty-solution {
+        .analyze-status { margin-top: 10px; font-size: 0.85rem; color: var(--gray-500); }
+
+        .search-anyway-btn {
+            width: 100%;
+            padding: 10px 16px;
+            margin-top: 12px;
+            background: var(--warning-light, #fff3cd);
+            color: var(--warning, #dd7a01);
+            border: 1px solid var(--warning, #dd7a01);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-anyway-btn:hover { background: var(--warning, #dd7a01); color: #fff; }
+
+        .confidence-meter { height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+        .confidence-meter-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+        .validation-section { margin-bottom: 12px; }
+        .validation-section-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+
+        .field-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+        .field-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+        .field-tag.extracted { background: #e8f5e9; color: #2e7d32; }
+        .field-tag.missing-required { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .field-tag.missing-recommended { background: #fff8e1; color: #f57f17; }
+
+        .domain-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .validation-reasoning {
+            font-size: 0.82rem;
+            color: var(--gray-600);
+            line-height: 1.5;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+
+        /* Solutions */
+        .solutions-empty {
             height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: var(--sf-text-muted);
+            color: var(--gray-500);
             text-align: center;
-            padding: 2rem;
+            padding: 40px 20px;
         }
 
-        .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+        .solutions-empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
 
-        .solution-card { padding: 1rem; border-bottom: 1px solid var(--sf-border); }
+        .solution-card {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
         .solution-card:last-child { border-bottom: none; }
 
         .solution-card h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--sf-blue);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--primary);
             margin-bottom: 8px;
             cursor: pointer;
         }
@@ -559,9 +899,9 @@
         .solution-card h3:hover { text-decoration: underline; }
 
         .solution-card p {
-            font-size: 13px;
+            font-size: 0.875rem;
             line-height: 1.6;
-            color: var(--sf-text-secondary);
+            color: var(--gray-600);
             margin-bottom: 10px;
         }
 
@@ -569,172 +909,388 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 2px 8px;
-            background: var(--sf-success-light);
-            color: var(--sf-success);
-            border-radius: 4px;
-            font-size: 11px;
+            padding: 4px 10px;
+            background: var(--success-light);
+            color: var(--success);
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-600);
+        }
+
+        .badge.active {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-100); }
+        ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+        /* Hidden controls */
         .hidden-controls { display: none; }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--sf-gray-1); }
-        ::-webkit-scrollbar-thumb { background: var(--sf-gray-3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--sf-gray-4); }
+        /* Sidebar overlay for mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
 
-        @media (max-width: 1200px) { .main-container { grid-template-columns: 280px 340px 1fr; } }
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .console-container { grid-template-columns: 300px 1fr 380px; }
+        }
+
+        @media (max-width: 1200px) {
+            .console-container { grid-template-columns: 280px 1fr; }
+            .console-column:last-child { display: none; }
+        }
+
         @media (max-width: 1024px) {
-            .main-container { grid-template-columns: 1fr; height: auto; overflow-y: auto; }
-            body { overflow-y: auto; }
-            .sf-card { min-height: 350px; }
+            .sidebar { transform: translateX(-100%); width: var(--sidebar-width); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar.collapsed { width: var(--sidebar-width); }
+            .main-content { margin-left: 0 !important; }
+            .menu-toggle { display: block; }
+            .sidebar-overlay.active { display: block; }
+            .sidebar-toggle { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .console-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow-y: auto;
+            }
+            .card { min-height: 350px; }
+            .console-column:last-child { display: flex; }
         }
     </style>
 </head>
 <body>
-    <header class="global-header">
-        <div class="sf-logo">
-            <div class="sf-logo-icon">☁️</div>
-            Service Cloud
-        </div>
-        <div class="header-search">
-            <span class="header-search-icon">🔍</span>
-            <input type="text" placeholder="Search...">
-        </div>
-        <div class="header-actions">
-            <button class="header-btn">🔔</button>
-            <button class="header-btn">⚙️</button>
-            <div class="user-avatar">AG</div>
-        </div>
-    </header>
+    {% set role = session.get('role', 'viewer') %}
+    {% set is_super = role == 'super_admin' %}
+    {% set is_admin = role in ['super_admin', 'admin'] %}
+    {% set user_name = session.get('user_name', 'User') %}
 
-    <div class="page-header">
-        <div class="page-icon">📞</div>
-        <div class="page-title-group">
-            <div class="page-pretitle">Support Technique</div>
-            <div class="page-title">Console Service</div>
-        </div>
-        <div class="page-actions"></div>
-    </div>
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="main-container">
-        <div class="column-1">
-            <div class="sf-card" style="flex: 0 0 auto;">
-                <div class="sf-card-header">
-                    <div class="sf-card-title"><span class="sf-card-icon">👤</span>Contact</div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <div class="sidebar-header">
+            <a href="/" class="sidebar-brand">
+                <span class="sidebar-brand-icon"><img src="/static/img/logo.png" alt="Logo"></span>
+                <span>Apertool AI</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <!-- Main -->
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="/" class="nav-item active" data-tooltip="Support Console">
+                    <span class="nav-item-icon">&#x1F3A7;</span>
+                    <span>Support Console</span>
+                </a>
+                {% if is_admin %}
+                <a href="/admin" class="nav-item" data-tooltip="Admin Panel">
+                    <span class="nav-item-icon">&#x1F4CA;</span>
+                    <span>Admin Panel</span>
+                </a>
+                {% endif %}
+            </div>
+
+            {% if is_super %}
+            <!-- Platform (SUPER_ADMIN) -->
+            <div class="nav-section">
+                <div class="nav-section-title">Platform</div>
+                <a href="/admin/companies" class="nav-item" data-tooltip="Companies">
+                    <span class="nav-item-icon">&#x1F3E2;</span>
+                    <span>Companies</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {% if is_admin %}
+            <!-- Management (ADMIN+) -->
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <a href="/admin/users" class="nav-item" data-tooltip="Users">
+                    <span class="nav-item-icon">&#x1F465;</span>
+                    <span>Users</span>
+                </a>
+                <a href="/admin/invitations" class="nav-item" data-tooltip="Invitations">
+                    <span class="nav-item-icon">&#x2709;</span>
+                    <span>Invitations</span>
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Settings -->
+            <div class="nav-section">
+                <div class="nav-section-title">Settings</div>
+                <a href="/admin/settings" class="nav-item" data-tooltip="Account Settings">
+                    <span class="nav-item-icon">&#x2699;</span>
+                    <span>Account Settings</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ user_name[0] if user_name else 'U' }}</div>
+                <div class="user-details">
+                    <div class="user-name">{{ user_name }}</div>
+                    <div class="user-role">{{ role.replace('_', ' ') }}</div>
                 </div>
-                <div class="sf-card-body">
-                    <div class="record-header">
-                        <div class="record-avatar" id="customerAvatar">JD</div>
-                        <div class="record-info">
-                            <h2 id="customerName">Jean Dupont</h2>
-                            <span class="record-badge" id="customerLevel">✓ Expert · 5 ans</span>
+            </div>
+            <a href="/logout" class="logout-btn">
+                <span>&#x1F6AA;</span>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"></path>
+                    </svg>
+                </button>
+                <h1 class="page-title">Support Console</h1>
+            </div>
+            <div class="topbar-right">
+                <div class="call-status-badge" id="topbarCallStatus">
+                    <span class="status-dot"></span>
+                    <span id="topbarStatusText">Ready</span>
+                    <span id="callDuration" style="display: none; font-weight: 600;"></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="console-container">
+            <!-- Column 1: Contact & Account -->
+            <div class="console-column">
+                <div class="card flex-auto">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F464;</span>
+                            Contact
                         </div>
                     </div>
-                    <div class="detail-list">
-                        <div class="detail-item">
-                            <span class="detail-label">Localisation</span>
-                            <span class="detail-value" id="customerLocation">Paris 15ème</span>
+                    <div class="card-body">
+                        <div class="contact-header">
+                            <div class="contact-avatar" id="customerAvatar">JD</div>
+                            <div class="contact-info">
+                                <h2 id="customerName">Jean Dupont</h2>
+                                <span class="contact-badge" id="customerLevel">&#x2714; Expert · 5 years</span>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Chantier Assigné</span>
-                            <span class="detail-value"><a href="#" id="assignedWorksite">Résidence Étoile</a></span>
+                        <div class="detail-list">
+                            <div class="detail-item">
+                                <span class="detail-label">Location</span>
+                                <span class="detail-value" id="customerLocation">Paris 15th</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Assigned Site</span>
+                                <span class="detail-value"><a href="#" id="assignedWorksite">Residence Etoile</a></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Expected Arrival</span>
+                                <span class="detail-value" id="arrivalTime">14:30</span>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Arrivée Prévue</span>
-                            <span class="detail-value" id="arrivalTime">14:30</span>
+                        <div class="phone-section">
+                            <label class="detail-label" style="margin-bottom: 8px; display: block;">Phone Number</label>
+                            <div class="phone-input-group">
+                                <input type="tel" id="technicianPhone" class="input-field" placeholder="+33 6 12 34 56 78">
+                                <button class="call-btn" id="initiateCallBtn" onclick="initiateTwilioCall()" title="Call">&#x1F4DE;</button>
+                            </div>
+                            <div id="callStatus" class="call-status-text"></div>
                         </div>
                     </div>
-                    <div class="phone-input-group">
-                        <label class="input-label">Téléphone</label>
-                        <div class="phone-input-row">
-                            <input type="tel" id="technicianPhone" class="sf-input" placeholder="+33 6 12 34 56 78">
-                            <button class="call-btn-inline" id="initiateCallBtn" onclick="initiateTwilioCall()" title="Appeler">📞</button>
+                </div>
+
+                <div class="card flex-1">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F3E2;</span>
+                            Account
                         </div>
-                        <div id="callStatus" class="call-status"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-list">
+                            <div class="detail-item">
+                                <span class="detail-label">Account Name</span>
+                                <span class="detail-value"><a href="#" id="worksiteName">Residence Etoile</a></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Customer Since</span>
+                                <span class="detail-value" id="worksiteCustomerSince">3 years</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Subscription</span>
+                                <span class="detail-value" id="subscriptionType">Premium - 10 Cameras</span>
+                            </div>
+                        </div>
+                        <div class="related-section">
+                            <div class="detail-label" style="margin-bottom: 10px;">Equipment (4)</div>
+                            <div class="related-item"><span class="related-item-name">HD Outdoor Camera</span><span class="related-item-qty">6</span></div>
+                            <div class="related-item"><span class="related-item-name">360° Indoor Camera</span><span class="related-item-qty">4</span></div>
+                            <div class="related-item"><span class="related-item-name">NVR Recorder</span><span class="related-item-qty">1</span></div>
+                            <div class="related-item"><span class="related-item-name">PoE Power Supply</span><span class="related-item-qty">2</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="sf-card" style="flex: 1; min-height: 0;">
-                <div class="sf-card-header">
-                    <div class="sf-card-title"><span class="sf-card-icon">🏢</span>Compte</div>
-                </div>
-                <div class="sf-card-body">
-                    <div class="detail-list">
-                        <div class="detail-item">
-                            <span class="detail-label">Nom du Compte</span>
-                            <span class="detail-value"><a href="#" id="worksiteName">Résidence Étoile</a></span>
+            <!-- Column 2: Transcription & Chat -->
+            <div class="console-column">
+                <div class="card flex-1">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F399;</span>
+                            Transcription
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Client Depuis</span>
-                            <span class="detail-value" id="worksiteCustomerSince">3 ans</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Abonnement</span>
-                            <span class="detail-value" id="subscriptionType">Premium - 10 Caméras</span>
+                        <div class="badge" id="transcriptionBadge">
+                            <span class="status-dot" id="statusDot"></span>
+                            <span id="transcriptionStatus">Inactive</span>
                         </div>
                     </div>
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--sf-border);">
-                        <div class="detail-label" style="margin-bottom: 8px;">Équipements (4)</div>
-                        <div class="related-item"><span class="related-item-name">Caméra extérieure HD</span><span class="related-item-qty">6</span></div>
-                        <div class="related-item"><span class="related-item-name">Caméra intérieure 360°</span><span class="related-item-qty">4</span></div>
-                        <div class="related-item"><span class="related-item-name">Enregistreur NVR</span><span class="related-item-qty">1</span></div>
-                        <div class="related-item"><span class="related-item-name">Alimentation PoE</span><span class="related-item-qty">2</span></div>
+                    <div class="card-body no-padding" id="transcriptionContent">
+                        <div class="transcription-empty">
+                            <div class="transcription-empty-icon">&#x1F3A7;</div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">No active call</div>
+                            <div style="font-size: 0.85rem;">Transcription will appear here during a call</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card flex-1">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F916;</span>
+                            AI Assistant
+                        </div>
+                        <div class="badge active">
+                            <span class="status-dot"></span>
+                            <span>Online</span>
+                        </div>
+                    </div>
+                    <div class="card-body no-padding chat-messages" id="chatMessages">
+                        <div class="chat-message bot">
+                            <div class="message-avatar">&#x1F916;</div>
+                            <div class="message-bubble">Hello! I'm your AI assistant. I'll analyze the conversation and suggest solutions in real-time.</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question..." onkeypress="handleChatKeyPress(event)">
+                        <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Intelligence Gatekeeper -->
+            <div class="console-column">
+                <!-- Analyze Action Card -->
+                <div class="card" style="flex: 0 0 auto;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F50D;</span>
+                            Intelligence Gatekeeper
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 16px 20px;">
+                        <button id="analyzeBtn" class="analyze-btn" onclick="analyzeAndSearch()" disabled>
+                            &#x1F9E0; Analyze &amp; Search
+                        </button>
+                        <div id="analyzeStatus" class="analyze-status" style="display:none;">
+                            Analyzing conversation...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Result Card -->
+                <div class="card" id="validationCard" style="display: none; flex: 0 0 auto;">
+                    <div class="card-header">
+                        <div class="card-title">Validation Result</div>
+                        <span id="domainBadge" class="domain-badge" style="display:none;"></span>
+                    </div>
+                    <div class="card-body" style="padding: 16px 20px;">
+                        <div id="confidenceSection" class="validation-section">
+                            <div class="validation-section-label">Domain Confidence</div>
+                            <div class="confidence-meter">
+                                <div id="confidenceFill" class="confidence-meter-fill" style="width: 0%; background: var(--success);"></div>
+                            </div>
+                            <div id="confidenceText" style="font-size: 0.8rem; color: var(--gray-500);"></div>
+                        </div>
+                        <div id="extractedSection" class="validation-section" style="display:none;">
+                            <div class="validation-section-label">Extracted Fields</div>
+                            <div id="extractedFields" class="field-tags"></div>
+                        </div>
+                        <div id="missingRequiredSection" class="validation-section" style="display:none;">
+                            <div class="validation-section-label">Missing Required</div>
+                            <div id="missingRequiredFields" class="field-tags"></div>
+                        </div>
+                        <div id="missingRecommendedSection" class="validation-section" style="display:none;">
+                            <div class="validation-section-label">Recommended</div>
+                            <div id="missingRecommendedFields" class="field-tags"></div>
+                        </div>
+                        <div id="validationReasoning" class="validation-reasoning" style="display:none;"></div>
+                        <button id="searchAnywayBtn" class="search-anyway-btn" style="display:none;" onclick="searchAnyway()">
+                            &#x26A0; Search Anyway
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Knowledge Articles -->
+                <div class="card flex-1">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F4A1;</span>
+                            Knowledge Articles
+                        </div>
+                    </div>
+                    <div class="card-body no-padding" id="solutionContent">
+                        <div class="solutions-empty">
+                            <div class="solutions-empty-icon">&#x1F4DA;</div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
+                            <div style="font-size: 0.85rem;">Click "Analyze &amp; Search" to query the knowledge base</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="column-2">
-            <div class="sf-card" style="flex: 1; min-height: 0;">
-                <div class="sf-card-header">
-                    <div class="sf-card-title"><span class="sf-card-icon">🎙️</span>Transcription</div>
-                    <div class="status-badge" id="transcriptionBadge">
-                        <span class="status-dot" id="statusDot"></span>
-                        <span id="transcriptionStatus">Inactif</span>
-                    </div>
-                </div>
-                <div class="sf-card-body transcription-content" id="transcriptionContent">
-                    <div class="transcription-empty">
-                        <div class="transcription-empty-icon">🎧</div>
-                        <div>La transcription apparaîtra ici pendant l'appel</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sf-card" style="flex: 1; min-height: 0;">
-                <div class="sf-card-header">
-                    <div class="sf-card-title"><span class="sf-card-icon">🤖</span>Einstein Assistant</div>
-                    <div class="status-badge active"><span class="status-dot"></span><span>En ligne</span></div>
-                </div>
-                <div class="sf-card-body chat-messages" id="chatMessages">
-                    <div class="chat-message bot">
-                        <div class="message-avatar">🤖</div>
-                        <div class="message-bubble">Bonjour! Je suis Einstein, votre assistant IA. Je vais analyser la conversation et vous suggérer des solutions.</div>
-                    </div>
-                </div>
-                <div class="chat-input-container">
-                    <input type="text" class="chat-input" id="chatInput" placeholder="Posez une question..." onkeypress="handleChatKeyPress(event)">
-                    <button class="chat-send-btn" onclick="sendChatMessage()">Envoyer</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="sf-card">
-            <div class="sf-card-header">
-                <div class="sf-card-title"><span class="sf-card-icon">💡</span>Articles de Connaissance</div>
-            </div>
-            <div class="sf-card-body solutions-content" id="solutionContent">
-                <div class="empty-solution">
-                    <div class="empty-icon">📚</div>
-                    <div style="font-weight: 600; margin-bottom: 4px;">Aucune suggestion</div>
-                    <div style="font-size: 12px;">Les articles pertinents apparaîtront ici</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <div class="hidden-controls">
         <button id="muteBtn"></button>
@@ -742,117 +1298,432 @@
     </div>
 
     <script>
+        // Sidebar elements
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mainContent = document.querySelector('.main-content');
+
+        // Mobile menu toggle
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('active');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            }
+        });
+
+        // Sidebar collapse toggle
+        function toggleSidebar() {
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
+            // Save preference
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        sidebarToggle.addEventListener('click', toggleSidebar);
+
+        // Restore sidebar state from localStorage
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+        }
+
+        // ========== Call & Transcription Logic ==========
         let sessionId = null, callSid = null, isMuted = false, callStartTime = null, callTimer = null;
-        let suggestionPollingTimer = null, currentLanguage = 'fr', isCallActive = false, callStatusPoller = null;
+        let currentLanguage = 'en', isCallActive = false, callStatusPoller = null;
         let twilioDevice = null, activeConnection = null, transcriptionEnabledByUser = true;
         let agentAudioContext = null, agentAudioWorkletNode = null, agentAudioWebSocket = null;
         let agentMediaStream = null, isAgentAudioMuted = false;
         let suggestionsWebSocket = null, technicianTranscriptionWebSocket = null;
 
         window.addEventListener('load', () => {
-            if (typeof Twilio === 'undefined') { showCallStatus('Erreur: Twilio SDK', 'error'); setTimeout(() => { if (typeof Twilio !== 'undefined') initializeSession(); }, 2000); }
-            else initializeSession();
+            if (typeof Twilio === 'undefined') {
+                showCallStatus('Error: Twilio SDK', 'error');
+                setTimeout(() => { if (typeof Twilio !== 'undefined') initializeSession(); }, 2000);
+            } else {
+                initializeSession();
+            }
         });
 
         async function initializeSession() {
             try {
                 sessionId = `session-${Date.now()}`;
-                await fetch('/twilio/start-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, technician_name: document.getElementById('customerName')?.textContent || 'Technicien', agent_name: 'Agent Support' }) });
+                await fetch('/twilio/start-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        technician_name: document.getElementById('customerName')?.textContent || 'Technician',
+                        agent_name: 'Support Agent'
+                    })
+                });
                 await initializeTwilioDevice();
             } catch (e) { console.error(e); }
         }
 
         async function initializeTwilioDevice() {
             try {
-                const response = await fetch('/twilio/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: 'support-agent' }) });
+                const response = await fetch('/twilio/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identity: 'support-agent' })
+                });
                 const data = await response.json();
                 if (!data.token) throw new Error('No token');
+
                 const { Device } = Twilio;
                 twilioDevice = new Device(data.token, { codecPreferences: ['opus', 'pcmu'], logLevel: 1 });
                 await twilioDevice.register();
-                twilioDevice.on('registered', () => showCallStatus('Prêt', 'success'));
-                twilioDevice.on('error', (e) => showCallStatus(`Erreur: ${e.message}`, 'error'));
+
+                twilioDevice.on('registered', () => showCallStatus('Ready', 'success'));
+                twilioDevice.on('error', (e) => showCallStatus(`Error: ${e.message}`, 'error'));
                 twilioDevice.on('incoming', (call) => showIncomingCallNotification(call, call.parameters.From));
-                twilioDevice.on('tokenWillExpire', async () => { const r = await fetch('/twilio/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: 'support-agent' }) }); twilioDevice.updateToken((await r.json()).token); });
-            } catch (e) { showCallStatus('Échec init', 'error'); }
+                twilioDevice.on('tokenWillExpire', async () => {
+                    const r = await fetch('/twilio/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ identity: 'support-agent' })
+                    });
+                    twilioDevice.updateToken((await r.json()).token);
+                });
+            } catch (e) {
+                showCallStatus('Init failed', 'error');
+            }
         }
 
         function showIncomingCallNotification(conn, from) {
             const s = document.getElementById('callStatus');
-            s.style.display = 'block'; s.className = 'call-status progress';
-            s.innerHTML = `Appel: ${from}<br><button onclick="acceptIncomingCall()" class="sf-btn sf-btn-success" style="margin-top:8px;margin-right:8px;">Accepter</button><button onclick="rejectIncomingCall()" class="sf-btn sf-btn-neutral">Refuser</button>`;
+            s.style.display = 'block';
+            s.className = 'call-status-text progress';
+            s.innerHTML = `Incoming: ${from}<br><button onclick="acceptIncomingCall()" style="margin-top:8px;margin-right:8px;padding:8px 16px;background:var(--success);color:#fff;border:none;border-radius:6px;cursor:pointer;">Accept</button><button onclick="rejectIncomingCall()" style="padding:8px 16px;background:var(--gray-200);border:none;border-radius:6px;cursor:pointer;">Reject</button>`;
             window.incomingConnection = conn;
         }
 
         function acceptIncomingCall() {
             if (window.incomingConnection) {
-                const call = window.incomingConnection; call.accept(); activeConnection = call; isCallActive = true;
+                const call = window.incomingConnection;
+                call.accept();
+                activeConnection = call;
+                isCallActive = true;
                 document.getElementById('customerName').textContent = call.parameters.From;
-                call.on('accept', () => { callStartTime = Date.now(); callTimer = setInterval(updateCallDuration, 1000); document.getElementById('initiateCallBtn').disabled = true; showCallStatus('Connecté', 'success'); document.getElementById('statusDot').classList.add('active'); document.getElementById('transcriptionBadge').classList.add('active'); document.getElementById('transcriptionStatus').textContent = 'En cours'; setTimeout(() => { if (isCallActive && transcriptionEnabledByUser) startTranscription(); startSuggestionPolling(); }, 2000); });
+
+                call.on('accept', () => {
+                    callStartTime = Date.now();
+                    callTimer = setInterval(updateCallDuration, 1000);
+                    document.getElementById('initiateCallBtn').disabled = true;
+                    showCallStatus('Connected', 'success');
+                    updateTopbarStatus('active', 'In Call');
+                    document.getElementById('transcriptionBadge').classList.add('active');
+                    document.getElementById('transcriptionStatus').textContent = 'Active';
+                    setTimeout(() => {
+                        if (isCallActive && transcriptionEnabledByUser) startTranscription();
+                        enableAnalyzeButton();
+                    }, 2000);
+                });
+
                 call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
                 window.incomingConnection = null;
             }
         }
 
-        function rejectIncomingCall() { if (window.incomingConnection) { window.incomingConnection.reject(); showCallStatus('Refusé', 'progress'); window.incomingConnection = null; setTimeout(() => document.getElementById('callStatus').style.display = 'none', 3000); } }
+        function rejectIncomingCall() {
+            if (window.incomingConnection) {
+                window.incomingConnection.reject();
+                showCallStatus('Rejected', 'progress');
+                window.incomingConnection = null;
+                setTimeout(() => document.getElementById('callStatus').style.display = 'none', 3000);
+            }
+        }
 
         async function initiateTwilioCall() {
             const phone = document.getElementById('technicianPhone').value.trim();
-            if (!phone) { showCallStatus('Entrez un numéro', 'error'); return; }
+            if (!phone) { showCallStatus('Enter a number', 'error'); return; }
             if (!phone.startsWith('+')) { showCallStatus('Format: +33...', 'error'); return; }
+
             try {
                 document.getElementById('initiateCallBtn').disabled = true;
-                showCallStatus('Connexion...', 'progress');
-                if (!twilioDevice || twilioDevice.state !== 'registered') throw new Error('Twilio non prêt');
+                showCallStatus('Connecting...', 'progress');
+                updateTopbarStatus('connecting', 'Connecting...');
+
+                if (!twilioDevice || twilioDevice.state !== 'registered') throw new Error('Twilio not ready');
+
                 await connectTranscriptionWebSockets();
                 const call = await twilioDevice.connect({ params: { To: phone, session_id: sessionId } });
-                activeConnection = call; isCallActive = true;
-                call.on('accept', () => { callStartTime = Date.now(); callTimer = setInterval(updateCallDuration, 1000); showCallStatus('Connecté', 'success'); document.getElementById('statusDot').classList.add('active'); document.getElementById('transcriptionBadge').classList.add('active'); document.getElementById('transcriptionStatus').textContent = 'En cours'; setTimeout(() => { if (isCallActive && transcriptionEnabledByUser) startTranscription(); startSuggestionPolling(); }, 2000); });
+                activeConnection = call;
+                isCallActive = true;
+
+                call.on('accept', () => {
+                    callStartTime = Date.now();
+                    callTimer = setInterval(updateCallDuration, 1000);
+                    showCallStatus('Connected', 'success');
+                    updateTopbarStatus('active', 'In Call');
+                    document.getElementById('transcriptionBadge').classList.add('active');
+                    document.getElementById('transcriptionStatus').textContent = 'Active';
+                    setTimeout(() => {
+                        if (isCallActive && transcriptionEnabledByUser) startTranscription();
+                        enableAnalyzeButton();
+                    }, 2000);
+                });
+
                 call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
-                call.on('error', (e) => { showCallStatus(`Erreur: ${e.message}`, 'error'); handleRemoteCallTermination({ status: 'failed' }); });
-            } catch (e) { showCallStatus(`Erreur: ${e.message}`, 'error'); document.getElementById('initiateCallBtn').disabled = false; }
+                call.on('error', (e) => {
+                    showCallStatus(`Error: ${e.message}`, 'error');
+                    handleRemoteCallTermination({ status: 'failed' });
+                });
+            } catch (e) {
+                showCallStatus(`Error: ${e.message}`, 'error');
+                updateTopbarStatus('', 'Ready');
+                document.getElementById('initiateCallBtn').disabled = false;
+            }
         }
 
-        function showCallStatus(msg, type) { const s = document.getElementById('callStatus'); s.style.display = 'block'; s.textContent = msg; s.className = `call-status ${type}`; }
+        function showCallStatus(msg, type) {
+            const s = document.getElementById('callStatus');
+            s.style.display = 'block';
+            s.textContent = msg;
+            s.className = `call-status-text ${type}`;
+        }
+
+        function updateTopbarStatus(type, text) {
+            const badge = document.getElementById('topbarCallStatus');
+            const statusText = document.getElementById('topbarStatusText');
+            badge.className = `call-status-badge ${type}`;
+            statusText.textContent = text;
+        }
 
         function handleRemoteCallTermination(data) {
-            if (!isCallActive) return; isCallActive = false; clearInterval(callTimer); clearInterval(suggestionPollingTimer); clearInterval(callStatusPoller);
+            if (!isCallActive) return;
+            isCallActive = false;
+            clearInterval(callTimer);
+            clearInterval(callStatusPoller);
+
             document.getElementById('initiateCallBtn').disabled = false;
-            document.getElementById('statusDot').classList.remove('active');
-            document.getElementById('transcriptionBadge').classList.remove('active'); document.getElementById('transcriptionStatus').textContent = 'Inactif';
-            showCallStatus({ completed: 'Terminé', failed: 'Échec', busy: 'Occupé', 'no-answer': 'Pas de réponse', canceled: 'Annulé' }[data.status] || 'Terminé', 'progress');
+            document.getElementById('transcriptionBadge').classList.remove('active');
+            document.getElementById('transcriptionStatus').textContent = 'Inactive';
+            document.getElementById('callDuration').style.display = 'none';
+            updateTopbarStatus('', 'Ready');
+
+            const statusMap = {
+                completed: 'Call ended',
+                failed: 'Call failed',
+                busy: 'Line busy',
+                'no-answer': 'No answer',
+                canceled: 'Canceled'
+            };
+            showCallStatus(statusMap[data.status] || 'Call ended', 'progress');
         }
 
-        function startSuggestionsWebSocket() {
-            const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            suggestionsWebSocket = new WebSocket(`${ws}//${window.location.host}/demo/suggestions-stream/${sessionId}`);
-            suggestionsWebSocket.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.type === 'suggestion' || d.type === 'knowledge_base') displaySolutions([d]); else if (d.type === 'clarification_question' && !document.querySelector(`[data-suggestion-id="${d.id}"]`)) addChatMessage(d.content, 'bot', d.id); else if (d.type === 'suggestions_batch' && d.suggestions?.length) displaySolutions(d.suggestions); } catch {} };
-            suggestionsWebSocket.onerror = () => startSuggestionPollingFallback();
+        // ========== Intelligence Gatekeeper ==========
+
+        function enableAnalyzeButton() {
+            document.getElementById('analyzeBtn').disabled = false;
         }
 
-        function startSuggestionPollingFallback() { if (suggestionPollingTimer) return; suggestionPollingTimer = setInterval(async () => { if (!sessionId || !isCallActive) return; try { const r = await fetch(`/demo/get-session-suggestions?session_id=${sessionId}&limit=20`); if (r.ok) { const d = await r.json(); if (d.suggestions?.length) displaySolutions(d.suggestions); } } catch {} }, 3000); }
+        async function analyzeAndSearch(forceSearch = false) {
+            const btn = document.getElementById('analyzeBtn');
+            const status = document.getElementById('analyzeStatus');
 
-        function startSuggestionPolling() { startSuggestionsWebSocket(); }
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '&#x23F3; Analyzing...';
+            status.style.display = 'block';
 
-        function updateCallDuration() { if (!callStartTime) return; const e = Math.floor((Date.now() - callStartTime) / 1000); const d = document.getElementById('callDuration'); if (!d) return; d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`; d.style.display = 'inline'; }
+            try {
+                const r = await fetch('/demo/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        force_search: forceSearch,
+                        language: currentLanguage
+                    })
+                });
+                const result = await r.json();
+
+                if (result.error) {
+                    status.textContent = result.error;
+                    status.style.color = 'var(--danger)';
+                    return;
+                }
+
+                displayValidationResult(result);
+
+                if (result.suggestions?.length) {
+                    displaySolutions(result.suggestions);
+                }
+            } catch (e) {
+                console.error('Analyze error:', e);
+                status.textContent = 'Analysis failed. Try again.';
+                status.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '&#x1F9E0; Analyze &amp; Search';
+                setTimeout(() => {
+                    status.style.display = 'none';
+                    status.style.color = '';
+                    status.textContent = 'Analyzing conversation...';
+                }, 3000);
+            }
+        }
+
+        function searchAnyway() {
+            analyzeAndSearch(true);
+        }
+
+        function displayValidationResult(result) {
+            const card = document.getElementById('validationCard');
+            card.style.display = 'block';
+
+            const v = result.validation || {};
+
+            // Domain badge
+            const badge = document.getElementById('domainBadge');
+            if (v.domain_name && v.domain !== 'unknown') {
+                badge.textContent = v.domain_name;
+                badge.style.display = 'inline-flex';
+            } else {
+                badge.textContent = 'Unknown Domain';
+                badge.style.display = 'inline-flex';
+                badge.style.background = 'var(--gray-400)';
+            }
+
+            // Confidence meter
+            const confidence = v.domain_confidence || 0;
+            const pct = Math.round(confidence * 100);
+            const fill = document.getElementById('confidenceFill');
+            fill.style.width = pct + '%';
+            fill.style.background = pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+            document.getElementById('confidenceText').textContent = pct + '% confidence';
+
+            // Extracted fields
+            const extractedContainer = document.getElementById('extractedFields');
+            const extractedSection = document.getElementById('extractedSection');
+            extractedContainer.innerHTML = '';
+            const extracted = v.extracted_fields || {};
+            const extractedKeys = Object.keys(extracted);
+            if (extractedKeys.length) {
+                extractedSection.style.display = 'block';
+                extractedKeys.forEach(slug => {
+                    const info = extracted[slug];
+                    const tag = document.createElement('span');
+                    tag.className = 'field-tag extracted';
+                    tag.textContent = (info.field_name || slug) + ': ' + info.value;
+                    extractedContainer.appendChild(tag);
+                });
+            } else {
+                extractedSection.style.display = 'none';
+            }
+
+            // Missing required fields
+            const missingReqContainer = document.getElementById('missingRequiredFields');
+            const missingReqSection = document.getElementById('missingRequiredSection');
+            missingReqContainer.innerHTML = '';
+            const missingReq = v.missing_required || [];
+            if (missingReq.length) {
+                missingReqSection.style.display = 'block';
+                missingReq.forEach(f => {
+                    const tag = document.createElement('span');
+                    tag.className = 'field-tag missing-required';
+                    tag.textContent = 'MISSING: ' + f.name;
+                    tag.title = f.description || '';
+                    missingReqContainer.appendChild(tag);
+                });
+            } else {
+                missingReqSection.style.display = 'none';
+            }
+
+            // Missing recommended fields
+            const missingRecContainer = document.getElementById('missingRecommendedFields');
+            const missingRecSection = document.getElementById('missingRecommendedSection');
+            missingRecContainer.innerHTML = '';
+            const missingRec = v.missing_recommended || [];
+            if (missingRec.length) {
+                missingRecSection.style.display = 'block';
+                missingRec.forEach(f => {
+                    const tag = document.createElement('span');
+                    tag.className = 'field-tag missing-recommended';
+                    tag.textContent = f.name;
+                    tag.title = f.description || '';
+                    missingRecContainer.appendChild(tag);
+                });
+            } else {
+                missingRecSection.style.display = 'none';
+            }
+
+            // Reasoning
+            const reasoningEl = document.getElementById('validationReasoning');
+            if (v.reasoning) {
+                reasoningEl.textContent = v.reasoning;
+                reasoningEl.style.display = 'block';
+            } else {
+                reasoningEl.style.display = 'none';
+            }
+
+            // Search Anyway button
+            document.getElementById('searchAnywayBtn').style.display =
+                (result.status === 'missing_required' || result.status === 'unknown_domain') ? 'block' : 'none';
+        }
+
+        function updateCallDuration() {
+            if (!callStartTime) return;
+            const e = Math.floor((Date.now() - callStartTime) / 1000);
+            const d = document.getElementById('callDuration');
+            if (!d) return;
+            d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`;
+            d.style.display = 'inline';
+        }
 
         function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
 
         async function sendChatMessage() {
             const input = document.getElementById('chatInput'), msg = input.value.trim();
-            if (!msg || !sessionId) return; addChatMessage(msg, 'user'); input.value = '';
+            if (!msg || !sessionId) return;
+            addChatMessage(msg, 'user');
+            input.value = '';
+
             try {
-                const r = await fetch('/demo/send-demo-transcription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, speaker: 'customer', text: msg, start_time: (Date.now() - callStartTime) / 1000, end_time: (Date.now() - callStartTime) / 1000, confidence: 1.0, language: currentLanguage }) });
-                const d = await r.json();
-                if (d.suggestions?.length) { displaySolutions(d.suggestions); const q = d.suggestions.filter(s => s.type === 'clarification_question'); if (q.length) setTimeout(() => addChatMessage(q[0].content, 'bot'), 500); }
-            } catch { addChatMessage('Erreur de communication.', 'bot'); }
+                const r = await fetch('/demo/send-demo-transcription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        speaker: 'customer',
+                        text: msg,
+                        start_time: (Date.now() - (callStartTime || Date.now())) / 1000,
+                        end_time: (Date.now() - (callStartTime || Date.now())) / 1000,
+                        confidence: 1.0,
+                        language: currentLanguage
+                    })
+                });
+                await r.json();
+                // Enable analyze button after sending a message
+                enableAnalyzeButton();
+                addChatMessage('Message stored. Click "Analyze & Search" when ready.', 'bot');
+            } catch {
+                addChatMessage('Communication error.', 'bot');
+            }
         }
 
         function addChatMessage(text, sender, suggestionId = null) {
-            const m = document.getElementById('chatMessages'), div = document.createElement('div');
-            div.className = `chat-message ${sender}`; if (suggestionId) div.setAttribute('data-suggestion-id', suggestionId);
-            div.innerHTML = `<div class="message-avatar">${sender === 'bot' ? '🤖' : '👤'}</div><div class="message-bubble">${text}</div>`;
-            m.appendChild(div); m.scrollTop = m.scrollHeight;
+            const m = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `chat-message ${sender}`;
+            if (suggestionId) div.setAttribute('data-suggestion-id', suggestionId);
+            div.innerHTML = `<div class="message-avatar">${sender === 'bot' ? '&#x1F916;' : '&#x1F464;'}</div><div class="message-bubble">${text}</div>`;
+            m.appendChild(div);
+            m.scrollTop = m.scrollHeight;
         }
 
         const audioWorkletCode = `class AudioStreamProcessor extends AudioWorkletProcessor { constructor() { super(); this.bufferSize = 4096; this.buffer = new Float32Array(this.bufferSize); this.bufferIndex = 0; } process(inputs) { const input = inputs[0]; if (!input || !input[0]) return true; const ch = input[0]; for (let i = 0; i < ch.length; i++) { this.buffer[this.bufferIndex++] = ch[i]; if (this.bufferIndex >= this.bufferSize) { this.port.postMessage({ type: 'audio', buffer: this.buffer.slice() }); this.bufferIndex = 0; } } return true; } } registerProcessor('audio-stream-processor', AudioStreamProcessor);`;
@@ -860,176 +1731,148 @@
         async function connectTranscriptionWebSockets() {
             return new Promise((resolve, reject) => {
                 const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                console.log(`🔌 Connecting WebSockets for session: ${sessionId}`);
-                console.log(`   Tech WS URL: ${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
-                console.log(`   Agent WS URL: ${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
+                console.log(`Connecting WebSockets for session: ${sessionId}`);
 
                 technicianTranscriptionWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
                 agentAudioWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
 
                 let t = false, a = false;
-                const check = () => {
-                    console.log(`🔍 WS Status check: tech=${t}, agent=${a}`);
-                    if (t && a) {
-                        console.log('✅ Both WebSockets connected!');
-                        resolve();
-                    }
-                };
+                const check = () => { if (t && a) resolve(); };
 
-                // Technician transcription WebSocket handlers
-                technicianTranscriptionWebSocket.onopen = () => {
-                    console.log('✅ Technician transcription WebSocket opened');
-                };
+                technicianTranscriptionWebSocket.onopen = () => console.log('Technician WS opened');
                 technicianTranscriptionWebSocket.onmessage = (e) => {
                     try {
                         const d = JSON.parse(e.data);
-                        console.log('📨 Tech WS message:', d);
-                        console.log('📨 Tech WS - speaker_role:', d.speaker_role, 'speaker_label:', d.speaker_label, 'text:', d.text);
-                        if (d.event === 'connected' && d.type === 'technician_transcription') {
-                            t = true;
-                            check();
-                        } else if (d.type === 'transcription') {
-                            console.log('📨 ADDING BUBBLE - role:', d.speaker_role, 'label:', d.speaker_label, 'text:', d.text?.substring(0, 30));
-                            addTranscriptionBubble(d.text, d.speaker_label || 'Technicien', d.speaker_role || 'technician', d.is_final !== false, d.confidence || 1.0, d.utterance_id);
+                        if (d.event === 'connected' && d.type === 'technician_transcription') { t = true; check(); }
+                        else if (d.type === 'transcription') {
+                            addTranscriptionBubble(d.text, d.speaker_label || 'Technician', d.speaker_role || 'technician', d.is_final !== false, d.confidence || 1.0, d.utterance_id);
                         }
-                    } catch (err) {
-                        console.error('❌ Error parsing tech WS message:', err);
-                    }
+                    } catch {}
                 };
-                technicianTranscriptionWebSocket.onerror = (err) => {
-                    console.error('❌ Technician transcription WebSocket error:', err);
-                };
-                technicianTranscriptionWebSocket.onclose = (e) => {
-                    console.warn('🔌 Technician transcription WebSocket closed:', e.code, e.reason);
-                };
+                technicianTranscriptionWebSocket.onerror = (err) => console.error('Tech WS error:', err);
 
-                // Agent audio WebSocket handlers
-                agentAudioWebSocket.onopen = () => {
-                    console.log('✅ Agent audio WebSocket opened');
-                };
+                agentAudioWebSocket.onopen = () => console.log('Agent WS opened');
                 agentAudioWebSocket.onmessage = (e) => {
                     try {
                         const d = JSON.parse(e.data);
-                        console.log('📨 Agent WS message:', d);
-                        if (d.event === 'connected' && d.type === 'agent_audio') {
-                            a = true;
-                            check();
-                        } else if (d.type === 'transcription') {
+                        if (d.event === 'connected' && d.type === 'agent_audio') { a = true; check(); }
+                        else if (d.type === 'transcription') {
                             addTranscriptionBubble(d.text, d.speaker_label || 'Agent', d.speaker_role || 'agent', d.is_final !== false, d.confidence || 1.0, d.utterance_id);
                         }
-                    } catch (err) {
-                        console.error('❌ Error parsing agent WS message:', err);
-                    }
+                    } catch {}
                 };
-                agentAudioWebSocket.onerror = (err) => {
-                    console.error('❌ Agent audio WebSocket error:', err);
-                };
-                agentAudioWebSocket.onclose = (e) => {
-                    console.warn('🔌 Agent audio WebSocket closed:', e.code, e.reason);
-                };
+                agentAudioWebSocket.onerror = (err) => console.error('Agent WS error:', err);
 
-                // Timeout fallback - resolve anyway after 5 seconds
-                setTimeout(() => {
-                    console.warn('⏱️ WebSocket connection timeout (5s) - proceeding anyway');
-                    console.warn(`   Final status: tech=${t}, agent=${a}`);
-                    resolve();
-                }, 5000);
+                setTimeout(() => resolve(), 5000);
             });
         }
 
         async function startTranscription() {
             try {
-                agentMediaStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                agentMediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
                 agentAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-                const blob = new Blob([audioWorkletCode], { type: 'application/javascript' }), url = URL.createObjectURL(blob);
-                try { await agentAudioContext.audioWorklet.addModule(url); } catch { await startTranscriptionFallback(); return; } finally { URL.revokeObjectURL(url); }
+
+                const blob = new Blob([audioWorkletCode], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                try {
+                    await agentAudioContext.audioWorklet.addModule(url);
+                } catch {
+                    await startTranscriptionFallback();
+                    return;
+                } finally {
+                    URL.revokeObjectURL(url);
+                }
+
                 agentAudioWorkletNode = new AudioWorkletNode(agentAudioContext, 'audio-stream-processor');
-                agentAudioWorkletNode.port.onmessage = (e) => { if (e.data.type !== 'audio' || isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.data.buffer, i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767); agentAudioWebSocket.send(i.buffer); };
-                const src = agentAudioContext.createMediaStreamSource(agentMediaStream); src.connect(agentAudioWorkletNode); agentAudioWorkletNode.connect(agentAudioContext.destination);
-            } catch { alert('Erreur de transcription. Autorisez le microphone.'); }
+                agentAudioWorkletNode.port.onmessage = (e) => {
+                    if (e.data.type !== 'audio' || isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return;
+                    const f = e.data.buffer;
+                    const i = new Int16Array(f.length);
+                    for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767);
+                    agentAudioWebSocket.send(i.buffer);
+                };
+
+                const src = agentAudioContext.createMediaStreamSource(agentMediaStream);
+                src.connect(agentAudioWorkletNode);
+                agentAudioWorkletNode.connect(agentAudioContext.destination);
+            } catch {
+                alert('Transcription error. Please allow microphone access.');
+            }
         }
 
         async function startTranscriptionFallback() {
-            const src = agentAudioContext.createMediaStreamSource(agentMediaStream), proc = agentAudioContext.createScriptProcessor(4096, 1, 1);
-            proc.onaudioprocess = (e) => { if (isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return; const f = e.inputBuffer.getChannelData(0), i = new Int16Array(f.length); for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767); agentAudioWebSocket.send(i.buffer); };
-            src.connect(proc); proc.connect(agentAudioContext.destination); agentAudioWorkletNode = proc;
+            const src = agentAudioContext.createMediaStreamSource(agentMediaStream);
+            const proc = agentAudioContext.createScriptProcessor(4096, 1, 1);
+            proc.onaudioprocess = (e) => {
+                if (isAgentAudioMuted || !isCallActive || !agentAudioWebSocket || agentAudioWebSocket.readyState !== WebSocket.OPEN) return;
+                const f = e.inputBuffer.getChannelData(0);
+                const i = new Int16Array(f.length);
+                for (let j = 0; j < f.length; j++) i[j] = Math.round(Math.max(-1, Math.min(1, f[j] * 10.0)) * 32767);
+                agentAudioWebSocket.send(i.buffer);
+            };
+            src.connect(proc);
+            proc.connect(agentAudioContext.destination);
+            agentAudioWorkletNode = proc;
         }
 
         function addTranscriptionBubble(text, label, role, is_final = true, confidence = 1.0, utterance_id = null) {
-            const c = document.getElementById('transcriptionContent'), empty = c.querySelector('.transcription-empty');
+            const c = document.getElementById('transcriptionContent');
+            const empty = c.querySelector('.transcription-empty');
             if (empty) empty.remove();
 
-            // Use utterance_id for unique tracking (fixes multi-speaker race conditions)
             const trackingId = utterance_id || `${role}-${Date.now()}`;
-
-            // DEBUG: Log utterance tracking
-            console.log(`🔍 Transcript received:`, {
-                text: text.substring(0, 30) + '...',
-                role,
-                is_final,
-                utterance_id,
-                trackingId: trackingId.substring(0, 8) + '...'
-            });
-
-            // Check if this is an update to an existing bubble with same utterance_id
             const existingBubble = c.querySelector(`[data-utterance-id="${trackingId}"]`);
 
-            console.log(`🔍 Existing bubble found:`, existingBubble !== null);
-
             if (existingBubble) {
-                // UPDATE existing bubble (accumulate text in same bubble)
                 existingBubble.querySelector('.transcript-text').textContent = text;
                 if (existingBubble.querySelector('.transcript-confidence')) {
                     existingBubble.querySelector('.transcript-confidence').textContent = `${(confidence * 100).toFixed(0)}%`;
                 }
-
-                // Update styling based on is_final
                 if (is_final) {
-                    // Make it look final (remove italic, "En cours...")
                     const statusEl = existingBubble.querySelector('.transcript-status');
                     if (statusEl) statusEl.remove();
                     existingBubble.style.fontStyle = 'normal';
                     existingBubble.style.opacity = '1';
                 } else {
-                    // Keep interim styling
                     existingBubble.style.fontStyle = 'italic';
                     existingBubble.style.opacity = '0.7';
                 }
             } else {
-                // CREATE new bubble (different utterance_id or first message)
                 const line = document.createElement('div');
                 line.className = `transcript-line ${role}`;
-                line.setAttribute('data-utterance-id', trackingId);  // Use data-utterance-id instead of data-interim-id
-
-                // Set initial styling based on is_final
+                line.setAttribute('data-utterance-id', trackingId);
                 if (!is_final) {
                     line.style.fontStyle = 'italic';
                     line.style.opacity = '0.7';
                 }
-
-                const statusHTML = !is_final ? '<span class="transcript-status" style="color: #999;">En cours...</span>' : '';
-
+                const statusHTML = !is_final ? '<span class="transcript-status" style="color: var(--gray-500);">Processing...</span>' : '';
                 line.innerHTML = `
                     <div class="transcript-speaker">${label}</div>
                     <div class="transcript-text">${text}</div>
-                    <div class="transcript-meta" style="font-size: 11px; color: var(--sf-text-muted); margin-top: 4px; display: flex; gap: 8px;">
-                        <span class="transcript-time">${new Date().toLocaleTimeString('fr-FR')}</span>
+                    <div class="transcript-meta">
+                        <span class="transcript-time">${new Date().toLocaleTimeString()}</span>
                         <span class="transcript-confidence">${(confidence * 100).toFixed(0)}%</span>
                         ${statusHTML}
                     </div>
                 `;
                 c.appendChild(line);
-                console.log('📨 NEW BUBBLE CREATED - role:', role, 'childCount:', c.children.length);
             }
-
             c.scrollTop = c.scrollHeight;
-            console.log('📨 transcriptionContent now has', c.children.length, 'children');
         }
 
         function displaySolutions(suggestions) {
-            const c = document.getElementById('solutionContent'), sols = suggestions.filter(s => s.type === 'knowledge_base');
-            if (!sols.length) return; c.innerHTML = '';
-            sols.forEach(s => { const card = document.createElement('div'); card.className = 'solution-card'; card.innerHTML = `<h3>${s.title || 'Article'}</h3><p>${s.content}</p>${s.confidence ? `<span class="confidence-badge">✓ ${(s.confidence * 100).toFixed(0)}%</span>` : ''}`; c.insertBefore(card, c.firstChild); });
+            const c = document.getElementById('solutionContent');
+            const sols = suggestions.filter(s => s.type === 'knowledge_base');
+            if (!sols.length) return;
+            c.innerHTML = '';
+            sols.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'solution-card';
+                card.innerHTML = `<h3>${s.title || 'Article'}</h3><p>${s.content}</p>${s.confidence ? `<span class="confidence-badge">&#x2714; ${(s.confidence * 100).toFixed(0)}%</span>` : ''}`;
+                c.insertBefore(card, c.firstChild);
+            });
         }
     </script>
 </body>

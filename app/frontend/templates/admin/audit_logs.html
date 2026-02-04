@@ -1,0 +1,189 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set is_super = role == 'super_admin' %}
+
+<div class="card">
+  <div class="card-header">
+    <h2>{% if is_super %}Platform Audit Logs{% else %}Company Audit Logs{% endif %}</h2>
+    <div class="btn-group">
+      <!-- Filters -->
+      <select id="actionFilter" onchange="applyFilters()" style="padding: 8px 12px; border-radius: 6px; border: 2px solid var(--gray-200); font-size: 0.875rem;">
+        <option value="">All Actions</option>
+        <option value="user.create" {% if selected_action == 'user.create' %}selected{% endif %}>User Created</option>
+        <option value="user.update" {% if selected_action == 'user.update' %}selected{% endif %}>User Updated</option>
+        <option value="user.login" {% if selected_action == 'user.login' %}selected{% endif %}>User Login</option>
+        <option value="user.logout" {% if selected_action == 'user.logout' %}selected{% endif %}>User Logout</option>
+        <option value="invitation.create" {% if selected_action == 'invitation.create' %}selected{% endif %}>Invitation Created</option>
+        <option value="invitation.accept" {% if selected_action == 'invitation.accept' %}selected{% endif %}>Invitation Accepted</option>
+        <option value="invitation.revoke" {% if selected_action == 'invitation.revoke' %}selected{% endif %}>Invitation Revoked</option>
+        <option value="company.create" {% if selected_action == 'company.create' %}selected{% endif %}>Company Created</option>
+        <option value="company.update" {% if selected_action == 'company.update' %}selected{% endif %}>Company Updated</option>
+      </select>
+      {% if is_super %}
+      <select id="companyFilter" onchange="applyFilters()" style="padding: 8px 12px; border-radius: 6px; border: 2px solid var(--gray-200); font-size: 0.875rem;">
+        <option value="">All Companies</option>
+        {% for company in companies %}
+        <option value="{{ company.id }}" {% if selected_company_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    {% if logs %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Actor</th>
+            <th>Action</th>
+            {% if is_super %}
+            <th>Company</th>
+            {% endif %}
+            <th>Target</th>
+            <th>Details</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td style="white-space: nowrap; font-size: 0.85rem;">
+              {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}
+            </td>
+            <td>
+              <div style="font-size: 0.875rem;">{{ log.actor_email or 'System' }}</div>
+            </td>
+            <td>
+              <span class="badge
+                {% if 'create' in log.action_type %}badge-success
+                {% elif 'delete' in log.action_type or 'revoke' in log.action_type %}badge-danger
+                {% elif 'update' in log.action_type %}badge-warning
+                {% elif 'login' in log.action_type %}badge-primary
+                {% else %}badge-secondary{% endif %}">
+                {{ log.action_type }}
+              </span>
+            </td>
+            {% if is_super %}
+            <td>
+              {% if log.company %}
+              {{ log.company.name }}
+              {% else %}
+              <span style="color: var(--gray-500);">-</span>
+              {% endif %}
+            </td>
+            {% endif %}
+            <td style="font-size: 0.875rem;">
+              {% if log.target_type and log.target_id %}
+              {{ log.target_type }}:{{ log.target_id }}
+              {% else %}
+              <span style="color: var(--gray-500);">-</span>
+              {% endif %}
+            </td>
+            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem;">
+              {% if log.description %}
+              <span title="{{ log.description }}">{{ log.description[:50] }}{% if log.description|length > 50 %}...{% endif %}</span>
+              {% else %}
+              <span style="color: var(--gray-500);">-</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem; font-family: monospace;">
+              {{ log.ip_address or '-' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total > limit %}
+    <div class="pagination">
+      <div class="pagination-info">
+        Showing {{ offset + 1 }} - {{ [offset + limit, total] | min }} of {{ total }} logs
+      </div>
+      <div class="pagination-buttons">
+        {% if offset > 0 %}
+        <a href="?offset={{ offset - limit }}&limit={{ limit }}{% if selected_action %}&action_type={{ selected_action }}{% endif %}{% if selected_company_id %}&company_id={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        {% if offset + limit < total %}
+        <a href="?offset={{ offset + limit }}&limit={{ limit }}{% if selected_action %}&action_type={{ selected_action }}{% endif %}{% if selected_company_id %}&company_id={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F4DD;</div>
+      <h3>No audit logs found</h3>
+      <p>{% if selected_action or selected_company_id %}Try adjusting your filters.{% else %}Activity logs will appear here as actions are performed.{% endif %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Log Details Info -->
+<div class="card">
+  <div class="card-header">
+    <h2>About Audit Logs</h2>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+      <div>
+        <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Action Types</h4>
+        <ul style="font-size: 0.85rem; color: var(--gray-600); list-style: none; padding: 0; line-height: 1.8;">
+          <li><span class="badge badge-success" style="width: 80px; text-align: center;">create</span> New record created</li>
+          <li><span class="badge badge-warning" style="width: 80px; text-align: center;">update</span> Record modified</li>
+          <li><span class="badge badge-danger" style="width: 80px; text-align: center;">delete</span> Record removed</li>
+          <li><span class="badge badge-primary" style="width: 80px; text-align: center;">login</span> User authentication</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Compliance</h4>
+        <p style="font-size: 0.85rem; color: var(--gray-600); line-height: 1.6;">
+          Audit logs are stored in compliance with NIS2/ANSSI requirements.
+          All administrative actions are logged with actor, timestamp, and IP address.
+          Logs are retained for the duration specified in your compliance policy.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function applyFilters() {
+    const url = new URL(window.location.href);
+    const actionFilter = document.getElementById('actionFilter').value;
+    const companyFilter = document.getElementById('companyFilter');
+
+    if (actionFilter) {
+      url.searchParams.set('action_type', actionFilter);
+    } else {
+      url.searchParams.delete('action_type');
+    }
+
+    if (companyFilter) {
+      const companyId = companyFilter.value;
+      if (companyId) {
+        url.searchParams.set('company_id', companyId);
+      } else {
+        url.searchParams.delete('company_id');
+      }
+    }
+
+    // Reset pagination when filters change
+    url.searchParams.delete('offset');
+
+    window.location.href = url.toString();
+  }
+</script>
+{% endblock %}

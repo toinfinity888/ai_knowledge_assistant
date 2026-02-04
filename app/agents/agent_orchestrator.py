@@ -51,6 +51,7 @@ class AgentOrchestrator:
         new_transcription: str,
         speaker: str,
         language: Optional[str] = None,
+        company_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Main entry point: Process new transcription segment and generate suggestions
@@ -60,6 +61,7 @@ class AgentOrchestrator:
             new_transcription: New transcribed text
             speaker: Who spoke ('technician' or 'agent')
             language: Language code (e.g., 'fr', 'en', 'es') for response generation
+            company_id: Company ID for multi-tenant knowledge base filtering
 
         Returns:
             Dict with suggestions, questions, and processing metadata
@@ -78,6 +80,7 @@ class AgentOrchestrator:
             "session_id": session_id,
             "timestamp": datetime.utcnow().isoformat(),
             "language": language or "fr",  # Default to French for technical support calls
+            "company_id": company_id,  # For multi-tenant knowledge base filtering
         }
 
         result = {
@@ -232,10 +235,15 @@ class AgentOrchestrator:
             for query_info in queries[:3]:  # Limit to top 3 queries
                 query_text = query_info["text"]
 
-                # Query RAG with language parameter
+                # Query RAG with language and company_id parameters
                 try:
                     language = context.get("language", "en")
-                    rag_result = self.rag_engine.ask(query_text, language=language)
+                    company_id = context.get("company_id")
+                    rag_result = self.rag_engine.ask(
+                        query_text,
+                        language=language,
+                        company_id=company_id
+                    )
 
                     # Create suggestion from RAG result
                     if rag_result.get("answer"):

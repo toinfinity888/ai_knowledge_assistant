@@ -1,0 +1,282 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Invitations{% endblock %}
+{% block page_title %}Invitations{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set is_super = role == 'super_admin' %}
+
+<div class="card">
+  <div class="card-header">
+    <h2>{% if is_super %}All Invitations{% else %}Team Invitations{% endif %}</h2>
+    <button class="btn btn-primary" onclick="openCreateModal()">
+      <span>&#x2709;</span> Create Invitation
+    </button>
+  </div>
+  <div class="card-body">
+    {% if invitations %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            {% if is_super %}
+            <th>Company</th>
+            {% endif %}
+            <th>Status</th>
+            <th>Expires</th>
+            <th>Created By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invitation in invitations %}
+          <tr>
+            <td>{{ invitation.email }}</td>
+            <td>
+              <span class="badge role-{{ invitation.role.value }}">{{ invitation.role.value.replace('_', ' ') | title }}</span>
+            </td>
+            {% if is_super %}
+            <td>{{ invitation.company.name if invitation.company else '-' }}</td>
+            {% endif %}
+            <td>
+              {% if invitation.is_accepted %}
+              <span class="badge badge-success">Accepted</span>
+              {% elif invitation.is_expired() %}
+              <span class="badge badge-danger">Expired</span>
+              {% else %}
+              <span class="badge badge-warning">Pending</span>
+              {% endif %}
+            </td>
+            <td style="white-space: nowrap;">
+              {{ invitation.expires_at.strftime('%Y-%m-%d %H:%M') if invitation.expires_at else '-' }}
+            </td>
+            <td>{{ invitation.created_by.email if invitation.created_by else '-' }}</td>
+            <td>
+              <div class="btn-group">
+                {% if not invitation.is_accepted and not invitation.is_expired() %}
+                <button class="btn btn-sm btn-secondary" onclick="copyInviteLink('{{ invitation.token }}')">
+                  Copy Link
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="confirmRevoke({{ invitation.id }}, '{{ invitation.email }}')">
+                  Revoke
+                </button>
+                {% else %}
+                <span style="font-size: 0.8rem; color: var(--gray-500);">-</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total > limit %}
+    <div class="pagination">
+      <div class="pagination-info">
+        Showing {{ offset + 1 }} - {{ [offset + limit, total] | min }} of {{ total }} invitations
+      </div>
+      <div class="pagination-buttons">
+        {% if offset > 0 %}
+        <a href="?offset={{ offset - limit }}&limit={{ limit }}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        {% if offset + limit < total %}
+        <a href="?offset={{ offset + limit }}&limit={{ limit }}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x2709;</div>
+      <h3>No invitations yet</h3>
+      <p>Create an invitation to add new team members.</p>
+      <button class="btn btn-primary" style="margin-top: 16px;" onclick="openCreateModal()">
+        <span>&#x2709;</span> Create Invitation
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recently Created Invitation -->
+{% if created_invitation %}
+<div class="card" style="border: 2px solid var(--success);">
+  <div class="card-header" style="background: rgba(46, 132, 74, 0.1);">
+    <h2 style="color: var(--success);">&#x2714; Invitation Created</h2>
+  </div>
+  <div class="card-body">
+    <p style="margin-bottom: 16px;">Invitation sent to <strong>{{ created_invitation.email }}</strong></p>
+
+    <div class="form-group">
+      <label>Invitation Link</label>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="newInviteLink" value="{{ request.host_url }}accept-invite?token={{ created_invitation.token }}" readonly style="flex: 1; background: var(--gray-100);">
+        <button class="btn btn-secondary" onclick="copyNewInviteLink()">Copy</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--gray-600); margin-top: 8px;">
+        Share this link with the invitee. It expires in {{ created_invitation.expires_days | default(7) }} days.
+      </p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Create Invitation Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create Invitation</h3>
+      <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+    </div>
+    <form method="POST" action="/admin/invitations/create">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" placeholder="user@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="role">Role *</label>
+          <select id="role" name="role" required>
+            {% if is_super %}
+            <option value="admin">Admin</option>
+            {% endif %}
+            <option value="agent" selected>Agent</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <p style="font-size: 0.8rem; color: var(--gray-600); margin-top: 4px;">
+            {% if is_super %}
+            Admins can manage company settings and users. Agents handle support calls. Viewers have read-only access.
+            {% else %}
+            Agents handle support calls. Viewers have read-only access.
+            {% endif %}
+          </p>
+        </div>
+        {% if is_super %}
+        <div class="form-group">
+          <label for="company_id">Company *</label>
+          <select id="company_id" name="company_id" required>
+            <option value="">Select a company</option>
+            {% for company in companies %}
+            <option value="{{ company.id }}">{{ company.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="form-group">
+          <label for="expires_days">Expires In</label>
+          <select id="expires_days" name="expires_days">
+            <option value="1">1 day</option>
+            <option value="3">3 days</option>
+            <option value="7" selected>7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">30 days</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Invitation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Revoke Confirmation Modal -->
+<div class="modal-overlay" id="revokeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Revoke Invitation</h3>
+      <button class="modal-close" onclick="closeRevokeModal()">&times;</button>
+    </div>
+    <form method="POST" action="/admin/invitations/revoke" id="revokeForm">
+      <input type="hidden" name="invitation_id" id="revoke_invitation_id">
+      <div class="modal-body">
+        <p>Are you sure you want to revoke the invitation for <strong id="revoke_email"></strong>?</p>
+        <p style="font-size: 0.875rem; color: var(--gray-600); margin-top: 8px;">
+          The invitation link will no longer work.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeRevokeModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger">Revoke Invitation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Copy Success Toast -->
+<div id="copyToast" style="position: fixed; bottom: 20px; right: 20px; background: var(--gray-800); color: white; padding: 12px 20px; border-radius: 8px; display: none; z-index: 3000;">
+  Link copied to clipboard!
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Create Modal
+  function openCreateModal() {
+    document.getElementById('createModal').classList.add('active');
+  }
+
+  function closeCreateModal() {
+    document.getElementById('createModal').classList.remove('active');
+  }
+
+  // Revoke Modal
+  function confirmRevoke(id, email) {
+    document.getElementById('revoke_invitation_id').value = id;
+    document.getElementById('revoke_email').textContent = email;
+    document.getElementById('revokeModal').classList.add('active');
+  }
+
+  function closeRevokeModal() {
+    document.getElementById('revokeModal').classList.remove('active');
+  }
+
+  // Copy invite link
+  function copyInviteLink(token) {
+    const link = window.location.origin + '/accept-invite?token=' + token;
+    navigator.clipboard.writeText(link).then(() => {
+      showCopyToast();
+    });
+  }
+
+  function copyNewInviteLink() {
+    const input = document.getElementById('newInviteLink');
+    navigator.clipboard.writeText(input.value).then(() => {
+      showCopyToast();
+    });
+  }
+
+  function showCopyToast() {
+    const toast = document.getElementById('copyToast');
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 2000);
+  }
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
+    });
+  });
+
+  // Close modals on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.classList.remove('active');
+      });
+    }
+  });
+</script>
+{% endblock %}

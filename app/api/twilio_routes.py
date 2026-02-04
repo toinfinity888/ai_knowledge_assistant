@@ -4,7 +4,7 @@ Handles Twilio webhooks, TwiML generation, and WebSocket media streaming
 """
 import asyncio
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from twilio.twiml.voice_response import VoiceResponse, Dial
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
@@ -218,13 +218,19 @@ def start_session():
         technician_name = data.get('technician_name', 'Technicien')
         agent_name = data.get('agent_name', 'Agent Support')
 
+        # Get company_id from Flask session (required for multi-tenant)
+        company_id = session.get('company_id', 1)  # Default to 1 if not set
+        user_id = session.get('user_id')
+
         transcription_service = get_transcription_service()
 
         # Initialize session in database
         result = run_async(transcription_service.handle_call_start(
             call_id=session_id,
             agent_id="agent-1",
+            company_id=company_id,
             agent_name=agent_name,
+            agent_user_id=user_id,
             customer_id="technician-1",
             customer_name=technician_name,
             acd_metadata={"type": "twilio", "source": "browser"},
@@ -517,35 +523,21 @@ def register_websocket_routes(sock):
                                         # Update timestamp for this speaker
                                         last_transcript_time[speaker_role] = current_time
 
-                                        # ============================================================
-                                        # TRIGGER AGENT PIPELINE FOR RAG/KNOWLEDGE BASE SUGGESTIONS
-                                        # Process when speech_final=True (complete utterance from speaker)
-                                        # This sends the transcription to the agent orchestrator which:
-                                        # 1. Analyzes context to determine if enough info for KB query
-                                        # 2. Generates optimized queries for Qdrant vector search
-                                        # 3. Retrieves relevant knowledge and generates suggestions
-                                        # ============================================================
+                                        # Store transcription segment (no auto-trigger — agent uses manual "Analyze & Search")
                                         if result.get('speech_final', False) and full_text.strip():
                                             try:
                                                 transcription_service = get_transcription_service()
                                                 if transcription_service:
-                                                    # Use speaker="technician" - the person calling for help
-                                                    # The orchestrator expects "technician" for customer_last_message
-                                                    logger.info(f"[{session_id}] 🧠 TRIGGERING AGENT PIPELINE for: '{full_text[:50]}...'")
-                                                    run_async(transcription_service.process_transcription_segment(
+                                                    run_async(transcription_service.store_transcription_segment(
                                                         session_id=session_id,
-                                                        speaker="technician",  # Person on phone seeking help
+                                                        speaker="technician",
                                                         text=full_text,
-                                                        start_time=0.0,  # We don't have exact timing from Deepgram streaming
+                                                        start_time=0.0,
                                                         end_time=0.0,
                                                         confidence=result.get('confidence', 0.0),
-                                                        language=result.get('language', 'en'),
                                                     ))
-                                                    logger.info(f"[{session_id}] ✅ Agent pipeline triggered successfully")
-                                                else:
-                                                    logger.warning(f"[{session_id}] ⚠️ Transcription service not initialized")
-                                            except Exception as agent_error:
-                                                logger.error(f"[{session_id}] ❌ Error triggering agent pipeline: {agent_error}", exc_info=True)
+                                            except Exception as store_error:
+                                                logger.error(f"[{session_id}] Error storing transcription: {store_error}", exc_info=True)
                                     else:
                                         logger.warning(f"[{session_id}] No tech_ws available to send transcript")
                                 else:

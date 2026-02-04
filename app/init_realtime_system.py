@@ -10,10 +10,22 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.services.call_session_manager import get_call_session_manager
 from app.agents.agent_orchestrator import create_agent_orchestrator
+from app.agents.gatekeeper_orchestrator import GatekeeperOrchestrator
 from app.services.realtime_transcription_service import get_transcription_service
+from app.services.validator_service import ValidatorService
+from app.services.domain_schema_service import get_domain_schema_service
 from app.core.rag_singleton import get_rag_engine
 from app.llm.llm_openai import OpenAILLM
+from app.llm.llm_groq import GroqLLM
 from app.demo.web_demo_routes import broadcast_suggestion
+
+# Module-level gatekeeper for access from API endpoints
+_gatekeeper_orchestrator = None
+
+
+def get_gatekeeper_orchestrator() -> GatekeeperOrchestrator:
+    """Get the singleton GatekeeperOrchestrator instance."""
+    return _gatekeeper_orchestrator
 
 
 async def broadcast_suggestions_to_demo(payload: dict):
@@ -74,8 +86,8 @@ def initialize_realtime_system(config: dict = None):
     llm = OpenAILLM()
     print("✓ LLM ready")
 
-    # Step 4: Initialize Agent Orchestrator
-    print("\n[4/6] Initializing Agent Orchestrator...")
+    # Step 4: Initialize Agent Orchestrator (legacy, kept for transcription service)
+    print("\n[4/7] Initializing Agent Orchestrator...")
     orchestrator = create_agent_orchestrator(
         llm=llm,
         rag_engine=rag_engine,
@@ -87,9 +99,28 @@ def initialize_realtime_system(config: dict = None):
         }
     )
     print("✓ Agent Orchestrator ready")
-    print("  - Context Analyzer Agent")
-    print("  - Query Formulation Agent")
-    print("  - Clarification Agent")
+
+    # Step 4b: Initialize Intelligence Gatekeeper
+    print("\n[4b/7] Initializing Intelligence Gatekeeper...")
+    global _gatekeeper_orchestrator
+    try:
+        groq_llm = GroqLLM()
+        domain_schema_service = get_domain_schema_service()
+        validator_service = ValidatorService(
+            groq_llm=groq_llm,
+            domain_schema_service=domain_schema_service,
+        )
+        _gatekeeper_orchestrator = GatekeeperOrchestrator(
+            validator_service=validator_service,
+            rag_engine=rag_engine,
+            session_manager=session_manager,
+        )
+        print("✓ Intelligence Gatekeeper ready")
+        print("  - Groq Llama 8B Validator")
+        print("  - Domain Schema Registry")
+    except Exception as e:
+        print(f"⚠ Gatekeeper initialization issue: {e}")
+        print("  Manual analyze will not work until GROQ_API_KEY is configured")
 
     # Step 5: Initialize Real-time Transcription Service
     print("\n[5/6] Initializing Real-time Transcription Service...")
@@ -118,12 +149,15 @@ def initialize_realtime_system(config: dict = None):
     print(f"  • RAG Engine: {rag_engine}")
     print(f"  • LLM: {llm.__class__.__name__}")
     print(f"  • Orchestrator: {orchestrator}")
+    print(f"  • Gatekeeper: {_gatekeeper_orchestrator}")
     print(f"  • Transcription Service: {transcription_service}")
 
     print("\n🌐 API Endpoints Available:")
     print("  POST /api/realtime/call/start - Start new call session")
     print("  POST /api/realtime/call/end - End call session")
     print("  POST /api/realtime/transcription - Send transcription segment")
+    print("  POST /api/realtime/analyze - Manual analyze & search (Gatekeeper)")
+    print("  POST /demo/analyze - Demo analyze & search (Gatekeeper)")
     print("  GET  /api/realtime/suggestions/<session_id> - Get suggestions")
     print("  WS   /api/realtime/ws/<session_id> - WebSocket connection")
     print("  SSE  /api/realtime/stream/<session_id> - Server-sent events")
@@ -138,6 +172,7 @@ def initialize_realtime_system(config: dict = None):
         "rag_engine": rag_engine,
         "llm": llm,
         "orchestrator": orchestrator,
+        "gatekeeper": _gatekeeper_orchestrator,
         "transcription_service": transcription_service,
     }
 

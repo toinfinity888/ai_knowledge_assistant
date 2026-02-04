@@ -1,16 +1,21 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+<<<<<<< Updated upstream
+=======
 from contextlib import contextmanager
 import os
 from dotenv import load_dotenv
+>>>>>>> Stashed changes
 
 from app.config.postgresql_config import PostgresqlSettings
 
-load_dotenv()
-
 settings = PostgresqlSettings()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+user_name = settings.KEY
+password = settings.PASSWORD
+db_name = settings.DB_NAME
+
+DATABASE_URL = f"postgresql://{user_name}:{password}@localhost:5433/{db_name}"
 engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
