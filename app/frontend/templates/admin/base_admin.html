@@ -812,7 +812,7 @@
           <div class="nav-section-title">Main</div>
           <a href="/admin" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
             <span class="nav-item-icon">&#x1F4CA;</span>
-            <span>Dashboard</span>
+            <span>Admin Panel</span>
           </a>
           <a href="/" class="nav-item">
             <span class="nav-item-icon">&#x1F3A7;</span>
@@ -847,9 +847,17 @@
             <span class="nav-item-icon">&#x1F4DD;</span>
             <span>Audit Logs</span>
           </a>
+          <a href="/admin/ai-decision-logs" class="nav-item {% if active_page == 'ai_decision_logs' %}active{% endif %}">
+            <span class="nav-item-icon">&#x1F916;</span>
+            <span>AI Decision Logs</span>
+          </a>
           <a href="/admin/domain-schemas" class="nav-item {% if active_page == 'domain_schemas' %}active{% endif %}">
             <span class="nav-item-icon">&#x1F4CB;</span>
             <span>Domain Schemas</span>
+          </a>
+          <a href="/admin/prompts" class="nav-item {% if active_page == 'prompts' %}active{% endif %}">
+            <span class="nav-item-icon">&#x1F4AC;</span>
+            <span>LLM Prompts</span>
           </a>
         </div>
         {% endif %}

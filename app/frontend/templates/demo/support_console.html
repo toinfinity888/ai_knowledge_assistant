@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Console - AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --border-radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            font-size: 14px;
+        }
+
+        /* ===== Top Bar ===== */
+        .topbar {
+            height: 56px;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .topbar-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .reset-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .reset-btn:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-400);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .status-badge.inactive {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.active .status-dot {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ===== Main Layout ===== */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 56px);
+            margin-top: 56px;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        /* Left Column - 1/3 width */
+        .left-column {
+            width: 33.333%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 320px;
+        }
+
+        /* Right Area - 2/3 width */
+        .right-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        /* ===== Cards ===== */
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title-icon {
+            font-size: 1.1rem;
+        }
+
+        .card-body {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+        }
+
+        .card-body.no-padding {
+            padding: 0;
+        }
+
+        /* Height distribution */
+        .transcription-card {
+            flex: 2;
+            min-height: 0;
+        }
+
+        .call-controls-card {
+            flex: 1;
+            min-height: 180px;
+        }
+
+        .results-card {
+            flex: 2;
+            min-height: 0;
+        }
+
+        .analysis-card {
+            flex: 1;
+            min-height: 200px;
+        }
+
+        /* ===== Transcription Panel ===== */
+        .transcription-content {
+            height: 100%;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .transcription-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--gray-400);
+            text-align: center;
+            padding: 32px;
+        }
+
+        .transcription-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .message.customer .message-avatar {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message.agent .message-avatar {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--gray-700);
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .message-text {
+            color: var(--gray-700);
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        /* ===== Call Controls (Demo Mode) ===== */
+        .demo-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            background: var(--warning-light);
+            color: var(--warning);
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .call-controls-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .caller-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .caller-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .caller-details {
+            flex: 1;
+        }
+
+        .caller-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .caller-phone {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .call-timer {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            text-align: right;
+        }
+
+        .phone-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .phone-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .phone-input:focus {
+            border-color: var(--primary);
+        }
+
+        .call-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .call-btn {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .call-btn.dial {
+            background: var(--success);
+            color: white;
+        }
+
+        .call-btn.dial:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
+        .call-btn.hangup {
+            background: var(--danger);
+            color: white;
+        }
+
+        .call-btn.hangup:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+
+        .call-btn.hold {
+            background: var(--warning);
+            color: white;
+        }
+
+        .call-btn.hold:hover {
+            background: #d97706;
+        }
+
+        .call-btn.hold.active {
+            background: var(--gray-400);
+        }
+
+        .call-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .controls-inactive {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--gray-400);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .controls-inactive-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        /* ===== Search Results ===== */
+        .results-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .results-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--gray-400);
+            text-align: center;
+            padding: 32px;
+        }
+
+        .results-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .result-card {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.15s;
+        }
+
+        .result-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .result-confidence {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: var(--success-light);
+            color: var(--success);
+            white-space: nowrap;
+        }
+
+        .result-content {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .result-sources {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .source-tag {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            background: var(--gray-200);
+            color: var(--gray-600);
+            border-radius: 4px;
+        }
+
+        /* ===== Context Analysis ===== */
+        .analysis-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .analyze-btn.loading {
+            pointer-events: none;
+        }
+
+        .analyze-btn.loading::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .analysis-result {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .analysis-section {
+            margin-bottom: 16px;
+        }
+
+        .analysis-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-500);
+            margin-bottom: 8px;
+        }
+
+        .field-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .field-status {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .field-status.found {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .field-status.missing {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .field-name {
+            flex: 1;
+            color: var(--gray-700);
+        }
+
+        .field-value {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .domain-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .search-anyway-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: var(--warning-light);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .search-anyway-btn:hover {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .left-column {
+                width: 100%;
+                min-width: 0;
+                flex-direction: row;
+            }
+
+            .left-column .card {
+                flex: 1;
+            }
+
+            .transcription-card,
+            .call-controls-card {
+                min-height: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-column {
+                flex-direction: column;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .main-container {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="topbar">
+        <h1 class="topbar-title">Support Console</h1>
+        <div class="topbar-actions">
+            <div class="status-badge inactive" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span id="statusText">Ready</span>
+            </div>
+            <button class="reset-btn" onclick="resetSession()">
+                <span>&#x1F504;</span> Reset
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Column (1/3) -->
+        <div class="left-column">
+            <!-- Transcription Panel (Top 2/3) -->
+            <div class="card transcription-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-icon">&#x1F399;</span>
+                        Live Transcription
+                    </div>
+                    <div class="status-badge inactive" id="transcriptionStatus">
+                        <span class="status-dot"></span>
+                        <span id="transcriptionStatusText">Inactive</span>
+                    </div>
+                </div>
+                <div class="card-body no-padding">
+                    <div class="transcription-content" id="transcriptionContent">
+                        <div class="transcription-empty" id="transcriptionEmpty">
+                            <div class="transcription-empty-icon">&#x1F3A7;</div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">No active call</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-400);">
+                                Transcription will appear here during a call
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call Controls (Bottom 1/3) - Demo Mode Only -->
+            <div class="card call-controls-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-icon">&#x1F4DE;</span>
+                        Call Controls
+                    </div>
+                    <span class="demo-badge">DEMO</span>
+                </div>
+                <div class="card-body no-padding" id="callControlsBody">
+                    <div class="call-controls-content" id="callControlsActive">
+                        <!-- Caller Info (shown during call) -->
+                        <div class="caller-info" id="callerInfo" style="display: none;">
+                            <div class="caller-avatar" id="callerAvatar">?</div>
+                            <div class="caller-details">
+                                <div class="caller-name" id="callerName">Unknown Caller</div>
+                                <div class="caller-phone" id="callerPhone">-</div>
+                            </div>
+                            <div class="call-timer" id="callTimer">00:00</div>
+                        </div>
+
+                        <!-- Phone Input -->
+                        <div class="phone-input-row" id="phoneInputRow">
+                            <input type="tel" class="phone-input" id="phoneInput"
+                                   placeholder="+33 6 12 34 56 78"
+                                   value="+33612345678">
+                        </div>
+
+                        <!-- Call Buttons -->
+                        <div class="call-buttons">
+                            <button class="call-btn dial" id="dialBtn" onclick="initiateCall()" title="Start Call">
+                                &#x1F4DE;
+                            </button>
+                            <button class="call-btn hold" id="holdBtn" onclick="toggleHold()" title="Hold" disabled>
+                                &#x23F8;
+                            </button>
+                            <button class="call-btn hangup" id="hangupBtn" onclick="endCall()" title="End Call" disabled>
+                                &#x1F4F5;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Inactive state for real integration -->
+                    <div class="controls-inactive" id="callControlsInactive" style="display: none;">
+                        <div class="controls-inactive-icon">&#x1F512;</div>
+                        <div style="font-weight: 500;">Integration Mode</div>
+                        <div style="font-size: 0.8rem; color: var(--gray-400);">
+                            Call controls managed by your telephony system
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Area (2/3) -->
+        <div class="right-area">
+            <!-- Search Results (Top 2/3) -->
+            <div class="card results-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-icon">&#x1F4DA;</span>
+                        Knowledge Base Results
+                    </div>
+                    <span id="resultsCount" style="font-size: 0.8rem; color: var(--gray-500);"></span>
+                </div>
+                <div class="card-body no-padding">
+                    <div class="results-content" id="resultsContent">
+                        <div class="results-empty" id="resultsEmpty">
+                            <div class="results-empty-icon">&#x1F50D;</div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-400);">
+                                Click "Analyze Context" to search the knowledge base
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context Analysis (Bottom 1/3) -->
+            <div class="card analysis-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-icon">&#x1F9E0;</span>
+                        Context Analysis
+                    </div>
+                    <span class="domain-badge" id="domainBadge" style="display: none;">
+                        <span id="domainIcon">&#x2699;</span>
+                        <span id="domainName">-</span>
+                    </span>
+                </div>
+                <div class="card-body no-padding">
+                    <div class="analysis-content">
+                        <button class="analyze-btn" id="analyzeBtn" onclick="analyzeContext()" disabled>
+                            <span>&#x1F50D;</span> Analyze Context
+                        </button>
+
+                        <div class="analysis-result" id="analysisResult" style="display: none;">
+                            <div class="analysis-section" id="requiredFieldsSection">
+                                <div class="analysis-label">Required Information</div>
+                                <div class="field-list" id="requiredFieldsList"></div>
+                            </div>
+
+                            <div class="analysis-section" id="optionalFieldsSection" style="display: none;">
+                                <div class="analysis-label">Optional Information</div>
+                                <div class="field-list" id="optionalFieldsList"></div>
+                            </div>
+
+                            <button class="search-anyway-btn" id="searchAnywayBtn"
+                                    onclick="searchAnyway()" style="display: none;">
+                                &#x26A0; Search Anyway (incomplete data)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== State Management =====
+        let sessionId = null;
+        let isCallActive = false;
+        let callStartTime = null;
+        let callTimer = null;
+        let isOnHold = false;
+        let lastValidationResult = null;
+        let transcriptionMessages = [];
+
+        // Demo mode flag - set to false for real integration
+        const isDemoMode = true;
+
+        // ===== Initialize =====
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[Console] Initializing...');
+
+            // Check for existing session
+            const savedState = loadState();
+            if (savedState) {
+                restoreSession(savedState);
+            }
+
+            // Setup WebSocket connections if session exists
+            if (sessionId) {
+                connectWebSockets();
+            }
+
+            // Show/hide call controls based on mode
+            if (!isDemoMode) {
+                document.getElementById('callControlsActive').style.display = 'none';
+                document.getElementById('callControlsInactive').style.display = 'flex';
+            }
+
+            console.log('[Console] Ready');
+        });
+
+        // ===== State Persistence =====
+        function saveState() {
+            if (!sessionId) return;
+            const state = {
+                sessionId,
+                isCallActive,
+                callStartTime,
+                transcriptionMessages,
+                lastValidationResult,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('support_console_state', JSON.stringify(state));
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('support_console_state');
+                if (!saved) return null;
+                const state = JSON.parse(saved);
+                // Expire after 24 hours
+                if (Date.now() - state.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('support_console_state');
+                    return null;
+                }
+                return state;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearState() {
+            localStorage.removeItem('support_console_state');
+        }
+
+        async function restoreSession(state) {
+            console.log('[Console] Restoring session:', state.sessionId);
+            sessionId = state.sessionId;
+            isCallActive = state.isCallActive;
+            callStartTime = state.callStartTime;
+            lastValidationResult = state.lastValidationResult;
+
+            // Restore transcription messages
+            if (state.transcriptionMessages) {
+                transcriptionMessages = state.transcriptionMessages;
+                state.transcriptionMessages.forEach(msg => {
+                    addTranscriptionMessage(msg.speaker, msg.text, msg.timestamp, false);
+                });
+            }
+
+            // Restore analysis result
+            if (lastValidationResult) {
+                displayValidationResult(lastValidationResult);
+            }
+
+            // Update UI state
+            if (isCallActive) {
+                setCallActive(true);
+                if (callStartTime) {
+                    startCallTimer(new Date(callStartTime));
+                }
+            }
+
+            updateAnalyzeButton();
+        }
+
+        // ===== Session Management =====
+        async function resetSession() {
+            if (isCallActive && !confirm('End current call and reset session?')) {
+                return;
+            }
+
+            console.log('[Console] Resetting session...');
+
+            // End call if active
+            if (isCallActive) {
+                await endCall();
+            }
+
+            // Clear state
+            clearState();
+            sessionId = null;
+            isCallActive = false;
+            callStartTime = null;
+            lastValidationResult = null;
+            transcriptionMessages = [];
+
+            // Reset UI
+            document.getElementById('transcriptionContent').innerHTML = `
+                <div class="transcription-empty" id="transcriptionEmpty">
+                    <div class="transcription-empty-icon">&#x1F3A7;</div>
+                    <div style="font-weight: 500; margin-bottom: 4px;">No active call</div>
+                    <div style="font-size: 0.85rem; color: var(--gray-400);">
+                        Transcription will appear here during a call
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsContent').innerHTML = `
+                <div class="results-empty" id="resultsEmpty">
+                    <div class="results-empty-icon">&#x1F50D;</div>
+                    <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
+                    <div style="font-size: 0.85rem; color: var(--gray-400);">
+                        Click "Analyze Context" to search the knowledge base
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsCount').textContent = '';
+            document.getElementById('analysisResult').style.display = 'none';
+            document.getElementById('domainBadge').style.display = 'none';
+
+            setCallActive(false);
+            updateConnectionStatus('inactive', 'Ready');
+            updateTranscriptionStatus('inactive', 'Inactive');
+            updateAnalyzeButton();
+
+            console.log('[Console] Session reset complete');
+        }
+
+        // ===== Call Controls (Demo Mode) =====
+        async function initiateCall() {
+            if (!isDemoMode) return;
+
+            const phoneNumber = document.getElementById('phoneInput').value.trim();
+            if (!phoneNumber) {
+                alert('Please enter a phone number');
+                return;
+            }
+
+            console.log('[Console] Initiating call to:', phoneNumber);
+
+            // Generate session ID
+            sessionId = 'demo-' + Date.now();
+
+            // Create session on server
+            try {
+                const response = await fetch('/api/realtime/call/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        call_id: sessionId,
+                        agent_id: 'demo-agent',
+                        agent_name: 'Demo Agent',
+                        customer_phone: phoneNumber
+                    })
+                });
+
+                const data = await response.json();
+                if (data.session_id) {
+                    sessionId = data.session_id;
+                }
+            } catch (e) {
+                console.error('[Console] Failed to create session:', e);
+            }
+
+            // Update UI
+            setCallActive(true);
+            callStartTime = new Date();
+            startCallTimer(callStartTime);
+
+            // Update caller info
+            document.getElementById('callerName').textContent = 'Demo Caller';
+            document.getElementById('callerPhone').textContent = phoneNumber;
+            document.getElementById('callerAvatar').textContent = 'D';
+
+            // Connect WebSockets
+            connectWebSockets();
+
+            // Save state
+            saveState();
+
+            // Simulate incoming transcription for demo
+            setTimeout(() => simulateDemoTranscription(), 2000);
+        }
+
+        async function endCall() {
+            if (!isCallActive) return;
+
+            console.log('[Console] Ending call...');
+
+            // Stop timer
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+
+            // Notify server
+            if (sessionId) {
+                try {
+                    await fetch('/api/realtime/call/end', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                } catch (e) {
+                    console.error('[Console] Failed to end session:', e);
+                }
+            }
+
+            setCallActive(false);
+            updateConnectionStatus('inactive', 'Call Ended');
+            saveState();
+        }
+
+        function toggleHold() {
+            if (!isCallActive) return;
+            isOnHold = !isOnHold;
+
+            const holdBtn = document.getElementById('holdBtn');
+            holdBtn.classList.toggle('active', isOnHold);
+            holdBtn.title = isOnHold ? 'Resume' : 'Hold';
+
+            updateConnectionStatus(
+                isOnHold ? 'inactive' : 'active',
+                isOnHold ? 'On Hold' : 'In Call'
+            );
+        }
+
+        function setCallActive(active) {
+            isCallActive = active;
+
+            document.getElementById('dialBtn').disabled = active;
+            document.getElementById('holdBtn').disabled = !active;
+            document.getElementById('hangupBtn').disabled = !active;
+
+            document.getElementById('phoneInputRow').style.display = active ? 'none' : 'flex';
+            document.getElementById('callerInfo').style.display = active ? 'flex' : 'none';
+
+            if (active) {
+                updateConnectionStatus('active', 'In Call');
+                updateTranscriptionStatus('active', 'Listening');
+            } else {
+                document.getElementById('callTimer').textContent = '00:00';
+                isOnHold = false;
+                document.getElementById('holdBtn').classList.remove('active');
+            }
+        }
+
+        function startCallTimer(startTime) {
+            if (callTimer) clearInterval(callTimer);
+
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+                const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const secs = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('callTimer').textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        // ===== Transcription =====
+        function addTranscriptionMessage(speaker, text, timestamp = null, save = true) {
+            const container = document.getElementById('transcriptionContent');
+            const empty = document.getElementById('transcriptionEmpty');
+            if (empty) empty.remove();
+
+            const time = timestamp ? new Date(timestamp) : new Date();
+            const timeStr = time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${speaker}`;
+            msgDiv.innerHTML = `
+                <div class="message-avatar">${speaker === 'customer' ? '&#x1F464;' : '&#x1F3A7;'}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender">${speaker === 'customer' ? 'Customer' : 'Agent'}</span>
+                        <span class="message-time">${timeStr}</span>
+                    </div>
+                    <div class="message-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+
+            // Save to state
+            if (save) {
+                transcriptionMessages.push({ speaker, text, timestamp: time.toISOString() });
+                saveState();
+            }
+
+            // Enable analyze button
+            updateAnalyzeButton();
+        }
+
+        function updateAnalyzeButton() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = transcriptionMessages.length === 0;
+        }
+
+        // ===== Context Analysis =====
+        async function analyzeContext() {
+            if (transcriptionMessages.length === 0) return;
+
+            const btn = document.getElementById('analyzeBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#x1F50D;</span> Analyzing...';
+
+            try {
+                const response = await fetch('/demo/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        force_search: false
+                    })
+                });
+
+                const data = await response.json();
+                console.log('[Console] Analysis result:', data);
+
+                if (data.validation_result) {
+                    lastValidationResult = data.validation_result;
+                    displayValidationResult(data.validation_result);
+                }
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    displayResults(data.suggestions);
+                }
+
+                saveState();
+
+            } catch (e) {
+                console.error('[Console] Analysis failed:', e);
+                alert('Analysis failed. Please try again.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#x1F50D;</span> Analyze Context';
+            }
+        }
+
+        function displayValidationResult(result) {
+            const container = document.getElementById('analysisResult');
+            const requiredList = document.getElementById('requiredFieldsList');
+            const optionalList = document.getElementById('optionalFieldsList');
+            const optionalSection = document.getElementById('optionalFieldsSection');
+            const searchAnywayBtn = document.getElementById('searchAnywayBtn');
+            const domainBadge = document.getElementById('domainBadge');
+
+            // Show domain
+            if (result.domain) {
+                document.getElementById('domainName').textContent = result.domain;
+                domainBadge.style.display = 'inline-flex';
+            }
+
+            // Display required fields
+            requiredList.innerHTML = '';
+            if (result.fields) {
+                result.fields.forEach(field => {
+                    const found = field.found || field.value;
+                    const item = document.createElement('div');
+                    item.className = 'field-item';
+                    item.innerHTML = `
+                        <div class="field-status ${found ? 'found' : 'missing'}">
+                            ${found ? '&#x2713;' : '&#x2717;'}
+                        </div>
+                        <span class="field-name">${field.name || field.field}</span>
+                        ${found ? `<span class="field-value">${escapeHtml(field.value || '')}</span>` : ''}
+                    `;
+                    requiredList.appendChild(item);
+                });
+            }
+
+            // Show search anyway button if incomplete
+            const allFound = result.fields?.every(f => f.found || f.value);
+            searchAnywayBtn.style.display = allFound ? 'none' : 'block';
+
+            // Hide optional for now (can be added later)
+            optionalSection.style.display = 'none';
+
+            container.style.display = 'block';
+        }
+
+        async function searchAnyway() {
+            console.log('[Console] Searching anyway with incomplete data...');
+
+            const btn = document.getElementById('searchAnywayBtn');
+            btn.disabled = true;
+            btn.textContent = 'Searching...';
+
+            try {
+                const response = await fetch('/demo/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        force_search: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    displayResults(data.suggestions);
+                }
+
+            } catch (e) {
+                console.error('[Console] Search failed:', e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '⚠ Search Anyway (incomplete data)';
+            }
+        }
+
+        // ===== Search Results =====
+        function displayResults(suggestions) {
+            const container = document.getElementById('resultsContent');
+            const countEl = document.getElementById('resultsCount');
+
+            // Filter to knowledge_base type
+            const kbSuggestions = suggestions.filter(s =>
+                s.type === 'knowledge_base' || !s.type
+            );
+
+            if (kbSuggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="results-empty">
+                        <div class="results-empty-icon">&#x1F50D;</div>
+                        <div style="font-weight: 500; margin-bottom: 4px;">No matching articles found</div>
+                        <div style="font-size: 0.85rem; color: var(--gray-400);">
+                            Try providing more context or different search terms
+                        </div>
+                    </div>
+                `;
+                countEl.textContent = '';
+                return;
+            }
+
+            countEl.textContent = `${kbSuggestions.length} result${kbSuggestions.length > 1 ? 's' : ''}`;
+            container.innerHTML = '';
+
+            kbSuggestions.forEach(suggestion => {
+                const confidence = Math.round((suggestion.confidence || suggestion.confidence_score || 0.8) * 100);
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">${escapeHtml(suggestion.title || 'Knowledge Article')}</div>
+                        <div class="result-confidence">${confidence}%</div>
+                    </div>
+                    <div class="result-content">${escapeHtml(suggestion.content || suggestion.text || '')}</div>
+                    ${suggestion.source_metadata ? `
+                        <div class="result-sources">
+                            ${suggestion.source_metadata.slice(0, 3).map(src => `
+                                <span class="source-tag">${escapeHtml(src.display_name || src.file_name || 'Source')}</span>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ===== WebSocket Connections =====
+        function connectWebSockets() {
+            if (!sessionId) return;
+
+            // Connect to suggestions WebSocket
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/demo/suggestions-stream/${sessionId}`;
+
+            console.log('[Console] Connecting WebSocket:', wsUrl);
+
+            const ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('[Console] WebSocket connected');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (e) {
+                    console.error('[Console] WebSocket message error:', e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('[Console] WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('[Console] WebSocket closed');
+                // Reconnect after delay if call still active
+                if (isCallActive) {
+                    setTimeout(connectWebSockets, 3000);
+                }
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            console.log('[Console] WebSocket message:', data.type);
+
+            if (data.type === 'transcription') {
+                addTranscriptionMessage(data.speaker, data.text, data.timestamp);
+            } else if (data.type === 'suggestion' || data.type === 'suggestions') {
+                const suggestions = data.suggestions || [data];
+                displayResults(suggestions);
+            }
+        }
+
+        // ===== Demo Simulation =====
+        function simulateDemoTranscription() {
+            if (!isCallActive || !isDemoMode) return;
+
+            const demoMessages = [
+                { speaker: 'customer', text: "Bonjour, j'ai un problème avec mon système d'alarme.", delay: 0 },
+                { speaker: 'agent', text: "Bonjour, je suis là pour vous aider. Pouvez-vous me décrire le problème ?", delay: 3000 },
+                { speaker: 'customer', text: "Le détecteur de mouvement dans le salon clignote en rouge et l'alarme se déclenche toute seule.", delay: 6000 },
+            ];
+
+            demoMessages.forEach(msg => {
+                setTimeout(() => {
+                    if (isCallActive) {
+                        addTranscriptionMessage(msg.speaker, msg.text);
+
+                        // Send to server for processing
+                        fetch('/demo/send-demo-transcription', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                text: msg.text,
+                                speaker: msg.speaker,
+                                language: 'fr'
+                            })
+                        }).catch(e => console.error('[Console] Failed to send transcription:', e));
+                    }
+                }, msg.delay);
+            });
+        }
+
+        // ===== UI Updates =====
+        function updateConnectionStatus(state, text) {
+            const badge = document.getElementById('connectionStatus');
+            const textEl = document.getElementById('statusText');
+            badge.className = `status-badge ${state}`;
+            textEl.textContent = text;
+        }
+
+        function updateTranscriptionStatus(state, text) {
+            const badge = document.getElementById('transcriptionStatus');
+            const textEl = document.getElementById('transcriptionStatusText');
+            badge.className = `status-badge ${state}`;
+            textEl.textContent = text;
+        }
+
+        // ===== Utilities =====
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

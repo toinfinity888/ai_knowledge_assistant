@@ -247,6 +247,7 @@ class CallSessionManager:
         title: str,
         content: str,
         source_chunks: Optional[List[Dict[str, Any]]] = None,
+        source_metadata: Optional[List[Dict[str, Any]]] = None,
         query_used: Optional[str] = None,
         confidence_score: Optional[float] = None,
         relevance_score: Optional[float] = None,
@@ -260,6 +261,7 @@ class CallSessionManager:
             title: Suggestion title
             content: Suggestion content
             source_chunks: Knowledge base chunks used
+            source_metadata: Source file info (file_name, page, score) for provenance
             query_used: Query that generated this suggestion
             confidence_score: AI confidence
             relevance_score: Relevance to current context
@@ -281,6 +283,7 @@ class CallSessionManager:
                 title=title,
                 content=content,
                 source_chunks=source_chunks or [],
+                source_metadata=source_metadata or [],
                 query_used=query_used,
                 confidence_score=confidence_score,
                 relevance_score=relevance_score,
@@ -350,8 +353,23 @@ class CallSessionManager:
             # Reverse to chronological order
             segments = list(reversed(segments))
 
+            # Deduplicate: remove segments that are prefixes of later segments from same speaker
+            # This handles cases where user sends progressive messages
+            deduplicated = []
+            for i, seg in enumerate(segments):
+                is_prefix_of_later = False
+                # Check if this segment's text is a prefix of any later segment from same speaker
+                for later_seg in segments[i+1:]:
+                    if later_seg.speaker == seg.speaker:
+                        # Check if current text is a prefix of the later text
+                        if later_seg.text.startswith(seg.text) or seg.text in later_seg.text:
+                            is_prefix_of_later = True
+                            break
+                if not is_prefix_of_later:
+                    deduplicated.append(seg)
+
             context_lines = []
-            for seg in segments:
+            for seg in deduplicated:
                 speaker_label = "Technicien" if seg.speaker == "technician" else "Agent"
                 context_lines.append(f"{speaker_label}: {seg.text}")
 

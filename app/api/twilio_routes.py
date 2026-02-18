@@ -193,6 +193,121 @@ def voice_webhook():
         return str(response), 200, {'Content-Type': 'text/xml'}
 
 
+@twilio_bp.route('/incoming-call', methods=['POST'])
+def incoming_call_webhook():
+    """
+    TwiML webhook for INCOMING calls from phones to the Twilio number.
+
+    This endpoint should be configured as the Voice URL in Twilio Console
+    for your phone number (Phone Numbers > Manage > Active Numbers > Configure).
+
+    When someone calls the Twilio number, this webhook:
+    1. Creates a session for the call
+    2. Connects the call to a browser client (Twilio Device)
+    3. Sets up media streaming for transcription
+    """
+    try:
+        # Get call information from Twilio
+        from_number = request.form.get('From', 'Unknown')
+        to_number = request.form.get('To', '')
+        call_sid = request.form.get('CallSid', '')
+
+        logger.info(f"📞 INCOMING CALL from {from_number} to {to_number}")
+        logger.info(f"📋 Call SID: {call_sid}")
+
+        # Generate a session ID for this incoming call
+        session_id = f"incoming-{call_sid[:12]}" if call_sid else f"incoming-{int(datetime.utcnow().timestamp())}"
+
+        # Initialize session in database
+        try:
+            transcription_service = get_transcription_service()
+            company_id = session.get('company_id', 1)
+
+            run_async(transcription_service.handle_call_start(
+                call_id=session_id,
+                agent_id="agent-1",
+                company_id=company_id,
+                agent_name="Support Agent",
+                customer_id=from_number,
+                customer_phone=from_number,
+                customer_name=from_number,
+                acd_metadata={"type": "twilio", "source": "incoming", "call_sid": call_sid},
+                crm_metadata={"twilio": True, "direction": "inbound"},
+            ))
+            logger.info(f"✅ Session created for incoming call: {session_id}")
+        except Exception as session_error:
+            logger.error(f"❌ Error creating session for incoming call: {session_error}")
+
+        settings = get_twilio_settings()
+
+        # Create TwiML response
+        response = VoiceResponse()
+
+        # Optional: Play a brief message while connecting
+        response.say("Connecting you to support.", voice='alice', language='en-US')
+
+        # Start media stream for real-time transcription
+        stream_url = settings.websocket_url
+        logger.info(f"🔌 Starting media stream to {stream_url} for incoming call")
+
+        start = response.start()
+        stream = start.stream(url=stream_url, track='both_tracks')
+        stream.parameter(name='session_id', value=session_id)
+        stream.parameter(name='direction', value='inbound')
+        stream.parameter(name='caller', value=from_number)
+
+        # Dial to the browser client
+        # The 'client' parameter connects to browsers with Twilio Device
+        dial = Dial(caller_id=from_number, timeout=30, action='/twilio/call-status')
+
+        # Connect to the browser client identity (support-agent)
+        # This must match the identity used when generating the access token
+        dial.client('support-agent')
+
+        response.append(dial)
+
+        twiml_output = str(response)
+        logger.info(f"✅ Generated TwiML for incoming call from {from_number}")
+        logger.info(f"📜 TwiML output:\n{twiml_output}")
+        return twiml_output, 200, {'Content-Type': 'text/xml'}
+
+    except Exception as e:
+        logger.error(f"❌ Error in incoming call webhook: {e}", exc_info=True)
+        response = VoiceResponse()
+        response.say("Sorry, we are unable to connect your call at this time. Please try again later.")
+        return str(response), 200, {'Content-Type': 'text/xml'}
+
+
+@twilio_bp.route('/call-status', methods=['POST'])
+def call_status_webhook():
+    """
+    Callback webhook for call status updates.
+    Called by Twilio when a call ends or changes status.
+    """
+    try:
+        call_sid = request.form.get('CallSid', '')
+        call_status = request.form.get('CallStatus', '')
+        dial_call_status = request.form.get('DialCallStatus', '')
+
+        logger.info(f"📊 Call status update: CallSid={call_sid}, Status={call_status}, DialStatus={dial_call_status}")
+
+        # If call wasn't answered, provide a fallback message
+        if dial_call_status in ['no-answer', 'busy', 'failed', 'canceled']:
+            response = VoiceResponse()
+            response.say("Sorry, no agents are currently available. Please try again later.", voice='alice')
+            response.hangup()
+            return str(response), 200, {'Content-Type': 'text/xml'}
+
+        # Return empty TwiML for completed calls
+        response = VoiceResponse()
+        return str(response), 200, {'Content-Type': 'text/xml'}
+
+    except Exception as e:
+        logger.error(f"❌ Error in call status webhook: {e}", exc_info=True)
+        response = VoiceResponse()
+        return str(response), 200, {'Content-Type': 'text/xml'}
+
+
 @twilio_bp.route('/start-session', methods=['POST'])
 def start_session():
     """
@@ -841,6 +956,22 @@ def register_websocket_routes(sock):
 
                             # Update timestamp for this speaker
                             last_transcript_time[speaker_role] = current_time
+
+                            # Store agent transcription segment (for session restore)
+                            if result.get('speech_final', False) and full_text.strip():
+                                try:
+                                    transcription_service = get_transcription_service()
+                                    if transcription_service:
+                                        run_async(transcription_service.store_transcription_segment(
+                                            session_id=session_id,
+                                            speaker="agent",
+                                            text=full_text,
+                                            start_time=0.0,
+                                            end_time=0.0,
+                                            confidence=result.get('confidence', 0.0),
+                                        ))
+                                except Exception as store_error:
+                                    logger.error(f"[{session_id}] Error storing agent transcription: {store_error}", exc_info=True)
 
                 except Exception as e:
                     logger.error(f"[{session_id}] Error sending agent (browser) transcript: {e}")

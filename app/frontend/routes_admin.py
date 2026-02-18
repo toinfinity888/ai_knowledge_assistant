@@ -11,7 +11,7 @@ from app.database.postgresql_session import get_db_session
 from app.models.user import User, UserRole
 from app.models.company import Company
 from app.models.invitation import Invitation
-from app.models.audit_log import AuditLog
+from app.models.audit_log import AuditLog, ActionType, TargetType
 from app.services.company_service import get_company_service
 from app.services.invitation_service import get_invitation_service
 from app.services.audit_service import get_audit_service
@@ -734,6 +734,222 @@ def audit_logs():
     )
 
 
+# ==================== AI Decision Logs ====================
+
+@admin_panel_bp.route('/ai-decision-logs')
+@admin_required
+def ai_decision_logs():
+    """View AI decision logs (agent_actions from gatekeeper)."""
+    from sqlalchemy.orm import joinedload
+    from app.models.call_session import AgentAction, CallSession
+
+    role = session.get('role', '')
+    is_super = role == 'super_admin'
+    company_id = session.get('company_id')
+
+    limit = min(int(request.args.get('limit', 50)), 100)
+    offset = int(request.args.get('offset', 0))
+    selected_agent = request.args.get('agent', '')
+    selected_status = request.args.get('status', '')
+
+    actions = []
+    total = 0
+
+    try:
+        with get_db_session() as db:
+            # Base query with join to CallSession for company filtering
+            # Use joinedload to eagerly load session for session_id string
+            query = db.query(AgentAction).join(CallSession).options(
+                joinedload(AgentAction.session)
+            )
+
+            # Filter by company (non-super_admin sees only their company)
+            if not is_super:
+                query = query.filter(CallSession.company_id == company_id)
+
+            # Apply filters
+            if selected_agent:
+                query = query.filter(AgentAction.agent_name == selected_agent)
+            if selected_status:
+                query = query.filter(AgentAction.status == selected_status)
+
+            # Get total count (need separate query without joinedload for count)
+            count_query = db.query(AgentAction).join(CallSession)
+            if not is_super:
+                count_query = count_query.filter(CallSession.company_id == company_id)
+            if selected_agent:
+                count_query = count_query.filter(AgentAction.agent_name == selected_agent)
+            if selected_status:
+                count_query = count_query.filter(AgentAction.status == selected_status)
+            total = count_query.count()
+
+            # Get paginated results ordered by timestamp desc
+            actions = query.order_by(AgentAction.timestamp.desc()).offset(offset).limit(limit).all()
+
+            # Eagerly access all needed attributes to avoid detached instance errors
+            for action in actions:
+                _ = action.id, action.agent_name, action.action_type
+                _ = action.input_data, action.output_data, action.status
+                _ = action.confidence, action.processing_time_ms, action.timestamp
+                # Access session.session_id (the string UUID)
+                if action.session:
+                    _ = action.session.session_id
+
+    except Exception as e:
+        logger.error(f"Error loading AI decision logs: {e}")
+
+    return render_template(
+        'admin/ai_decision_logs.html',
+        active_page='ai_decision_logs',
+        actions=actions,
+        selected_agent=selected_agent,
+        selected_status=selected_status,
+        total=total,
+        limit=limit,
+        offset=offset
+    )
+
+
+# ==================== LLM Prompts ====================
+
+@admin_panel_bp.route('/prompts')
+@admin_required
+def prompts():
+    """View and edit LLM prompts."""
+    from app.services.prompt_service import get_prompt_service
+
+    company_id = session.get('company_id')
+
+    # Super admin can view/edit prompts for any company (default to first company)
+    # For now, super_admin uses company_id 1 if they don't have one
+    if not company_id:
+        company_id = 1
+
+    prompt_service = get_prompt_service()
+    prompts_list = prompt_service.get_all_prompts(company_id)
+
+    return render_template(
+        'admin/prompts.html',
+        active_page='prompts',
+        prompts=prompts_list,
+    )
+
+
+@admin_panel_bp.route('/prompts/save', methods=['POST'])
+@admin_required
+def save_prompt():
+    """Save a custom prompt."""
+    from flask import jsonify
+    from app.services.prompt_service import get_prompt_service
+    from app.models.prompt_template import DEFAULT_PROMPTS
+
+    company_id = session.get('company_id')
+    user_id = session.get('user_id')
+
+    if not company_id:
+        company_id = 1
+
+    try:
+        data = request.get_json()
+        prompt_key = data.get('prompt_key')
+        language = data.get('language', 'en')
+        system_prompt = data.get('system_prompt', '').strip()
+
+        if not prompt_key or not system_prompt:
+            return jsonify({'success': False, 'error': 'Missing required fields'})
+
+        # Get name from defaults
+        name = prompt_key.replace('_', ' ').title()
+        description = None
+        if prompt_key in DEFAULT_PROMPTS and language in DEFAULT_PROMPTS[prompt_key]:
+            name = DEFAULT_PROMPTS[prompt_key][language].get('name', name)
+            description = DEFAULT_PROMPTS[prompt_key][language].get('description')
+
+        prompt_service = get_prompt_service()
+        prompt_service.save_prompt(
+            company_id=company_id,
+            prompt_key=prompt_key,
+            language=language,
+            name=name,
+            system_prompt=system_prompt,
+            description=description,
+            user_id=user_id,
+        )
+
+        # Audit log
+        audit_service = get_audit_service()
+        with get_db_session() as db:
+            audit_service.log_action(
+                action_type=ActionType.SETTINGS_UPDATE,
+                target_type=TargetType.SETTINGS,
+                target_id=None,
+                actor_user_id=user_id,
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=company_id,
+                details={'prompt_key': prompt_key, 'language': language},
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent', '')[:500],
+                db=db,
+            )
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error saving prompt: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@admin_panel_bp.route('/prompts/reset', methods=['POST'])
+@admin_required
+def reset_prompt():
+    """Reset a prompt to default."""
+    from flask import jsonify
+    from app.services.prompt_service import get_prompt_service
+
+    company_id = session.get('company_id')
+    user_id = session.get('user_id')
+
+    if not company_id:
+        company_id = 1
+
+    try:
+        data = request.get_json()
+        prompt_key = data.get('prompt_key')
+        language = data.get('language', 'en')
+
+        if not prompt_key:
+            return jsonify({'success': False, 'error': 'Missing prompt_key'})
+
+        prompt_service = get_prompt_service()
+        prompt_service.reset_to_default(
+            company_id=company_id,
+            prompt_key=prompt_key,
+            language=language,
+        )
+
+        # Audit log
+        audit_service = get_audit_service()
+        with get_db_session() as db:
+            audit_service.log_action(
+                action_type=ActionType.SETTINGS_UPDATE,
+                target_type=TargetType.SETTINGS,
+                target_id=None,
+                actor_user_id=user_id,
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=company_id,
+                details={'prompt_key': prompt_key, 'language': language, 'action': 'reset_to_default'},
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent', '')[:500],
+                db=db,
+            )
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error resetting prompt: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
 # ==================== Settings ====================
 
 @admin_panel_bp.route('/settings', methods=['GET', 'POST'])
@@ -876,11 +1092,25 @@ def create_domain_schema():
     try:
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
-            schema_service.create_schema(
+            new_schema = schema_service.create_schema(
                 company_id=company_id,
                 name=name,
                 slug=slug,
                 description=description or None,
+                db=db,
+            )
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_CREATE,
+                target_type=TargetType.DOMAIN_SCHEMA,
+                target_id=new_schema.id if new_schema else None,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=company_id,
+                details={"name": name, "slug": slug},
+                ip_address=request.remote_addr,
                 db=db,
             )
             db.commit()
@@ -914,6 +1144,20 @@ def update_domain_schema():
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
             schema_service.update_schema(schema_id, company_id, updates, db)
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_UPDATE,
+                target_type=TargetType.DOMAIN_SCHEMA,
+                target_id=schema_id,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=company_id,
+                details={"updates": updates},
+                ip_address=request.remote_addr,
+                db=db,
+            )
             db.commit()
 
     except Exception as e:
@@ -937,6 +1181,20 @@ def delete_domain_schema():
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
             schema_service.delete_schema(schema_id, company_id, db)
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_DELETE,
+                target_type=TargetType.DOMAIN_SCHEMA,
+                target_id=schema_id,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=company_id,
+                details={},
+                ip_address=request.remote_addr,
+                db=db,
+            )
             db.commit()
 
     except Exception as e:
@@ -966,7 +1224,7 @@ def create_schema_field():
     try:
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
-            schema_service.add_field(
+            new_field = schema_service.add_field(
                 schema_id=schema_id,
                 name=name,
                 slug=slug,
@@ -974,6 +1232,20 @@ def create_schema_field():
                 field_type=field_type,
                 is_required=is_required,
                 options=options,
+                db=db,
+            )
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_FIELD_CREATE,
+                target_type=TargetType.DOMAIN_SCHEMA_FIELD,
+                target_id=new_field.id if new_field else None,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=session.get('company_id'),
+                details={"schema_id": schema_id, "name": name, "slug": slug, "is_required": is_required},
+                ip_address=request.remote_addr,
                 db=db,
             )
             db.commit()
@@ -1009,6 +1281,20 @@ def update_schema_field():
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
             schema_service.update_field(field_id, updates, db)
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_FIELD_UPDATE,
+                target_type=TargetType.DOMAIN_SCHEMA_FIELD,
+                target_id=field_id,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=session.get('company_id'),
+                details={"updates": updates},
+                ip_address=request.remote_addr,
+                db=db,
+            )
             db.commit()
 
     except Exception as e:
@@ -1031,6 +1317,20 @@ def delete_schema_field():
         with get_db_session() as db:
             schema_service = get_domain_schema_service()
             schema_service.delete_field(field_id, db)
+
+            # Audit log
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.DOMAIN_SCHEMA_FIELD_DELETE,
+                target_type=TargetType.DOMAIN_SCHEMA_FIELD,
+                target_id=field_id,
+                actor_user_id=session.get('user_id'),
+                actor_email=session.get('user_email', 'unknown'),
+                company_id=session.get('company_id'),
+                details={},
+                ip_address=request.remote_addr,
+                db=db,
+            )
             db.commit()
 
     except Exception as e:

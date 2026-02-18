@@ -74,6 +74,12 @@ class User(Base):
         back_populates="agent_user",
         foreign_keys="CallSession.agent_user_id"
     )
+    passkeys = relationship(
+        "PasskeyCredential",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
     def __repr__(self):
         return f"<User(email='{self.email}', role='{self.role}', company_id={self.company_id})>"

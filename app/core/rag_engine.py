@@ -56,11 +56,42 @@ class RAGEngine:
             }
 
         context = '\n\n'.join(chunk.text for chunk in chunks)
-        answer = self.llm.generate_answer(query.text, context, language=language)
+        answer = self.llm.generate_answer(query.text, context, language=language, company_id=company_id)
+
+        # Build source metadata with file info and scores
+        source_metadata = []
+        for chunk in chunks:
+            file_name = chunk.file_name or "Unknown"
+            # Get source domain from chunk if available
+            source_domain = ""
+            if chunk.source:
+                source_str = str(chunk.source)
+                # Extract domain if it's a URL or domain string
+                if "/" in source_str:
+                    source_domain = source_str.split("/")[0]
+                else:
+                    source_domain = source_str
+
+            # Build display name: "Title (domain.com)" format
+            if source_domain and source_domain not in ["knowledge_base", "Unknown", ""]:
+                display_name = f"{file_name} ({source_domain})"
+            else:
+                display_name = file_name
+
+            source_info = {
+                "file_name": file_name,
+                "source": source_domain,
+                "display_name": display_name,
+                "page": chunk.page,
+                "score": round(chunk.score, 3) if chunk.score else None,
+                "chunk_id": chunk.chunk_id,
+            }
+            source_metadata.append(source_info)
 
         return {
             "answer": answer,
-            "context_chunks": [chunk.text for chunk in chunks]
+            "context_chunks": [chunk.text for chunk in chunks],
+            "source_metadata": source_metadata,
         }
 
     def get_llm_model_name(self):

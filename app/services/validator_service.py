@@ -78,8 +78,14 @@ class ValidatorService:
             ValidationResult with status, fields, and optional search query
         """
         # Load domain schemas for this company
+        print(f"[Validator] Loading domain schemas for company_id={company_id}")
         with get_db_session() as db:
             schemas = self.schema_service.get_schemas_for_validator(company_id, db)
+
+        print(f"[Validator] Found {len(schemas) if schemas else 0} domain schemas")
+        if schemas:
+            for s in schemas:
+                print(f"[Validator]   - Schema: {s.get('name')} (slug: {s.get('slug')})")
 
         if not schemas:
             logger.warning(f"No domain schemas found for company {company_id}")
@@ -92,11 +98,13 @@ class ValidatorService:
         system_prompt = self._build_system_prompt(schemas, language)
 
         # Call Groq Llama 8B
+        print(f"[Validator] Calling Groq LLM for validation...")
         try:
             raw_result = self.groq_llm.validate_conversation(
                 system_prompt=system_prompt,
                 conversation_text=conversation_text,
             )
+            print(f"[Validator] Groq raw result: {raw_result}")
         except GroqValidationError as e:
             logger.error(f"Groq validation failed: {e}")
             return ValidationResult(
@@ -105,7 +113,11 @@ class ValidatorService:
             )
 
         # Parse and enrich the result
-        return self._parse_result(raw_result, schemas)
+        parsed = self._parse_result(raw_result, schemas)
+        print(f"[Validator] Parsed result: status={parsed.status}, domain={parsed.domain}")
+        print(f"[Validator] Parsed missing_required: {parsed.missing_required}")
+        print(f"[Validator] Parsed extracted_fields: {parsed.extracted_fields}")
+        return parsed
 
     def _build_system_prompt(
         self, schemas: List[Dict[str, Any]], language: str
@@ -198,9 +210,23 @@ OUTPUT FORMAT (respond with valid JSON only):
         # Enrich missing fields with names and descriptions
         missing_required = []
         missing_recommended = []
+
+        # If no schema match, still show raw missing fields from Groq
+        if not schema_match:
+            print(f"[Validator] No schema match for domain '{domain_slug}', using raw missing fields")
+            for slug in raw.get("missing_required", []):
+                missing_required.append({
+                    "slug": slug,
+                    "name": slug.replace("_", " ").title(),
+                    "description": "",
+                })
+
         if schema_match:
             req_map = {f["slug"]: f for f in schema_match["required_fields"]}
             rec_map = {f["slug"]: f for f in schema_match["recommended_fields"]}
+
+            print(f"[Validator] Schema required field slugs: {list(req_map.keys())}")
+            print(f"[Validator] Groq returned missing_required: {raw.get('missing_required', [])}")
 
             for slug in raw.get("missing_required", []):
                 if slug in req_map:
@@ -208,6 +234,14 @@ OUTPUT FORMAT (respond with valid JSON only):
                         "slug": slug,
                         "name": req_map[slug]["name"],
                         "description": req_map[slug].get("description", ""),
+                    })
+                else:
+                    # Slug not found in schema - add anyway with raw slug as name
+                    print(f"[Validator] Missing field slug '{slug}' not found in schema, adding as-is")
+                    missing_required.append({
+                        "slug": slug,
+                        "name": slug.replace("_", " ").title(),
+                        "description": "",
                     })
 
             for slug in raw.get("missing_recommended", []):

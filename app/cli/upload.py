@@ -19,6 +19,7 @@ INPUT_PATH  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/ext
 JSONL_PATH  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/external/new3.jsonl"   # будем дописывать построчно
 JSONL_PATH2  = "/Users/saraevsviatoslav/Documents/ai_knowledge_assistant/data/external/new2.jsonl"   # будем дописывать построчно
 COLLECTION  = "arxiv"
+COMPANY_ID  = 1                          # Default company ID for multi-tenancy
 BATCH       = 64                         # сколько точек грузить в Qdrant за раз
 MAX_CONC    = 10                         # параллельные запросы в OpenAI
 EMB_MODEL   = "text-embedding-3-small"
@@ -91,8 +92,18 @@ def upload_to_qdrant(jsonl_path: str):
                         id=obj["id"],
                         vector=obj["embedding"],
                         payload={
+                            # Legacy fields (for backwards compatibility)
                             "title": obj["title"],
-                            "abstract": obj["abstract"]
+                            "abstract": obj["abstract"],
+                            # Standard metadata fields for provenance tracking
+                            "text": obj["abstract"],
+                            "file_name": obj["title"],
+                            "chunk_id": obj["id"],
+                            "source": "arxiv",
+                            "file_type": "research_paper",
+                            "page": None,
+                            # Multi-tenancy
+                            "company_id": COMPANY_ID,
                         }
                     )
                 )

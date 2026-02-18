@@ -153,6 +153,43 @@
         transform: none;
       }
 
+      .btn-passkey {
+        width: 100%;
+        padding: 14px 24px;
+        background: #fff;
+        color: #1a1a2e;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .btn-passkey:hover {
+        border-color: #2423a5;
+        background: #f8f9ff;
+      }
+
+      .btn-passkey:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-passkey svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .passkey-hidden {
+        display: none !important;
+      }
+
       .divider {
         text-align: center;
         margin: 24px 0;
@@ -284,6 +321,18 @@
         </button>
       </form>
 
+      <div class="divider" id="passkeyDivider">or</div>
+
+      <button type="button" class="btn-passkey" id="passkeyBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+          <path d="M12 10v12"/>
+          <path d="M12 16h3"/>
+          <path d="M12 19h2"/>
+        </svg>
+        Sign in with Passkey
+      </button>
+
       <div class="footer-links">
         <a href="/">Back to Home</a>
       </div>
@@ -292,11 +341,164 @@
     <script>
       const form = document.getElementById('loginForm');
       const submitBtn = document.getElementById('submitBtn');
+      const passkeyBtn = document.getElementById('passkeyBtn');
+      const passkeyDivider = document.getElementById('passkeyDivider');
+
+      // Check if WebAuthn is supported
+      const passkeySupported = window.PublicKeyCredential !== undefined;
+
+      if (!passkeySupported) {
+        passkeyBtn.classList.add('passkey-hidden');
+        passkeyDivider.classList.add('passkey-hidden');
+      }
 
       form.addEventListener('submit', function() {
         submitBtn.classList.add('loading');
         submitBtn.disabled = true;
       });
+
+      // Helper functions for base64url encoding/decoding
+      function base64urlToArrayBuffer(base64url) {
+        const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '='.repeat((4 - base64.length % 4) % 4);
+        const binary = atob(base64 + padding);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      function arrayBufferToBase64url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      }
+
+      async function loginWithPasskey() {
+        passkeyBtn.disabled = true;
+        passkeyBtn.innerHTML = '<span>Authenticating...</span>';
+
+        try {
+          // 1. Get challenge from server
+          const optionsRes = await fetch('/api/auth/passkey/login/options', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+
+          if (!optionsRes.ok) {
+            throw new Error('Failed to get passkey options');
+          }
+
+          const { options, challenge_id } = await optionsRes.json();
+          const parsedOptions = JSON.parse(options);
+
+          // 2. Prepare public key options
+          const publicKeyOptions = {
+            challenge: base64urlToArrayBuffer(parsedOptions.challenge),
+            rpId: parsedOptions.rpId,
+            timeout: parsedOptions.timeout || 60000,
+            userVerification: parsedOptions.userVerification || 'preferred',
+          };
+
+          // Add allowCredentials if present
+          if (parsedOptions.allowCredentials && parsedOptions.allowCredentials.length > 0) {
+            publicKeyOptions.allowCredentials = parsedOptions.allowCredentials.map(c => ({
+              id: base64urlToArrayBuffer(c.id),
+              type: 'public-key',
+              transports: c.transports || ['internal', 'hybrid', 'usb', 'nfc', 'ble'],
+            }));
+          }
+
+          // 3. Call WebAuthn API
+          const credential = await navigator.credentials.get({
+            publicKey: publicKeyOptions,
+            mediation: 'optional',
+          });
+
+          if (!credential) {
+            throw new Error('No credential returned');
+          }
+
+          // 4. Prepare credential response
+          const credentialResponse = {
+            id: credential.id,
+            rawId: arrayBufferToBase64url(credential.rawId),
+            response: {
+              authenticatorData: arrayBufferToBase64url(credential.response.authenticatorData),
+              clientDataJSON: arrayBufferToBase64url(credential.response.clientDataJSON),
+              signature: arrayBufferToBase64url(credential.response.signature),
+            },
+            type: credential.type,
+            authenticatorAttachment: credential.authenticatorAttachment,
+          };
+
+          // Add userHandle if present
+          if (credential.response.userHandle) {
+            credentialResponse.response.userHandle = arrayBufferToBase64url(credential.response.userHandle);
+          }
+
+          // 5. Send to server for verification
+          const verifyRes = await fetch('/api/auth/passkey/login/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              challenge_id: challenge_id,
+              credential: credentialResponse,
+            })
+          });
+
+          const result = await verifyRes.json();
+
+          if (!verifyRes.ok) {
+            throw new Error(result.error || 'Authentication failed');
+          }
+
+          // 6. Store tokens and redirect
+          localStorage.setItem('access_token', result.access_token);
+          localStorage.setItem('refresh_token', result.refresh_token);
+          localStorage.setItem('user', JSON.stringify(result.user));
+
+          // Redirect to admin dashboard
+          window.location.href = '/admin/';
+
+        } catch (error) {
+          console.error('Passkey login error:', error);
+
+          // Show error message
+          let errorDiv = document.querySelector('.error-message');
+          if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            form.parentNode.insertBefore(errorDiv, form);
+          }
+
+          if (error.name === 'NotAllowedError') {
+            errorDiv.textContent = 'Passkey authentication was cancelled or not allowed';
+          } else if (error.name === 'SecurityError') {
+            errorDiv.textContent = 'Security error: Please ensure you are using HTTPS';
+          } else {
+            errorDiv.textContent = error.message || 'Passkey authentication failed';
+          }
+
+          passkeyBtn.disabled = false;
+          passkeyBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+              <path d="M12 10v12"/>
+              <path d="M12 16h3"/>
+              <path d="M12 19h2"/>
+            </svg>
+            Sign in with Passkey
+          `;
+        }
+      }
+
+      passkeyBtn.addEventListener('click', loginWithPasskey);
     </script>
   </body>
 </html>

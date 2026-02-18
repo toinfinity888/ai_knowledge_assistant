@@ -10,7 +10,19 @@
       "Bash(python:*)",
       "mcp__ide__getDiagnostics",
       "Bash(alembic revision --autogenerate -m \"add_domain_schema_registry\")",
-      "Bash(alembic upgrade:*)"
+      "Bash(alembic upgrade:*)",
+      "Bash(source .env)",
+      "Bash(alembic stamp:*)",
+      "Bash(pip show:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)",
+      "Bash(/Users/saraevsviatoslav/Documents/.venv/bin/python:*)",
+      "Bash(/Users/saraevsviatoslav/Documents/.venv/bin/alembic upgrade:*)",
+      "Bash(/Users/saraevsviatoslav/Documents/.venv/bin/alembic stamp:*)",
+      "Bash(lsof:*)",
+      "Bash(for commit in 35267d6 bed0dfb 6cc7654 7290ead)",
+      "Bash(do echo '=== $commit ===' git show $commit:app/frontend/templates/demo/technician_support.html)",
+      "Bash(node -c:*)"
     ]
   }
 }

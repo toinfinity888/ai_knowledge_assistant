@@ -1,0 +1,412 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}AI Decision Logs{% endblock %}
+{% block page_title %}AI Decision Logs{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set is_super = role == 'super_admin' %}
+
+<style>
+  .json-viewer {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .json-key { color: #881391; }
+  .json-string { color: #1a1aa6; }
+  .json-number { color: #1c6b48; }
+  .json-boolean { color: #d63384; }
+  .expandable-row {
+    cursor: pointer;
+  }
+  .expandable-row:hover {
+    background: var(--gray-50);
+  }
+  .detail-row {
+    display: none;
+    background: var(--gray-25);
+  }
+  .detail-row.open {
+    display: table-row;
+  }
+  .detail-cell {
+    padding: 16px !important;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .detail-section {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--gray-200);
+  }
+  .detail-section h4 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .field-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 0.85rem;
+  }
+  .field-item:last-child {
+    border-bottom: none;
+  }
+  .field-name {
+    color: var(--gray-600);
+  }
+  .field-value {
+    color: var(--gray-800);
+    font-weight: 500;
+  }
+  .status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .status-ready { background: #e8f5e9; color: #2e7d32; }
+  .status-missing_required { background: #fff3e0; color: #e65100; }
+  .status-unknown_domain { background: #ffebee; color: #c62828; }
+  .status-error { background: #ffebee; color: #c62828; }
+  .status-forced { background: #e3f2fd; color: #1565c0; }
+  .status-success { background: #e8f5e9; color: #2e7d32; }
+  .pii-badge {
+    background: #ffebee;
+    color: #c62828;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .missing-field {
+    background: #ffebee;
+    color: #c62828;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin: 2px;
+    display: inline-block;
+  }
+  .extracted-field {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin: 2px;
+    display: inline-block;
+  }
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2>AI Decision Logs</h2>
+    <div class="btn-group">
+      <!-- Filters -->
+      <select id="agentFilter" onchange="applyFilters()" style="padding: 8px 12px; border-radius: 6px; border: 2px solid var(--gray-200); font-size: 0.875rem;">
+        <option value="">All Agents</option>
+        <option value="gatekeeper" {% if selected_agent == 'gatekeeper' %}selected{% endif %}>Gatekeeper (Combined)</option>
+        <option value="gatekeeper_validator" {% if selected_agent == 'gatekeeper_validator' %}selected{% endif %}>Validator (Legacy)</option>
+        <option value="gatekeeper_rag" {% if selected_agent == 'gatekeeper_rag' %}selected{% endif %}>RAG Search (Legacy)</option>
+      </select>
+      <select id="statusFilter" onchange="applyFilters()" style="padding: 8px 12px; border-radius: 6px; border: 2px solid var(--gray-200); font-size: 0.875rem;">
+        <option value="">All Statuses</option>
+        <option value="ready" {% if selected_status == 'ready' %}selected{% endif %}>Ready</option>
+        <option value="missing_required" {% if selected_status == 'missing_required' %}selected{% endif %}>Missing Required</option>
+        <option value="unknown_domain" {% if selected_status == 'unknown_domain' %}selected{% endif %}>Unknown Domain</option>
+        <option value="success" {% if selected_status == 'success' %}selected{% endif %}>Success</option>
+        <option value="error" {% if selected_status == 'error' %}selected{% endif %}>Error</option>
+      </select>
+    </div>
+  </div>
+  <div class="card-body">
+    {% if actions %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30px;"></th>
+            <th>Timestamp</th>
+            <th>Session</th>
+            <th>Agent</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>Confidence</th>
+            <th>Time (ms)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for action in actions %}
+          <tr class="expandable-row" onclick="toggleDetail({{ action.id }})">
+            <td><span id="arrow-{{ action.id }}">&#x25B6;</span></td>
+            <td style="white-space: nowrap; font-size: 0.85rem;">
+              {{ action.timestamp.strftime('%Y-%m-%d %H:%M:%S') if action.timestamp else '-' }}
+            </td>
+            <td style="font-family: monospace; font-size: 0.8rem;">
+              {{ action.session.session_id[:8] if action.session else '-' }}...
+            </td>
+            <td>
+              {% if action.agent_name == 'gatekeeper' %}
+              <span class="badge badge-primary">Gatekeeper</span>
+              {% elif action.agent_name == 'gatekeeper_validator' %}
+              <span class="badge badge-secondary">Validator</span>
+              {% elif action.agent_name == 'gatekeeper_rag' %}
+              <span class="badge badge-success">RAG</span>
+              {% else %}
+              <span class="badge badge-secondary">{{ action.agent_name }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem;">{{ action.action_type }}</td>
+            <td>
+              <span class="status-badge status-{{ action.status }}">{{ action.status }}</span>
+              {% if action.output_data and action.output_data.pii_flags %}
+              {% for pii_type in action.output_data.pii_flags %}
+              <span class="pii-badge">{{ pii_type }}</span>
+              {% endfor %}
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem;">
+              {% if action.confidence %}
+              {{ "%.0f"|format(action.confidence * 100) }}%
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem;">{{ action.processing_time_ms or '-' }}</td>
+          </tr>
+          <tr class="detail-row" id="detail-{{ action.id }}">
+            <td colspan="8" class="detail-cell">
+              {% set output = action.output_data or {} %}
+              {% set validation = output.validation if output.validation else output %}
+
+              <!-- Conversation Context (if available) -->
+              {% if action.input_data and action.input_data.conversation_text %}
+              <div class="detail-section" style="margin-bottom: 12px;">
+                <h4>Conversation Context</h4>
+                <div style="background: var(--gray-50); padding: 10px; border-radius: 6px; font-size: 0.8rem; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">{{ action.input_data.conversation_text }}</div>
+              </div>
+              {% endif %}
+
+              <div class="detail-grid">
+                <!-- Validation Result Summary -->
+                <div class="detail-section">
+                  <h4>Validation Result</h4>
+                  {% if validation.domain_name %}
+                  <div class="field-item">
+                    <span class="field-name">Domain</span>
+                    <span class="field-value">{{ validation.domain_name }} ({{ validation.domain }})</span>
+                  </div>
+                  {% endif %}
+                  {% if validation.domain_confidence %}
+                  <div class="field-item">
+                    <span class="field-name">Domain Confidence</span>
+                    <span class="field-value">{{ "%.0f"|format(validation.domain_confidence * 100) }}%</span>
+                  </div>
+                  {% endif %}
+                  {% if validation.optimized_query or output.search_query %}
+                  <div class="field-item">
+                    <span class="field-name">Search Query</span>
+                    <span class="field-value" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">{{ validation.optimized_query or output.search_query }}</span>
+                  </div>
+                  {% endif %}
+                  {% if validation.reasoning %}
+                  <div style="margin-top: 8px; padding: 8px; background: var(--gray-50); border-radius: 4px; font-size: 0.8rem; color: var(--gray-600);">
+                    <strong>Reasoning:</strong> {{ validation.reasoning }}
+                  </div>
+                  {% endif %}
+                  {% if output.pii_flags %}
+                  <div style="margin-top: 8px; padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 0.8rem;">
+                    <strong style="color: #e65100;">PII Detected:</strong>
+                    {% for pii_type in output.pii_flags %}
+                    <span class="pii-badge">{{ pii_type }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <!-- Extracted & Missing Fields -->
+                <div class="detail-section">
+                  <h4>Field Extraction</h4>
+                  {% set extracted = validation.extracted_fields if validation.extracted_fields else output.extracted_fields %}
+                  {% set missing = validation.missing_required if validation.missing_required else output.missing_required %}
+                  {% if extracted %}
+                  <div style="margin-bottom: 8px;">
+                    <span style="font-size: 0.75rem; color: var(--gray-500);">Extracted:</span><br>
+                    {% for slug, info in extracted.items() %}
+                    <span class="extracted-field">{{ info.field_name or slug }}: {{ info.value }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                  {% if missing %}
+                  <div>
+                    <span style="font-size: 0.75rem; color: var(--gray-500);">Missing Required:</span><br>
+                    {% for field in missing %}
+                    <span class="missing-field">{{ field.name }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                  {% if not extracted and not missing %}
+                  <div style="color: var(--gray-400); font-size: 0.85rem;">No field data</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Suggestions (if available) -->
+              {% if output.suggestions %}
+              <div class="detail-section" style="margin-top: 12px;">
+                <h4>Knowledge Base Suggestions ({{ output.suggestions | length }})</h4>
+                {% for suggestion in output.suggestions %}
+                <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                  <div style="font-weight: 600; color: #2e7d32; margin-bottom: 6px;">{{ suggestion.title }}</div>
+                  <div style="font-size: 0.85rem; color: var(--gray-700);">{{ suggestion.content_preview }}</div>
+                  {% if suggestion.source_metadata %}
+                  <div style="margin-top: 8px; font-size: 0.75rem; color: var(--gray-500);">
+                    Sources:
+                    {% for src in suggestion.source_metadata %}
+                    <span style="background: var(--gray-100); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">{{ src.display_name or src.file_name }}{% if src.page %} (p.{{ src.page }}){% endif %}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              <!-- Raw JSON (collapsible) -->
+              <div style="margin-top: 12px;">
+                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); toggleRawJson({{ action.id }})">
+                  Show Raw JSON
+                </button>
+                <div id="raw-json-{{ action.id }}" style="display: none; margin-top: 8px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                      <div style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 4px;">Input Data:</div>
+                      <div class="json-viewer">{{ action.input_data | tojson(indent=2) }}</div>
+                    </div>
+                    <div>
+                      <div style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 4px;">Output Data:</div>
+                      <div class="json-viewer">{{ action.output_data | tojson(indent=2) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total > limit %}
+    <div class="pagination">
+      <div class="pagination-info">
+        Showing {{ offset + 1 }} - {{ [offset + limit, total] | min }} of {{ total }} logs
+      </div>
+      <div class="pagination-buttons">
+        {% if offset > 0 %}
+        <a href="?offset={{ offset - limit }}&limit={{ limit }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        {% if offset + limit < total %}
+        <a href="?offset={{ offset + limit }}&limit={{ limit }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F916;</div>
+      <h3>No AI decision logs found</h3>
+      <p>{% if selected_agent or selected_status %}Try adjusting your filters.{% else %}AI decisions will appear here when the system processes conversations.{% endif %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Info Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>About AI Decision Logs</h2>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+      <div>
+        <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Agents</h4>
+        <ul style="font-size: 0.85rem; color: var(--gray-600); list-style: none; padding: 0; line-height: 1.8;">
+          <li><span class="badge badge-primary" style="width: 80px; text-align: center;">Validator</span> Analyzes conversation context</li>
+          <li><span class="badge badge-success" style="width: 80px; text-align: center;">RAG</span> Searches knowledge base</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Status Types</h4>
+        <ul style="font-size: 0.85rem; color: var(--gray-600); list-style: none; padding: 0; line-height: 1.8;">
+          <li><span class="status-badge status-ready">ready</span> All required fields present</li>
+          <li><span class="status-badge status-missing_required">missing_required</span> Needs more information</li>
+          <li><span class="status-badge status-unknown_domain">unknown_domain</span> Could not classify domain</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleDetail(id) {
+    const row = document.getElementById('detail-' + id);
+    const arrow = document.getElementById('arrow-' + id);
+    if (row.classList.contains('open')) {
+      row.classList.remove('open');
+      arrow.innerHTML = '&#x25B6;';
+    } else {
+      row.classList.add('open');
+      arrow.innerHTML = '&#x25BC;';
+    }
+  }
+
+  function toggleRawJson(id) {
+    const el = document.getElementById('raw-json-' + id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function applyFilters() {
+    const url = new URL(window.location.href);
+    const agentFilter = document.getElementById('agentFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    if (agentFilter) {
+      url.searchParams.set('agent', agentFilter);
+    } else {
+      url.searchParams.delete('agent');
+    }
+
+    if (statusFilter) {
+      url.searchParams.set('status', statusFilter);
+    } else {
+      url.searchParams.delete('status');
+    }
+
+    url.searchParams.delete('offset');
+    window.location.href = url.toString();
+  }
+</script>
+{% endblock %}

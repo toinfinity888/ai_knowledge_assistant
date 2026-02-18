@@ -6,7 +6,7 @@ Manages domain schemas and their fields per company.
 """
 import logging
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.domain_schema import DomainSchema, DomainSchemaField
 
@@ -31,7 +31,9 @@ class DomainSchemaService:
     def get_schemas_for_company(
         self, company_id: int, db: Session, active_only: bool = True
     ) -> List[DomainSchema]:
-        query = db.query(DomainSchema).filter(DomainSchema.company_id == company_id)
+        query = db.query(DomainSchema).options(
+            joinedload(DomainSchema.fields)
+        ).filter(DomainSchema.company_id == company_id)
         if active_only:
             query = query.filter(DomainSchema.is_active == True)
         return query.order_by(DomainSchema.display_order).all()
@@ -41,6 +43,7 @@ class DomainSchemaService:
     ) -> Optional[DomainSchema]:
         return (
             db.query(DomainSchema)
+            .options(joinedload(DomainSchema.fields))
             .filter(DomainSchema.id == schema_id, DomainSchema.company_id == company_id)
             .first()
         )

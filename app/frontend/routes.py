@@ -5,6 +5,8 @@ import os
 from app.logging.logger import logger
 from app.logging.logging_service import user_query_logging
 from app.services.auth_service import get_auth_service
+from app.services.audit_service import get_audit_service
+from app.models.audit_log import ActionType, TargetType
 from app.database.postgresql_session import get_db_session
 import time
 
@@ -69,6 +71,22 @@ def login():
                             max_age=auth_service.settings.refresh_token_ttl
                         )
 
+                        # Audit log for successful login
+                        audit_service = get_audit_service()
+                        audit_service.log_action(
+                            action_type=ActionType.AUTH_LOGIN,
+                            target_type=TargetType.SESSION,
+                            target_id=user.id,
+                            actor_user_id=user.id,
+                            actor_email=user.email,
+                            company_id=user.company_id,
+                            details={"method": "web"},
+                            ip_address=request.remote_addr,
+                            user_agent=request.headers.get('User-Agent', '')[:500],
+                            db=db,
+                        )
+                        db.commit()
+
                         logger.info(f"User logged in via web: {user.email}")
                         return response
                 else:
@@ -80,12 +98,34 @@ def login():
 @front.route("/logout")
 def logout():
     """Logout and clear session"""
-    # Revoke refresh token if present
-    refresh_token = request.cookies.get('refresh_token')
-    if refresh_token:
-        auth_service = get_auth_service()
-        with get_db_session() as db:
+    # Capture user info before clearing session
+    user_id = session.get('user_id')
+    user_email = session.get('user_email', 'unknown')
+    company_id = session.get('company_id')
+
+    with get_db_session() as db:
+        # Revoke refresh token if present
+        refresh_token = request.cookies.get('refresh_token')
+        if refresh_token:
+            auth_service = get_auth_service()
             auth_service.revoke_refresh_token(refresh_token, db)
+
+        # Audit log for logout
+        if user_id:
+            audit_service = get_audit_service()
+            audit_service.log_action(
+                action_type=ActionType.AUTH_LOGOUT,
+                target_type=TargetType.SESSION,
+                target_id=user_id,
+                actor_user_id=user_id,
+                actor_email=user_email,
+                company_id=company_id,
+                details={"method": "web"},
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent', '')[:500],
+                db=db,
+            )
+        db.commit()
 
     # Clear session
     session.clear()

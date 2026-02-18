@@ -21,6 +21,7 @@ python-dotenv  # Load environment variables from .env file
 # Authentication
 PyJWT>=2.8.0  # JWT token handling
 argon2-cffi>=23.1.0  # Password hashing (OWASP recommended)
+webauthn>=2.0.0  # WebAuthn/Passkeys support
 
 # Integrations
 twilio  # For Twilio Flex ACD integration and two-way calling

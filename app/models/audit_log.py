@@ -51,6 +51,16 @@ class ActionType:
     # Settings actions
     SETTINGS_UPDATE = "settings.update"
 
+    # Domain Schema actions
+    DOMAIN_SCHEMA_CREATE = "domain_schema.create"
+    DOMAIN_SCHEMA_UPDATE = "domain_schema.update"
+    DOMAIN_SCHEMA_DELETE = "domain_schema.delete"
+
+    # Domain Schema Field actions
+    DOMAIN_SCHEMA_FIELD_CREATE = "domain_schema_field.create"
+    DOMAIN_SCHEMA_FIELD_UPDATE = "domain_schema_field.update"
+    DOMAIN_SCHEMA_FIELD_DELETE = "domain_schema_field.delete"
+
 
 class TargetType:
     """Standard target types for audit logging"""
@@ -60,6 +70,8 @@ class TargetType:
     INVITATION = "invitation"
     SETTINGS = "settings"
     SESSION = "session"
+    DOMAIN_SCHEMA = "domain_schema"
+    DOMAIN_SCHEMA_FIELD = "domain_schema_field"
 
 
 class AuditLog(Base):

@@ -14,6 +14,13 @@ from app.models.user import User, UserRole
 from app.models.refresh_token import RefreshToken
 from app.models.invitation import Invitation
 from app.models.audit_log import AuditLog, ActionType, TargetType
+from app.models.passkey import PasskeyCredential
+from app.models.integration_config import (
+    IntegrationConfig,
+    IntegrationType,
+    IntegrationProvider,
+    IntegrationStatus,
+)
 
 # Call session models
 from app.models.call_session import (
@@ -49,6 +56,12 @@ __all__ = [
     'AuditLog',
     'ActionType',
     'TargetType',
+    'PasskeyCredential',
+    # Integration configs
+    'IntegrationConfig',
+    'IntegrationType',
+    'IntegrationProvider',
+    'IntegrationStatus',
     # Call sessions
     'CallSession',
     'TranscriptionSegment',

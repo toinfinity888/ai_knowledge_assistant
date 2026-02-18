@@ -257,6 +257,7 @@ def manual_analyze():
     data = request.get_json()
     session_id = data.get('session_id')
     force_search = data.get('force_search', False)
+    validate_only = data.get('validate_only', False)
     language = data.get('language', 'en')
 
     if not session_id:
@@ -285,6 +286,7 @@ def manual_analyze():
             company_id=tenant.company_id,
             language=language,
             force_search=force_search,
+            validate_only=validate_only,
         )
 
         return jsonify(result), 200

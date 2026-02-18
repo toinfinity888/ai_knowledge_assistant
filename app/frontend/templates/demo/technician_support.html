@@ -409,11 +409,11 @@
             50% { opacity: 0.5; }
         }
 
-        /* Console layout */
+        /* Console layout - 2 columns: 1/3 left, 2/3 right */
         .console-container {
             flex: 1;
             display: grid;
-            grid-template-columns: 320px 1fr 1fr;
+            grid-template-columns: 1fr 2fr;
             gap: 16px;
             padding: 16px;
             min-height: 0;
@@ -426,6 +426,200 @@
             gap: 16px;
             min-height: 0;
             overflow: hidden;
+        }
+
+        /* Left column: Transcription (2/3) + Call Controls (1/3) */
+        .console-column.left-column .transcription-section {
+            flex: 2;
+            min-height: 0;
+        }
+
+        .console-column.left-column .call-controls-section {
+            flex: 1;
+            min-height: 200px;
+        }
+
+        /* Right column: Results (2/3) + Analysis (1/3) */
+        .console-column.right-column .results-section {
+            flex: 2;
+            min-height: 0;
+        }
+
+        .console-column.right-column .analysis-section {
+            flex: 1;
+            min-height: 250px;
+        }
+
+        /* Analysis Section - Two Panel Layout (side by side) */
+        .analysis-panels {
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+            gap: 12px;
+        }
+
+        .analysis-panel {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .analysis-panel.controls-panel {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .analysis-panel.controls-panel .gatekeeper-buttons {
+            flex-direction: column;
+        }
+
+        .analysis-panel.controls-panel .panel-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .analysis-panel.controls-panel .domain-indicator {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .analysis-panel.fields-panel {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: none; /* Hidden until analysis is done */
+        }
+
+        .analysis-panel.fields-panel.visible {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .analysis-panel.fields-panel .fields-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            letter-spacing: 0.03em;
+        }
+
+        .domain-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .domain-indicator .domain-label {
+            color: var(--gray-500);
+        }
+
+        .domain-indicator .domain-value {
+            font-weight: 600;
+            color: var(--gray-800);
+            padding: 2px 8px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        .domain-indicator .domain-value.unknown {
+            background: var(--gray-400);
+        }
+
+        .fields-count {
+            padding: 3px 8px;
+            background: var(--gray-200);
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .fields-panel .fields-list {
+            margin-top: 0;
+        }
+
+        /* Editable field inputs */
+        .field-value-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: #fff;
+            color: var(--gray-800);
+            transition: all 0.2s;
+        }
+
+        .field-value-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(36, 35, 165, 0.1);
+        }
+
+        .field-value-input.edited {
+            border-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .field-item .field-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .field-item.filled .field-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .field-empty-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px dashed var(--gray-300);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: var(--gray-50);
+            color: var(--gray-600);
+        }
+
+        .field-empty-input:focus {
+            outline: none;
+            border-style: solid;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .field-empty-input::placeholder {
+            color: var(--gray-400);
+            font-style: italic;
+        }
+
+        .field-item.manually-filled {
+            border-left-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .field-item.manually-filled .field-status-icon {
+            color: var(--warning);
         }
 
         /* Cards */
@@ -786,14 +980,20 @@
         }
 
         /* Gatekeeper */
+        .gatekeeper-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
         .analyze-btn {
-            width: 100%;
-            padding: 12px 20px;
+            flex: 1;
+            padding: 12px 16px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: #fff;
             border: none;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -803,6 +1003,36 @@
         .analyze-btn.loading { pointer-events: none; }
         @keyframes analyzePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
         .analyze-btn.loading { animation: analyzePulse 1.5s infinite; }
+
+        .search-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--success);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .search-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(46, 132, 74, 0.35); }
+
+        .topbar-btn {
+            padding: 8px 14px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-right: 12px;
+        }
+        .topbar-btn:hover { background: var(--gray-200); border-color: var(--gray-400); }
+        .topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .analyze-status { margin-top: 10px; font-size: 0.85rem; color: var(--gray-500); }
 
@@ -826,6 +1056,81 @@
 
         .validation-section { margin-bottom: 12px; }
         .validation-section-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+
+        /* Field list display */
+        .fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border-left: 4px solid var(--gray-300);
+            transition: all 0.2s;
+        }
+
+        .field-item.filled {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .field-item.missing {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .field-status-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .field-item.filled .field-status-icon {
+            background: var(--success);
+            color: white;
+        }
+
+        .field-item.missing .field-status-icon {
+            background: var(--danger);
+            color: white;
+        }
+
+        .field-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .field-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--gray-800);
+        }
+
+        .field-value {
+            font-size: 0.8rem;
+            color: var(--success);
+            margin-top: 2px;
+            word-break: break-word;
+        }
+
+        .field-missing-label {
+            font-size: 0.8rem;
+            color: var(--danger);
+            font-style: italic;
+            margin-top: 2px;
+        }
 
         .field-tags { display: flex; flex-wrap: wrap; gap: 4px; }
         .field-tag {
@@ -917,6 +1222,55 @@
             font-weight: 600;
         }
 
+        .solution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .solution-header h3 {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .solution-content {
+            margin-bottom: 12px;
+        }
+
+        .solution-sources {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .sources-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .source-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .source-tag:hover {
+            background: var(--gray-200);
+        }
+
         /* Badge */
         .badge {
             display: inline-flex;
@@ -944,6 +1298,113 @@
         /* Hidden controls */
         .hidden-controls { display: none; }
 
+        /* Demo mode badge */
+        .demo-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            background: var(--warning-light);
+            color: var(--warning);
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Call controls card */
+        .call-controls-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .caller-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .caller-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .caller-details { flex: 1; }
+        .caller-name { font-weight: 600; color: var(--gray-800); }
+        .caller-phone { font-size: 0.85rem; color: var(--gray-500); }
+
+        .call-timer {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .call-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .call-action-btn {
+            width: 52px;
+            height: 52px;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .call-action-btn.dial { background: var(--success); color: white; }
+        .call-action-btn.dial:hover { background: #257a3e; transform: scale(1.05); }
+
+        .call-action-btn.hangup { background: var(--danger); color: white; }
+        .call-action-btn.hangup:hover { background: #c82333; transform: scale(1.05); }
+
+        .call-action-btn.hold { background: var(--warning); color: white; }
+        .call-action-btn.hold:hover { background: #c96a01; }
+        .call-action-btn.hold.active { background: var(--gray-400); }
+
+        .call-action-btn.mute { background: var(--gray-200); color: var(--gray-700); }
+        .call-action-btn.mute:hover { background: var(--gray-300); }
+        .call-action-btn.mute.active { background: var(--danger-light); color: var(--danger); }
+
+        .call-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        .controls-inactive {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--gray-400);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .controls-inactive-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
         /* Sidebar overlay for mobile */
         .sidebar-overlay {
             display: none;
@@ -957,13 +1418,8 @@
         }
 
         /* Responsive */
-        @media (max-width: 1400px) {
-            .console-container { grid-template-columns: 300px 1fr 380px; }
-        }
-
         @media (max-width: 1200px) {
-            .console-container { grid-template-columns: 280px 1fr; }
-            .console-column:last-child { display: none; }
+            .console-container { grid-template-columns: 1fr 1.5fr; }
         }
 
         @media (max-width: 1024px) {
@@ -1089,6 +1545,12 @@
                 <h1 class="page-title">Support Console</h1>
             </div>
             <div class="topbar-right">
+                <button id="newSessionBtn" class="topbar-btn" onclick="startNewSession()" title="Start a new session">
+                    &#x2795; New Session
+                </button>
+                <button id="refreshBtn" class="topbar-btn" onclick="refreshState()" title="Refresh state from server">
+                    &#x1F504; Refresh
+                </button>
                 <div class="call-status-badge" id="topbarCallStatus">
                     <span class="status-dot"></span>
                     <span id="topbarStatusText">Ready</span>
@@ -1098,88 +1560,14 @@
         </header>
 
         <div class="console-container">
-            <!-- Column 1: Contact & Account -->
-            <div class="console-column">
-                <div class="card flex-auto">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="card-title-icon">&#x1F464;</span>
-                            Contact
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="contact-header">
-                            <div class="contact-avatar" id="customerAvatar">JD</div>
-                            <div class="contact-info">
-                                <h2 id="customerName">Jean Dupont</h2>
-                                <span class="contact-badge" id="customerLevel">&#x2714; Expert · 5 years</span>
-                            </div>
-                        </div>
-                        <div class="detail-list">
-                            <div class="detail-item">
-                                <span class="detail-label">Location</span>
-                                <span class="detail-value" id="customerLocation">Paris 15th</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Assigned Site</span>
-                                <span class="detail-value"><a href="#" id="assignedWorksite">Residence Etoile</a></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Expected Arrival</span>
-                                <span class="detail-value" id="arrivalTime">14:30</span>
-                            </div>
-                        </div>
-                        <div class="phone-section">
-                            <label class="detail-label" style="margin-bottom: 8px; display: block;">Phone Number</label>
-                            <div class="phone-input-group">
-                                <input type="tel" id="technicianPhone" class="input-field" placeholder="+33 6 12 34 56 78">
-                                <button class="call-btn" id="initiateCallBtn" onclick="initiateTwilioCall()" title="Call">&#x1F4DE;</button>
-                            </div>
-                            <div id="callStatus" class="call-status-text"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card flex-1">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="card-title-icon">&#x1F3E2;</span>
-                            Account
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="detail-list">
-                            <div class="detail-item">
-                                <span class="detail-label">Account Name</span>
-                                <span class="detail-value"><a href="#" id="worksiteName">Residence Etoile</a></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Customer Since</span>
-                                <span class="detail-value" id="worksiteCustomerSince">3 years</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Subscription</span>
-                                <span class="detail-value" id="subscriptionType">Premium - 10 Cameras</span>
-                            </div>
-                        </div>
-                        <div class="related-section">
-                            <div class="detail-label" style="margin-bottom: 10px;">Equipment (4)</div>
-                            <div class="related-item"><span class="related-item-name">HD Outdoor Camera</span><span class="related-item-qty">6</span></div>
-                            <div class="related-item"><span class="related-item-name">360° Indoor Camera</span><span class="related-item-qty">4</span></div>
-                            <div class="related-item"><span class="related-item-name">NVR Recorder</span><span class="related-item-qty">1</span></div>
-                            <div class="related-item"><span class="related-item-name">PoE Power Supply</span><span class="related-item-qty">2</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Column 2: Transcription & Chat -->
-            <div class="console-column">
-                <div class="card flex-1">
+            <!-- LEFT COLUMN (1/3): Transcription + Call Controls -->
+            <div class="console-column left-column">
+                <!-- Transcription (Top 2/3) -->
+                <div class="card transcription-section">
                     <div class="card-header">
                         <div class="card-title">
                             <span class="card-title-icon">&#x1F399;</span>
-                            Transcription
+                            Live Transcription
                         </div>
                         <div class="badge" id="transcriptionBadge">
                             <span class="status-dot" id="statusDot"></span>
@@ -1195,96 +1583,129 @@
                     </div>
                 </div>
 
-                <div class="card flex-1">
+                <!-- Call Controls (Bottom 1/3) - Demo Mode Only -->
+                <div class="card call-controls-section">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="card-title-icon">&#x1F916;</span>
-                            AI Assistant
+                            <span class="card-title-icon">&#x1F4DE;</span>
+                            Call Controls
                         </div>
-                        <div class="badge active">
-                            <span class="status-dot"></span>
-                            <span>Online</span>
-                        </div>
+                        <span class="demo-badge">DEMO</span>
                     </div>
-                    <div class="card-body no-padding chat-messages" id="chatMessages">
-                        <div class="chat-message bot">
-                            <div class="message-avatar">&#x1F916;</div>
-                            <div class="message-bubble">Hello! I'm your AI assistant. I'll analyze the conversation and suggest solutions in real-time.</div>
+                    <div class="card-body no-padding" id="callControlsBody">
+                        <div class="call-controls-content" id="callControlsActive">
+                            <!-- Caller Info (shown during call) -->
+                            <div class="caller-info" id="callerInfo" style="display: none;">
+                                <div class="caller-avatar" id="callerAvatar">?</div>
+                                <div class="caller-details">
+                                    <div class="caller-name" id="callerName">Technician</div>
+                                    <div class="caller-phone" id="callerPhone">-</div>
+                                </div>
+                                <div class="call-timer" id="callTimerDisplay">00:00</div>
+                            </div>
+
+                            <!-- Phone Input -->
+                            <div class="phone-input-row" id="phoneInputRow">
+                                <input type="tel" id="technicianPhone" class="input-field" placeholder="+33 6 12 34 56 78" style="flex: 1;">
+                            </div>
+
+                            <!-- Call Buttons -->
+                            <div class="call-buttons">
+                                <button class="call-action-btn dial" id="initiateCallBtn" onclick="initiateTwilioCall()" title="Start Call">
+                                    &#x1F4DE;
+                                </button>
+                                <button class="call-action-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute" disabled>
+                                    &#x1F507;
+                                </button>
+                                <button class="call-action-btn hold" id="holdBtn" onclick="toggleHold()" title="Hold" disabled>
+                                    &#x23F8;
+                                </button>
+                                <button class="call-action-btn hangup" id="endCallBtn" onclick="endCall()" title="End Call" disabled>
+                                    &#x1F4F5;
+                                </button>
+                            </div>
+
+                            <div id="callStatus" class="call-status-text" style="text-align: center;"></div>
                         </div>
-                    </div>
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question..." onkeypress="handleChatKeyPress(event)">
-                        <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+
+                        <!-- Inactive state for real integration -->
+                        <div class="controls-inactive" id="callControlsInactive" style="display: none;">
+                            <div class="controls-inactive-icon">&#x1F512;</div>
+                            <div style="font-weight: 500;">Integration Mode</div>
+                            <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                Call controls managed by your telephony system
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Column 3: Intelligence Gatekeeper -->
-            <div class="console-column">
-                <!-- Analyze Action Card -->
-                <div class="card" style="flex: 0 0 auto;">
+            <!-- RIGHT COLUMN (2/3): Results + Analysis -->
+            <div class="console-column right-column">
+                <!-- Search Results (Top 2/3) -->
+                <div class="card results-section">
                     <div class="card-header">
                         <div class="card-title">
-                            <span class="card-title-icon">&#x1F50D;</span>
-                            Intelligence Gatekeeper
+                            <span class="card-title-icon">&#x1F4DA;</span>
+                            Knowledge Base Results
                         </div>
-                    </div>
-                    <div class="card-body" style="padding: 16px 20px;">
-                        <button id="analyzeBtn" class="analyze-btn" onclick="analyzeAndSearch()" disabled>
-                            &#x1F9E0; Analyze &amp; Search
-                        </button>
-                        <div id="analyzeStatus" class="analyze-status" style="display:none;">
-                            Analyzing conversation...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Validation Result Card -->
-                <div class="card" id="validationCard" style="display: none; flex: 0 0 auto;">
-                    <div class="card-header">
-                        <div class="card-title">Validation Result</div>
-                        <span id="domainBadge" class="domain-badge" style="display:none;"></span>
-                    </div>
-                    <div class="card-body" style="padding: 16px 20px;">
-                        <div id="confidenceSection" class="validation-section">
-                            <div class="validation-section-label">Domain Confidence</div>
-                            <div class="confidence-meter">
-                                <div id="confidenceFill" class="confidence-meter-fill" style="width: 0%; background: var(--success);"></div>
-                            </div>
-                            <div id="confidenceText" style="font-size: 0.8rem; color: var(--gray-500);"></div>
-                        </div>
-                        <div id="extractedSection" class="validation-section" style="display:none;">
-                            <div class="validation-section-label">Extracted Fields</div>
-                            <div id="extractedFields" class="field-tags"></div>
-                        </div>
-                        <div id="missingRequiredSection" class="validation-section" style="display:none;">
-                            <div class="validation-section-label">Missing Required</div>
-                            <div id="missingRequiredFields" class="field-tags"></div>
-                        </div>
-                        <div id="missingRecommendedSection" class="validation-section" style="display:none;">
-                            <div class="validation-section-label">Recommended</div>
-                            <div id="missingRecommendedFields" class="field-tags"></div>
-                        </div>
-                        <div id="validationReasoning" class="validation-reasoning" style="display:none;"></div>
-                        <button id="searchAnywayBtn" class="search-anyway-btn" style="display:none;" onclick="searchAnyway()">
-                            &#x26A0; Search Anyway
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Knowledge Articles -->
-                <div class="card flex-1">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="card-title-icon">&#x1F4A1;</span>
-                            Knowledge Articles
-                        </div>
+                        <span id="resultsCount" style="font-size: 0.8rem; color: var(--gray-500);"></span>
                     </div>
                     <div class="card-body no-padding" id="solutionContent">
                         <div class="solutions-empty">
-                            <div class="solutions-empty-icon">&#x1F4DA;</div>
+                            <div class="solutions-empty-icon">&#x1F50D;</div>
                             <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
-                            <div style="font-size: 0.85rem;">Click "Analyze &amp; Search" to query the knowledge base</div>
+                            <div style="font-size: 0.85rem;">Click "Analyze Context" then "Search" to query the knowledge base</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Context Analysis (Bottom 1/3) -->
+                <div class="card analysis-section">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F9E0;</span>
+                            Context Analysis
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 12px; overflow-y: auto;">
+                        <div class="analysis-panels">
+                            <!-- Panel 1: Controls (buttons, notifications, domain) -->
+                            <div class="analysis-panel controls-panel">
+                                <div class="panel-header">
+                                    <span class="panel-title">Actions</span>
+                                    <div id="domainIndicator" class="domain-indicator" style="display: none;">
+                                        <span class="domain-label">Domain:</span>
+                                        <span id="domainValue" class="domain-value">Unknown</span>
+                                    </div>
+                                </div>
+                                <div class="gatekeeper-buttons">
+                                    <button id="analyzeBtn" class="analyze-btn" onclick="validateContext()" disabled>
+                                        &#x1F9E0; Analyze Context
+                                    </button>
+                                    <button id="searchBtn" class="search-btn" onclick="performSearch()" disabled>
+                                        &#x1F50D; Search
+                                    </button>
+                                </div>
+                                <div id="analyzeStatus" class="analyze-status" style="display:none;">
+                                    Analyzing conversation...
+                                </div>
+                                <!-- Search Anyway button (shown if missing required fields) -->
+                                <button id="searchAnywayBtn" class="search-anyway-btn" style="display:none;" onclick="searchAnyway()">
+                                    &#x26A0; Search Anyway (missing fields)
+                                </button>
+                            </div>
+
+                            <!-- Panel 2: Extracted Fields -->
+                            <div id="fieldsPanel" class="analysis-panel fields-panel">
+                                <div class="panel-header">
+                                    <span class="panel-title">Extracted Fields</span>
+                                    <span id="fieldsCount" class="fields-count" style="font-size: 0.75rem; color: var(--gray-500);"></span>
+                                </div>
+                                <div id="fieldsList" class="fields-list">
+                                    <!-- Fields will be populated by JavaScript -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1347,7 +1768,175 @@
         let agentMediaStream = null, isAgentAudioMuted = false;
         let suggestionsWebSocket = null, technicianTranscriptionWebSocket = null;
 
+        // State persistence
+        let lastSuggestions = [];
+        let lastValidationResult = null;
+        let transcriptionMessages = [];
+        let editedFields = {}; // Track manually edited field values
+        const STORAGE_KEY = 'technician_support_state';
+
+        // ========== State Persistence ==========
+        function saveStateToStorage() {
+            if (!sessionId) return;
+            const state = {
+                sessionId,
+                isCallActive,
+                callStartTime,
+                currentLanguage,
+                lastSuggestions,
+                lastValidationResult,
+                transcriptionMessages,
+                timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                console.log('[State] Saved to localStorage:', state.sessionId);
+            } catch (e) {
+                console.error('[State] Failed to save:', e);
+            }
+        }
+
+        function loadStateFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return null;
+                const state = JSON.parse(saved);
+                // Expire after 24 hours
+                if (Date.now() - state.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    return null;
+                }
+                return state;
+            } catch (e) {
+                console.error('[State] Failed to load:', e);
+                return null;
+            }
+        }
+
+        function clearStateStorage() {
+            localStorage.removeItem(STORAGE_KEY);
+            console.log('[State] Cleared localStorage');
+        }
+
+        function startNewSession() {
+            if (isCallActive) {
+                if (!confirm('A call is active. End the call and start a new session?')) {
+                    return;
+                }
+                endCall();
+            }
+
+            // Clear all state
+            clearStateStorage();
+            sessionId = null;
+            transcriptionMessages = [];
+            lastValidationResult = null;
+            lastSuggestions = [];
+            editedFields = {};
+
+            // Clear UI
+            document.getElementById('transcriptionContent').innerHTML = `
+                <div class="transcription-empty">
+                    <p>Transcription will appear here when a call starts.</p>
+                </div>
+            `;
+            document.getElementById('solutionContent').innerHTML = `
+                <div class="solutions-empty">
+                    <p>Knowledge base results will appear here after analysis.</p>
+                </div>
+            `;
+
+            // Reset analysis panels
+            const fieldsPanel = document.getElementById('fieldsPanel');
+            if (fieldsPanel) fieldsPanel.classList.remove('visible');
+
+            const fieldsList = document.getElementById('fieldsList');
+            if (fieldsList) fieldsList.innerHTML = '';
+
+            const domainIndicator = document.getElementById('domainIndicator');
+            if (domainIndicator) domainIndicator.style.display = 'none';
+
+            const searchAnywayBtn = document.getElementById('searchAnywayBtn');
+            if (searchAnywayBtn) searchAnywayBtn.style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = true;
+            document.getElementById('searchBtn').disabled = true;
+
+            // Reinitialize
+            initializeSession();
+            showCallStatus('New session started', 'success');
+            console.log('[State] Started new session');
+        }
+
+        async function restoreFromServer(sid) {
+            try {
+                const response = await fetch(`/demo/session-state/${sid}`);
+                if (!response.ok) {
+                    console.log('[State] No server state found');
+                    return null;
+                }
+                const data = await response.json();
+                console.log('[State] Restored from server:', data);
+                return data;
+            } catch (e) {
+                console.error('[State] Failed to restore from server:', e);
+                return null;
+            }
+        }
+
+        async function refreshState() {
+            if (!sessionId) {
+                alert('No active session');
+                return;
+            }
+
+            const btn = document.getElementById('refreshBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#x23F3; Refreshing...';
+            }
+
+            try {
+                const serverState = await restoreFromServer(sessionId);
+                if (serverState) {
+                    // Restore transcriptions
+                    if (serverState.messages && serverState.messages.length > 0) {
+                        const container = document.getElementById('transcriptionContent');
+                        container.innerHTML = '';
+                        transcriptionMessages = []; // Reset before restoring
+                        serverState.messages.forEach(msg => {
+                            const label = msg.speaker === 'technician' ? 'Technician' : 'Agent';
+                            addTranscriptionBubble(msg.text, label, msg.speaker, true, 1.0, null);
+                        });
+                    }
+
+                    // Restore suggestions
+                    if (serverState.suggestions && serverState.suggestions.length > 0) {
+                        displaySolutions(serverState.suggestions);
+                    }
+
+                    showCallStatus('State restored', 'success');
+                } else {
+                    showCallStatus('No state to restore', 'progress');
+                }
+            } catch (e) {
+                console.error('[State] Refresh error:', e);
+                showCallStatus('Refresh failed', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '&#x1F504; Refresh';
+                }
+            }
+        }
+
         window.addEventListener('load', () => {
+            // First try to restore saved state
+            const savedState = loadStateFromStorage();
+            if (savedState && savedState.sessionId) {
+                console.log('[State] Found saved state, restoring session:', savedState.sessionId);
+                restoreFromLocalStorage(savedState);
+            }
+
             if (typeof Twilio === 'undefined') {
                 showCallStatus('Error: Twilio SDK', 'error');
                 setTimeout(() => { if (typeof Twilio !== 'undefined') initializeSession(); }, 2000);
@@ -1356,15 +1945,80 @@
             }
         });
 
+        // Save state when navigating away
+        window.addEventListener('beforeunload', () => {
+            saveStateToStorage();
+            console.log('[State] Saved state before unload');
+        });
+
+        function restoreFromLocalStorage(state) {
+            // Restore session ID
+            sessionId = state.sessionId;
+            currentLanguage = state.currentLanguage || 'fr';
+            lastValidationResult = state.lastValidationResult;
+            lastSuggestions = state.lastSuggestions || [];
+            transcriptionMessages = state.transcriptionMessages || [];
+
+            console.log('[State] Restoring UI from localStorage...');
+
+            // Restore transcription messages
+            if (transcriptionMessages.length > 0) {
+                const container = document.getElementById('transcriptionContent');
+                container.innerHTML = '';
+                transcriptionMessages.forEach(msg => {
+                    const line = document.createElement('div');
+                    line.className = `transcript-line ${msg.speaker}`;
+                    if (msg.trackingId) {
+                        line.setAttribute('data-utterance-id', msg.trackingId);
+                    }
+                    const confidenceStr = msg.confidence ? `${(msg.confidence * 100).toFixed(0)}%` : '';
+                    line.innerHTML = `
+                        <div class="transcript-speaker">${msg.speaker === 'technician' ? 'Technician' : 'Agent'}</div>
+                        <div class="transcript-text">${msg.text}</div>
+                        <div class="transcript-meta">
+                            <span class="transcript-time">${msg.time || ''}</span>
+                            ${confidenceStr ? `<span class="transcript-confidence">${confidenceStr}</span>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(line);
+                });
+                container.scrollTop = container.scrollHeight;
+            }
+
+            // Restore validation result
+            if (lastValidationResult) {
+                displayValidationResult(lastValidationResult);
+            }
+
+            // Restore search results
+            if (lastSuggestions && lastSuggestions.length > 0) {
+                displaySolutions(lastSuggestions);
+            }
+
+            // Enable analyze button if we have transcriptions
+            if (transcriptionMessages.length > 0) {
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+
+            console.log('[State] UI restored successfully');
+        }
+
         async function initializeSession() {
             try {
-                sessionId = `session-${Date.now()}`;
+                // Only create new session if we don't have one
+                if (!sessionId) {
+                    sessionId = `session-${Date.now()}`;
+                    console.log('[State] Creating new session:', sessionId);
+                } else {
+                    console.log('[State] Using existing session:', sessionId);
+                }
+
                 await fetch('/twilio/start-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         session_id: sessionId,
-                        technician_name: document.getElementById('customerName')?.textContent || 'Technician',
+                        technician_name: document.getElementById('callerName')?.textContent || 'Technician',
                         agent_name: 'Support Agent'
                     })
                 });
@@ -1410,30 +2064,60 @@
             window.incomingConnection = conn;
         }
 
-        function acceptIncomingCall() {
+        async function acceptIncomingCall() {
             if (window.incomingConnection) {
                 const call = window.incomingConnection;
-                call.accept();
-                activeConnection = call;
-                isCallActive = true;
-                document.getElementById('customerName').textContent = call.parameters.From;
 
-                call.on('accept', () => {
-                    callStartTime = Date.now();
-                    callTimer = setInterval(updateCallDuration, 1000);
-                    document.getElementById('initiateCallBtn').disabled = true;
-                    showCallStatus('Connected', 'success');
-                    updateTopbarStatus('active', 'In Call');
-                    document.getElementById('transcriptionBadge').classList.add('active');
-                    document.getElementById('transcriptionStatus').textContent = 'Active';
-                    setTimeout(() => {
-                        if (isCallActive && transcriptionEnabledByUser) startTranscription();
-                        enableAnalyzeButton();
-                    }, 2000);
-                });
+                try {
+                    // CRITICAL: For incoming calls, we must use the same session_id that the server generated
+                    // The server creates session_id as: `incoming-{call_sid[:12]}`
+                    // We extract CallSid from the incoming call and generate the matching session_id
+                    const callSid = call.parameters.CallSid;
+                    if (callSid) {
+                        // Use the same format as server: incoming-{first 12 chars of CallSid}
+                        sessionId = `incoming-${callSid.substring(0, 12)}`;
+                        console.log(`[Incoming Call] Using server-matching session_id: ${sessionId} (CallSid: ${callSid})`);
+                        // Save the new session_id to localStorage
+                        saveStateToStorage();
+                    } else {
+                        console.warn('[Incoming Call] No CallSid found, using existing session_id');
+                    }
 
-                call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
-                window.incomingConnection = null;
+                    // Disable buttons to prevent double-click
+                    const statusEl = document.getElementById('callStatus');
+                    statusEl.innerHTML = 'Connecting transcription...';
+
+                    // Connect WebSockets BEFORE accepting the call (same as outgoing calls)
+                    // Now using the correct session_id that matches what server used for Twilio media stream
+                    showCallStatus('Connecting transcription...', 'progress');
+                    await connectTranscriptionWebSockets();
+
+                    call.accept();
+                    activeConnection = call;
+                    isCallActive = true;
+                    document.getElementById('callerName').textContent = call.parameters.From || 'Incoming Call';
+
+                    call.on('accept', () => {
+                        callStartTime = Date.now();
+                        callTimer = setInterval(updateCallDuration, 1000);
+                        document.getElementById('initiateCallBtn').disabled = true;
+                        showCallStatus('Connected', 'success');
+                        updateTopbarStatus('active', 'In Call');
+                        setCallActive(true);
+                        document.getElementById('transcriptionBadge').classList.add('active');
+                        document.getElementById('transcriptionStatus').textContent = 'Active';
+                        setTimeout(() => {
+                            if (isCallActive && transcriptionEnabledByUser) startTranscription();
+                            enableAnalyzeButton();
+                        }, 2000);
+                    });
+
+                    call.on('disconnect', () => handleRemoteCallTermination({ status: 'completed' }));
+                    window.incomingConnection = null;
+                } catch (e) {
+                    console.error('Error accepting incoming call:', e);
+                    showCallStatus('Error accepting call', 'error');
+                }
             }
         }
 
@@ -1468,6 +2152,7 @@
                     callTimer = setInterval(updateCallDuration, 1000);
                     showCallStatus('Connected', 'success');
                     updateTopbarStatus('active', 'In Call');
+                    setCallActive(true);
                     document.getElementById('transcriptionBadge').classList.add('active');
                     document.getElementById('transcriptionStatus').textContent = 'Active';
                     setTimeout(() => {
@@ -1522,30 +2207,117 @@
                 canceled: 'Canceled'
             };
             showCallStatus(statusMap[data.status] || 'Call ended', 'progress');
+            resetCallControlsUI();
+        }
+
+        function setCallActive(active) {
+            const dialBtn = document.getElementById('initiateCallBtn');
+            const muteBtn = document.getElementById('muteBtn');
+            const holdBtn = document.getElementById('holdBtn');
+            const endBtn = document.getElementById('endCallBtn');
+            const phoneRow = document.getElementById('phoneInputRow');
+            const callerInfo = document.getElementById('callerInfo');
+            const phone = document.getElementById('technicianPhone');
+
+            dialBtn.disabled = active;
+            muteBtn.disabled = !active;
+            holdBtn.disabled = !active;
+            endBtn.disabled = !active;
+
+            phoneRow.style.display = active ? 'none' : 'flex';
+            callerInfo.style.display = active ? 'flex' : 'none';
+
+            if (active && phone) {
+                document.getElementById('callerPhone').textContent = phone.value;
+                document.getElementById('callerName').textContent = 'Technician';
+                document.getElementById('callerAvatar').textContent = 'T';
+            }
+        }
+
+        function resetCallControlsUI() {
+            setCallActive(false);
+            document.getElementById('callTimerDisplay').textContent = '00:00';
+            const muteBtn = document.getElementById('muteBtn');
+            const holdBtn = document.getElementById('holdBtn');
+            muteBtn.classList.remove('active');
+            holdBtn.classList.remove('active');
+            isMuted = false;
+        }
+
+        function toggleMute() {
+            if (!isCallActive || !activeConnection) return;
+
+            isMuted = !isMuted;
+            activeConnection.mute(isMuted);
+
+            const btn = document.getElementById('muteBtn');
+            btn.classList.toggle('active', isMuted);
+            btn.innerHTML = isMuted ? '&#x1F508;' : '&#x1F507;';
+            btn.title = isMuted ? 'Unmute' : 'Mute';
+        }
+
+        let isOnHold = false;
+        function toggleHold() {
+            if (!isCallActive) return;
+
+            isOnHold = !isOnHold;
+            const btn = document.getElementById('holdBtn');
+            btn.classList.toggle('active', isOnHold);
+            btn.title = isOnHold ? 'Resume' : 'Hold';
+
+            // Visual feedback
+            updateTopbarStatus(isOnHold ? 'hold' : 'active', isOnHold ? 'On Hold' : 'In Call');
+        }
+
+        function endCall() {
+            if (!isCallActive) return;
+
+            if (activeConnection) {
+                activeConnection.disconnect();
+            }
+
+            isCallActive = false;
+            clearInterval(callTimer);
+            clearInterval(callStatusPoller);
+
+            document.getElementById('transcriptionBadge').classList.remove('active');
+            document.getElementById('transcriptionStatus').textContent = 'Inactive';
+            updateTopbarStatus('', 'Ready');
+            showCallStatus('Call ended', 'progress');
+            resetCallControlsUI();
+            saveStateToStorage();
         }
 
         // ========== Intelligence Gatekeeper ==========
 
         function enableAnalyzeButton() {
             document.getElementById('analyzeBtn').disabled = false;
+            // Search button stays disabled until analysis is done
         }
 
-        async function analyzeAndSearch(forceSearch = false) {
+        // Two-step workflow:
+        // Step 1: validateContext() - analyze and show field matching (validate_only=true)
+        // Step 2: performSearch() - actually search (called if validation passes or forceSearch=true)
+
+        async function validateContext() {
             const btn = document.getElementById('analyzeBtn');
+            const searchBtn = document.getElementById('searchBtn');
             const status = document.getElementById('analyzeStatus');
 
             btn.disabled = true;
             btn.classList.add('loading');
             btn.innerHTML = '&#x23F3; Analyzing...';
             status.style.display = 'block';
+            status.textContent = 'Analyzing conversation context...';
 
             try {
+                // Step 1: Validate only (no search yet)
                 const r = await fetch('/demo/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         session_id: sessionId,
-                        force_search: forceSearch,
+                        validate_only: true,
                         language: currentLanguage
                     })
                 });
@@ -1557,132 +2329,325 @@
                     return;
                 }
 
+                // Store validation result
+                lastValidationResult = result;
                 displayValidationResult(result);
 
-                if (result.suggestions?.length) {
-                    displaySolutions(result.suggestions);
+                // Always enable search button - let agent verify fields first
+                if (searchBtn) {
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = '&#x1F50D; Search';
+
+                    const v = result.validation || {};
+                    const hasMissingRequired = (v.missing_required || []).length > 0;
+
+                    if (hasMissingRequired) {
+                        status.textContent = 'Some required fields are missing. Review and click Search or "Search Anyway".';
+                        status.style.color = 'var(--warning)';
+                    } else {
+                        status.textContent = 'All fields found. Verify and click Search to query the knowledge base.';
+                        status.style.color = 'var(--success)';
+                    }
                 }
+
+                saveStateToStorage();
+
             } catch (e) {
-                console.error('Analyze error:', e);
+                console.error('Validate error:', e);
                 status.textContent = 'Analysis failed. Try again.';
                 status.style.color = 'var(--danger)';
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('loading');
-                btn.innerHTML = '&#x1F9E0; Analyze &amp; Search';
-                setTimeout(() => {
-                    status.style.display = 'none';
-                    status.style.color = '';
-                    status.textContent = 'Analyzing conversation...';
-                }, 3000);
+                btn.innerHTML = '&#x1F9E0; Analyze Context';
+            }
+        }
+
+        async function performSearch(forceSearch = false) {
+            const searchBtn = document.getElementById('searchBtn');
+            const status = document.getElementById('analyzeStatus');
+
+            if (searchBtn) {
+                searchBtn.disabled = true;
+                searchBtn.innerHTML = '&#x23F3; Searching...';
+            }
+            status.style.display = 'block';
+            status.textContent = 'Searching knowledge base...';
+
+            // Collect all field values from inputs (including edits and new entries)
+            const fieldInputs = document.querySelectorAll('#fieldsList input');
+            const allFieldValues = {};
+            fieldInputs.forEach(input => {
+                const slug = input.dataset.slug;
+                const value = input.value.trim();
+                if (slug && value) {
+                    allFieldValues[slug] = value;
+                }
+            });
+
+            // Build query string from field values for search
+            const fieldsQuery = Object.entries(allFieldValues)
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ');
+
+            console.log('[Search] Field values:', allFieldValues);
+            console.log('[Search] Edited fields:', editedFields);
+            console.log('[Search] Fields query:', fieldsQuery);
+
+            try {
+                const r = await fetch('/demo/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        force_search: forceSearch,
+                        validate_only: false,
+                        language: currentLanguage,
+                        edited_fields: allFieldValues,
+                        fields_query: fieldsQuery
+                    })
+                });
+                const result = await r.json();
+
+                if (result.error) {
+                    status.textContent = result.error;
+                    status.style.color = 'var(--danger)';
+                    return;
+                }
+
+                // Update validation display if provided
+                if (result.validation) {
+                    displayValidationResult(result);
+                }
+
+                // Display search results
+                if (result.suggestions?.length) {
+                    lastSuggestions = result.suggestions;
+                    displaySolutions(result.suggestions);
+                    status.textContent = `Found ${result.suggestions.length} result(s)`;
+                    status.style.color = 'var(--success)';
+                } else {
+                    status.textContent = 'No matching articles found.';
+                    status.style.color = 'var(--warning)';
+                }
+
+                saveStateToStorage();
+
+            } catch (e) {
+                console.error('Search error:', e);
+                status.textContent = 'Search failed. Try again.';
+                status.style.color = 'var(--danger)';
+            } finally {
+                if (searchBtn) {
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = '&#x1F50D; Search Knowledge Base';
+                }
+            }
+        }
+
+        // Legacy function for backward compatibility
+        async function analyzeAndSearch(forceSearch = false) {
+            if (forceSearch) {
+                await performSearch(true);
+            } else {
+                await validateContext();
             }
         }
 
         function searchAnyway() {
-            analyzeAndSearch(true);
+            performSearch(true);
         }
 
         function displayValidationResult(result) {
-            const card = document.getElementById('validationCard');
-            card.style.display = 'block';
-
             const v = result.validation || {};
 
-            // Domain badge
-            const badge = document.getElementById('domainBadge');
+            // Show fields panel
+            const fieldsPanel = document.getElementById('fieldsPanel');
+            if (fieldsPanel) {
+                fieldsPanel.classList.add('visible');
+            }
+
+            // Update domain indicator in controls panel
+            const domainIndicator = document.getElementById('domainIndicator');
+            const domainValue = document.getElementById('domainValue');
+
             if (v.domain_name && v.domain !== 'unknown') {
-                badge.textContent = v.domain_name;
-                badge.style.display = 'inline-flex';
+                if (domainIndicator) domainIndicator.style.display = 'flex';
+                if (domainValue) {
+                    domainValue.textContent = v.domain_name;
+                    domainValue.classList.remove('unknown');
+                }
             } else {
-                badge.textContent = 'Unknown Domain';
-                badge.style.display = 'inline-flex';
-                badge.style.background = 'var(--gray-400)';
+                if (domainIndicator) domainIndicator.style.display = 'flex';
+                if (domainValue) {
+                    domainValue.textContent = 'Unknown';
+                    domainValue.classList.add('unknown');
+                }
             }
 
-            // Confidence meter
-            const confidence = v.domain_confidence || 0;
-            const pct = Math.round(confidence * 100);
-            const fill = document.getElementById('confidenceFill');
-            fill.style.width = pct + '%';
-            fill.style.background = pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
-            document.getElementById('confidenceText').textContent = pct + '% confidence';
+            // Build unified fields list
+            const fieldsList = document.getElementById('fieldsList');
+            fieldsList.innerHTML = '';
 
-            // Extracted fields
-            const extractedContainer = document.getElementById('extractedFields');
-            const extractedSection = document.getElementById('extractedSection');
-            extractedContainer.innerHTML = '';
             const extracted = v.extracted_fields || {};
-            const extractedKeys = Object.keys(extracted);
-            if (extractedKeys.length) {
-                extractedSection.style.display = 'block';
-                extractedKeys.forEach(slug => {
-                    const info = extracted[slug];
-                    const tag = document.createElement('span');
-                    tag.className = 'field-tag extracted';
-                    tag.textContent = (info.field_name || slug) + ': ' + info.value;
-                    extractedContainer.appendChild(tag);
+            const missingRequired = v.missing_required || [];
+            const missingRecommended = v.missing_recommended || [];
+
+            // Create a map of all required fields
+            const allFields = new Map();
+
+            // Add extracted (filled) fields
+            Object.keys(extracted).forEach(slug => {
+                const info = extracted[slug];
+                allFields.set(slug, {
+                    name: info.field_name || slug,
+                    value: info.value,
+                    filled: true,
+                    required: true
                 });
-            } else {
-                extractedSection.style.display = 'none';
-            }
+            });
 
-            // Missing required fields
-            const missingReqContainer = document.getElementById('missingRequiredFields');
-            const missingReqSection = document.getElementById('missingRequiredSection');
-            missingReqContainer.innerHTML = '';
-            const missingReq = v.missing_required || [];
-            if (missingReq.length) {
-                missingReqSection.style.display = 'block';
-                missingReq.forEach(f => {
-                    const tag = document.createElement('span');
-                    tag.className = 'field-tag missing-required';
-                    tag.textContent = 'MISSING: ' + f.name;
-                    tag.title = f.description || '';
-                    missingReqContainer.appendChild(tag);
+            // Add missing required fields
+            missingRequired.forEach(f => {
+                const slug = f.slug || f.name.toLowerCase().replace(/\s+/g, '_');
+                if (!allFields.has(slug)) {
+                    allFields.set(slug, {
+                        name: f.name,
+                        value: null,
+                        filled: false,
+                        required: true,
+                        description: f.description
+                    });
+                }
+            });
+
+            // Add missing recommended fields (optional)
+            missingRecommended.forEach(f => {
+                const slug = f.slug || f.name.toLowerCase().replace(/\s+/g, '_');
+                if (!allFields.has(slug)) {
+                    allFields.set(slug, {
+                        name: f.name,
+                        value: null,
+                        filled: false,
+                        required: false,
+                        description: f.description
+                    });
+                }
+            });
+
+            // Clear edited fields for fresh analysis
+            editedFields = {};
+
+            // Render field items (required fields first, then optional)
+            const sortedFields = Array.from(allFields.entries()).sort((a, b) => {
+                const fieldA = a[1], fieldB = b[1];
+                if (fieldA.required !== fieldB.required) return fieldA.required ? -1 : 1;
+                if (fieldA.filled !== fieldB.filled) return fieldA.filled ? -1 : 1;
+                return 0;
+            });
+
+            let hasMissingRequired = false;
+            let filledCount = 0;
+
+            sortedFields.forEach(([slug, field]) => {
+                if (field.filled) filledCount++;
+
+                const item = document.createElement('div');
+                item.className = `field-item ${field.filled ? 'filled' : 'missing'}`;
+                item.setAttribute('data-field-slug', slug);
+
+                const icon = field.filled ? '&#x2713;' : '&#x2717;';
+
+                let valueHtml = '';
+                if (field.filled) {
+                    // Editable input for filled fields
+                    valueHtml = `<input type="text" class="field-value-input" data-slug="${slug}" data-original="${escapeHtml(field.value)}" value="${escapeHtml(field.value)}" />`;
+                } else {
+                    // Empty input for missing fields (allows manual entry)
+                    const placeholder = field.required ? 'Enter value (required)' : 'Enter value (optional)';
+                    valueHtml = `<input type="text" class="field-empty-input" data-slug="${slug}" placeholder="${placeholder}" />`;
+                    if (field.required) hasMissingRequired = true;
+                }
+
+                item.innerHTML = `
+                    <div class="field-status-icon">${icon}</div>
+                    <div class="field-info">
+                        <div class="field-name">${escapeHtml(field.name)}${!field.required ? ' <span style="color: var(--gray-400); font-weight: 400;">(optional)</span>' : ''}</div>
+                        ${valueHtml}
+                    </div>
+                `;
+
+                fieldsList.appendChild(item);
+            });
+
+            // Add event listeners for field edits
+            fieldsList.querySelectorAll('.field-value-input, .field-empty-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const slug = e.target.dataset.slug;
+                    const original = e.target.dataset.original || '';
+                    const newValue = e.target.value.trim();
+
+                    // Track if value was changed
+                    if (newValue !== original) {
+                        editedFields[slug] = newValue;
+                        e.target.classList.add('edited');
+                    } else {
+                        delete editedFields[slug];
+                        e.target.classList.remove('edited');
+                    }
+
+                    // Update field item status if empty field now has value
+                    const fieldItem = e.target.closest('.field-item');
+                    if (fieldItem && fieldItem.classList.contains('missing') && newValue) {
+                        fieldItem.classList.remove('missing');
+                        fieldItem.classList.add('filled', 'manually-filled');
+                        const iconEl = fieldItem.querySelector('.field-status-icon');
+                        if (iconEl) iconEl.innerHTML = '&#x2713;';
+                    } else if (fieldItem && fieldItem.classList.contains('manually-filled') && !newValue) {
+                        fieldItem.classList.remove('filled', 'manually-filled');
+                        fieldItem.classList.add('missing');
+                        const iconEl = fieldItem.querySelector('.field-status-icon');
+                        if (iconEl) iconEl.innerHTML = '&#x2717;';
+                    }
                 });
-            } else {
-                missingReqSection.style.display = 'none';
+            });
+
+            // Update fields count
+            const fieldsCount = document.getElementById('fieldsCount');
+            if (fieldsCount) {
+                fieldsCount.textContent = `${filledCount}/${sortedFields.length} filled`;
             }
 
-            // Missing recommended fields
-            const missingRecContainer = document.getElementById('missingRecommendedFields');
-            const missingRecSection = document.getElementById('missingRecommendedSection');
-            missingRecContainer.innerHTML = '';
-            const missingRec = v.missing_recommended || [];
-            if (missingRec.length) {
-                missingRecSection.style.display = 'block';
-                missingRec.forEach(f => {
-                    const tag = document.createElement('span');
-                    tag.className = 'field-tag missing-recommended';
-                    tag.textContent = f.name;
-                    tag.title = f.description || '';
-                    missingRecContainer.appendChild(tag);
-                });
-            } else {
-                missingRecSection.style.display = 'none';
+            // Show "Search Anyway" only if there are missing required fields
+            const searchAnywayBtn = document.getElementById('searchAnywayBtn');
+            if (searchAnywayBtn) {
+                searchAnywayBtn.style.display = hasMissingRequired ? 'block' : 'none';
             }
 
-            // Reasoning
-            const reasoningEl = document.getElementById('validationReasoning');
-            if (v.reasoning) {
-                reasoningEl.textContent = v.reasoning;
-                reasoningEl.style.display = 'block';
-            } else {
-                reasoningEl.style.display = 'none';
+            // Enable Search button - agent must click to confirm fields are correct
+            const searchBtn = document.getElementById('searchBtn');
+            if (searchBtn) {
+                searchBtn.disabled = false;
             }
-
-            // Search Anyway button
-            document.getElementById('searchAnywayBtn').style.display =
-                (result.status === 'missing_required' || result.status === 'unknown_domain') ? 'block' : 'none';
         }
 
         function updateCallDuration() {
             if (!callStartTime) return;
             const e = Math.floor((Date.now() - callStartTime) / 1000);
+            const timeStr = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`;
+
+            // Update topbar duration
             const d = document.getElementById('callDuration');
-            if (!d) return;
-            d.textContent = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`;
-            d.style.display = 'inline';
+            if (d) {
+                d.textContent = timeStr;
+                d.style.display = 'inline';
+            }
+
+            // Update call controls timer
+            const timer = document.getElementById('callTimerDisplay');
+            if (timer) {
+                timer.textContent = timeStr;
+            }
         }
 
         function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
@@ -1824,6 +2789,7 @@
 
             const trackingId = utterance_id || `${role}-${Date.now()}`;
             const existingBubble = c.querySelector(`[data-utterance-id="${trackingId}"]`);
+            const timeStr = new Date().toLocaleTimeString();
 
             if (existingBubble) {
                 existingBubble.querySelector('.transcript-text').textContent = text;
@@ -1835,6 +2801,22 @@
                     if (statusEl) statusEl.remove();
                     existingBubble.style.fontStyle = 'normal';
                     existingBubble.style.opacity = '1';
+
+                    // Update existing message in array or add new
+                    const existingIdx = transcriptionMessages.findIndex(m => m.trackingId === trackingId);
+                    if (existingIdx >= 0) {
+                        transcriptionMessages[existingIdx].text = text;
+                        transcriptionMessages[existingIdx].confidence = confidence;
+                    } else {
+                        transcriptionMessages.push({
+                            trackingId,
+                            speaker: role,
+                            text,
+                            time: timeStr,
+                            confidence
+                        });
+                    }
+                    saveStateToStorage();
                 } else {
                     existingBubble.style.fontStyle = 'italic';
                     existingBubble.style.opacity = '0.7';
@@ -1852,12 +2834,24 @@
                     <div class="transcript-speaker">${label}</div>
                     <div class="transcript-text">${text}</div>
                     <div class="transcript-meta">
-                        <span class="transcript-time">${new Date().toLocaleTimeString()}</span>
+                        <span class="transcript-time">${timeStr}</span>
                         <span class="transcript-confidence">${(confidence * 100).toFixed(0)}%</span>
                         ${statusHTML}
                     </div>
                 `;
                 c.appendChild(line);
+
+                // Save final messages to array for persistence
+                if (is_final) {
+                    transcriptionMessages.push({
+                        trackingId,
+                        speaker: role,
+                        text,
+                        time: timeStr,
+                        confidence
+                    });
+                    saveStateToStorage();
+                }
             }
             c.scrollTop = c.scrollHeight;
         }
@@ -1870,9 +2864,38 @@
             sols.forEach(s => {
                 const card = document.createElement('div');
                 card.className = 'solution-card';
-                card.innerHTML = `<h3>${s.title || 'Article'}</h3><p>${s.content}</p>${s.confidence ? `<span class="confidence-badge">&#x2714; ${(s.confidence * 100).toFixed(0)}%</span>` : ''}`;
+
+                // Build sources HTML if available
+                let sourcesHTML = '';
+                if (s.source_metadata && s.source_metadata.length > 0) {
+                    const sourceItems = s.source_metadata.slice(0, 5).map(src => {
+                        const name = src.display_name || src.file_name || src.title || 'Source';
+                        const page = src.page_number ? ` (p.${src.page_number})` : '';
+                        return `<span class="source-tag">${escapeHtml(name)}${page}</span>`;
+                    }).join('');
+                    sourcesHTML = `<div class="solution-sources"><span class="sources-label">Sources:</span>${sourceItems}</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="solution-header">
+                        <h3>${escapeHtml(s.title || 'Article')}</h3>
+                        ${s.confidence ? `<span class="confidence-badge">&#x2714; ${(s.confidence * 100).toFixed(0)}%</span>` : ''}
+                    </div>
+                    <p class="solution-content">${escapeHtml(s.content)}</p>
+                    ${sourcesHTML}
+                `;
                 c.insertBefore(card, c.firstChild);
             });
+
+            // Save to state
+            saveStateToStorage();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

@@ -51,6 +51,18 @@ def twilio_technician():
     return render_template('demo/twilio_technician.html')
 
 
+@demo_bp.route('/console')
+def support_console():
+    """
+    Simplified Support Console interface.
+
+    Layout:
+    - Left 1/3: Transcription (top 2/3) + Call Controls (bottom 1/3, demo only)
+    - Right 2/3: Search Results (top 2/3) + Context Analysis (bottom 1/3)
+    """
+    return render_template('demo/support_console.html')
+
+
 @demo_bp.route('/get-session-suggestions', methods=['GET'])
 def get_session_suggestions():
     """Get suggestions for a session (for polling)"""
@@ -147,26 +159,40 @@ def demo_analyze():
     data = request.get_json()
     session_id = data.get('session_id')
     force_search = data.get('force_search', False)
+    validate_only = data.get('validate_only', False)
     language = data.get('language', 'fr')
+    edited_fields = data.get('edited_fields', {})
+    fields_query = data.get('fields_query', '')
+
+    logger.info(f"[Demo Analyze] Request: session_id={session_id}, force_search={force_search}, validate_only={validate_only}, language={language}")
+    if edited_fields:
+        logger.info(f"[Demo Analyze] Edited fields: {edited_fields}")
 
     if not session_id:
+        logger.warning("[Demo Analyze] Missing session_id in request")
         return jsonify({'error': 'Missing session_id'}), 400
 
     gatekeeper = get_gatekeeper_orchestrator()
     if gatekeeper is None:
+        logger.error("[Demo Analyze] Gatekeeper not initialized - check GROQ_API_KEY")
         return jsonify({
             'error': 'Intelligence Gatekeeper not initialized. Check GROQ_API_KEY.',
             'status': 'error',
         }), 503
 
     company_id = flask_session.get('company_id', 1)
+    logger.info(f"[Demo Analyze] Using company_id={company_id}")
 
     result = gatekeeper.analyze_and_search(
         session_id=session_id,
         company_id=company_id,
         language=language,
         force_search=force_search,
+        validate_only=validate_only,
+        edited_fields_query=fields_query,
     )
+
+    logger.info(f"[Demo Analyze] Result: status={result.get('status')}, validation={result.get('validation')}, suggestions_count={len(result.get('suggestions', []))}")
 
     # Broadcast results via WebSocket if available
     if result.get('suggestions'):
@@ -174,6 +200,81 @@ def demo_analyze():
             broadcast_suggestion(session_id, suggestion)
 
     return jsonify(result), 200
+
+
+@demo_bp.route('/session-state/<session_id>', methods=['GET'])
+def get_session_state(session_id):
+    """
+    Get session state for restoring after page reload or connection loss.
+    Returns transcription messages and suggestions.
+    """
+    from app.services.call_session_manager import get_call_session_manager
+    from app.database.postgresql_session import get_db_session
+    from app.models.call_session import CallSession, TranscriptionSegment, Suggestion
+
+    logger.info(f"[Session State] Fetching state for session: {session_id}")
+    session_manager = get_call_session_manager()
+
+    try:
+        with get_db_session() as db:
+            # Get session
+            session = db.query(CallSession).filter(
+                CallSession.session_id == session_id
+            ).first()
+
+            if not session:
+                logger.warning(f"[Session State] Session not found: {session_id}")
+                return jsonify({'error': 'Session not found'}), 404
+
+            logger.info(f"[Session State] Found session id={session.id}, status={session.status}")
+
+            # Get transcription segments
+            segments = db.query(TranscriptionSegment).filter(
+                TranscriptionSegment.session_id == session.id
+            ).order_by(TranscriptionSegment.timestamp.asc()).all()
+
+            logger.info(f"[Session State] Found {len(segments)} transcription segments")
+
+            messages = [
+                {
+                    'text': seg.text,
+                    'speaker': seg.speaker,
+                    'timestamp': seg.timestamp.isoformat() if seg.timestamp else None,
+                }
+                for seg in segments
+            ]
+
+            # Get suggestions
+            suggestions_db = db.query(Suggestion).filter(
+                Suggestion.session_id == session.id
+            ).order_by(Suggestion.created_at.desc()).all()
+
+            suggestions = [
+                {
+                    'id': s.id,
+                    'type': s.suggestion_type,
+                    'title': s.title,
+                    'content': s.content,
+                    'confidence': s.confidence_score,
+                    'source_metadata': s.source_metadata or [],
+                }
+                for s in suggestions_db
+            ]
+
+            logger.info(f"[Session State] Found {len(suggestions)} suggestions")
+            logger.info(f"[Session State] Returning: {len(messages)} messages, {len(suggestions)} suggestions")
+
+            return jsonify({
+                'session_id': session_id,
+                'status': session.status,
+                'messages': messages,
+                'suggestions': suggestions,
+                'start_time': session.start_time.isoformat() if session.start_time else None,
+            }), 200
+
+    except Exception as e:
+        logger.error(f"Error getting session state: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @demo_bp.route('/end-demo-call', methods=['POST'])

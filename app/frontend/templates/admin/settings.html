@@ -123,6 +123,34 @@
         <button type="submit" class="btn btn-primary">Update Password</button>
       </div>
     </form>
+
+    <!-- Passkeys Section -->
+    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--gray-200);" id="passkeysSection">
+      <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+          <path d="M12 10v12"/>
+          <path d="M12 16h3"/>
+          <path d="M12 19h2"/>
+        </svg>
+        Passkeys
+      </h4>
+      <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 16px;">
+        Use biometrics, security keys, or your device to sign in without a password.
+      </p>
+
+      <!-- Passkeys List -->
+      <div id="passkeysList" style="margin-bottom: 16px;">
+        <div style="padding: 20px; text-align: center; color: var(--gray-500); font-size: 0.9rem;">
+          Loading passkeys...
+        </div>
+      </div>
+
+      <!-- Add Passkey Button -->
+      <button type="button" class="btn btn-secondary" id="addPasskeyBtn" onclick="registerPasskey()">
+        <span style="margin-right: 6px;">+</span> Add New Passkey
+      </button>
+    </div>
   </div>
 </div>
 
@@ -172,6 +200,260 @@
 
   newPassword.addEventListener('change', validatePassword);
   confirmPassword.addEventListener('keyup', validatePassword);
+
+  // =============================================
+  // Passkeys Management
+  // =============================================
+
+  const passkeySupported = window.PublicKeyCredential !== undefined;
+
+  // Hide passkeys section if not supported
+  if (!passkeySupported) {
+    document.getElementById('passkeysSection').innerHTML = `
+      <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Passkeys</h4>
+      <p style="font-size: 0.85rem; color: var(--gray-500);">
+        Passkeys are not supported in this browser. Please use a modern browser like Chrome, Safari, or Firefox.
+      </p>
+    `;
+  } else {
+    // Load passkeys on page load
+    loadPasskeys();
+  }
+
+  function base64urlToArrayBuffer(base64url) {
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const binary = atob(base64 + padding);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  function arrayBufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  function getAccessToken() {
+    // Try to get from cookie first (set by server)
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'access_token') {
+        return value;
+      }
+    }
+    // Fallback to localStorage
+    return localStorage.getItem('access_token');
+  }
+
+  async function loadPasskeys() {
+    const listEl = document.getElementById('passkeysList');
+
+    try {
+      const res = await fetch('/api/auth/passkey/list', {
+        headers: {
+          'Authorization': `Bearer ${getAccessToken()}`,
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!res.ok) throw new Error('Failed to load passkeys');
+
+      const { passkeys } = await res.json();
+
+      if (passkeys.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 20px; background: var(--gray-50); border-radius: 8px; text-align: center; color: var(--gray-500); font-size: 0.9rem;">
+            No passkeys registered yet. Add one to enable passwordless login.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = passkeys.map(pk => `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--gray-50); border-radius: 8px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                <rect x="2" y="6" width="20" height="12" rx="2"/>
+                <path d="M12 12h.01"/>
+                <path d="M17 12h.01"/>
+                <path d="M7 12h.01"/>
+              </svg>
+            </div>
+            <div>
+              <h5 style="font-size: 0.9rem; font-weight: 600; color: var(--gray-800);">${pk.device_name || 'Unknown Device'}</h5>
+              <p style="font-size: 0.75rem; color: var(--gray-500);">
+                Added ${new Date(pk.created_at).toLocaleDateString()}
+                ${pk.last_used_at ? ' · Last used ' + new Date(pk.last_used_at).toLocaleDateString() : ''}
+              </p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm" onclick="deletePasskey(${pk.id}, '${pk.device_name || 'this passkey'}')" style="padding: 6px 12px; font-size: 0.8rem;">
+            Remove
+          </button>
+        </div>
+      `).join('');
+
+    } catch (error) {
+      console.error('Error loading passkeys:', error);
+      listEl.innerHTML = `
+        <div style="padding: 20px; background: #fff5f5; border-radius: 8px; color: #c53030; font-size: 0.9rem;">
+          Failed to load passkeys. Please refresh the page.
+        </div>
+      `;
+    }
+  }
+
+  async function registerPasskey() {
+    const addBtn = document.getElementById('addPasskeyBtn');
+    addBtn.disabled = true;
+    addBtn.innerHTML = 'Setting up...';
+
+    try {
+      // Ask for device name
+      const deviceName = prompt('Enter a name for this passkey (e.g., "MacBook Pro", "iPhone"):', '');
+      if (deviceName === null) {
+        addBtn.disabled = false;
+        addBtn.innerHTML = '<span style="margin-right: 6px;">+</span> Add New Passkey';
+        return;
+      }
+
+      // 1. Get registration options
+      const optionsRes = await fetch('/api/auth/passkey/register/options', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken()}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!optionsRes.ok) throw new Error('Failed to get registration options');
+
+      const { options, challenge_id } = await optionsRes.json();
+      const parsedOptions = JSON.parse(options);
+
+      // 2. Prepare public key options
+      const publicKeyOptions = {
+        challenge: base64urlToArrayBuffer(parsedOptions.challenge),
+        rp: parsedOptions.rp,
+        user: {
+          id: base64urlToArrayBuffer(parsedOptions.user.id),
+          name: parsedOptions.user.name,
+          displayName: parsedOptions.user.displayName,
+        },
+        pubKeyCredParams: parsedOptions.pubKeyCredParams,
+        timeout: parsedOptions.timeout || 60000,
+        authenticatorSelection: parsedOptions.authenticatorSelection,
+        attestation: parsedOptions.attestation || 'none',
+      };
+
+      // Add excludeCredentials if present
+      if (parsedOptions.excludeCredentials) {
+        publicKeyOptions.excludeCredentials = parsedOptions.excludeCredentials.map(c => ({
+          id: base64urlToArrayBuffer(c.id),
+          type: 'public-key',
+          transports: c.transports,
+        }));
+      }
+
+      // 3. Create credential via WebAuthn
+      const credential = await navigator.credentials.create({
+        publicKey: publicKeyOptions,
+      });
+
+      if (!credential) throw new Error('No credential returned');
+
+      // 4. Prepare credential response
+      const credentialResponse = {
+        id: credential.id,
+        rawId: arrayBufferToBase64url(credential.rawId),
+        response: {
+          attestationObject: arrayBufferToBase64url(credential.response.attestationObject),
+          clientDataJSON: arrayBufferToBase64url(credential.response.clientDataJSON),
+        },
+        type: credential.type,
+        authenticatorAttachment: credential.authenticatorAttachment,
+      };
+
+      // Add transports if available
+      if (credential.response.getTransports) {
+        credentialResponse.transports = credential.response.getTransports();
+      }
+
+      // 5. Verify with server
+      const verifyRes = await fetch('/api/auth/passkey/register/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken()}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          challenge_id: challenge_id,
+          credential: credentialResponse,
+          device_name: deviceName || 'Unknown Device',
+        }),
+      });
+
+      const result = await verifyRes.json();
+
+      if (!verifyRes.ok) throw new Error(result.error || 'Registration failed');
+
+      // 6. Reload list
+      await loadPasskeys();
+      alert('Passkey registered successfully!');
+
+    } catch (error) {
+      console.error('Passkey registration error:', error);
+
+      if (error.name === 'NotAllowedError') {
+        alert('Passkey registration was cancelled or not allowed.');
+      } else if (error.name === 'InvalidStateError') {
+        alert('This device is already registered as a passkey.');
+      } else {
+        alert('Failed to register passkey: ' + (error.message || 'Unknown error'));
+      }
+    } finally {
+      addBtn.disabled = false;
+      addBtn.innerHTML = '<span style="margin-right: 6px;">+</span> Add New Passkey';
+    }
+  }
+
+  async function deletePasskey(passkeyId, deviceName) {
+    if (!confirm(`Remove passkey "${deviceName}"? You won't be able to use it to sign in anymore.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/auth/passkey/${passkeyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken()}`,
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete passkey');
+      }
+
+      await loadPasskeys();
+
+    } catch (error) {
+      console.error('Error deleting passkey:', error);
+      alert('Failed to delete passkey: ' + error.message);
+    }
+  }
 
   // Logout all confirmation
   function confirmLogoutAll() {

@@ -1,0 +1,421 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}LLM Prompts{% endblock %}
+{% block page_title %}LLM Prompts{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set can_edit = role in ['super_admin', 'company_admin', 'admin'] %}
+
+<style>
+  .prompt-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--gray-200);
+    margin-bottom: 20px;
+  }
+  .prompt-tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .prompt-tab:hover {
+    color: var(--gray-800);
+    background: var(--gray-50);
+  }
+  .prompt-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+  }
+  .prompt-panel {
+    display: none;
+  }
+  .prompt-panel.active {
+    display: block;
+  }
+  .language-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .language-tab {
+    padding: 6px 14px;
+    border-radius: 16px;
+    cursor: pointer;
+    border: 1px solid var(--gray-200);
+    background: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    transition: all 0.2s;
+  }
+  .language-tab:hover {
+    border-color: var(--gray-300);
+    background: var(--gray-50);
+  }
+  .language-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  .prompt-editor {
+    display: none;
+  }
+  .prompt-editor.active {
+    display: block;
+  }
+  .prompt-textarea {
+    width: 100%;
+    min-height: 350px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.85rem;
+    padding: 16px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    resize: vertical;
+    line-height: 1.6;
+    background: #fafafa;
+  }
+  .prompt-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    background: white;
+  }
+  .prompt-textarea:disabled {
+    background: var(--gray-100);
+    color: var(--gray-500);
+  }
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .editor-title {
+    font-weight: 600;
+    color: var(--gray-700);
+  }
+  .editor-meta {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+  }
+  .editor-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray-100);
+  }
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .status-dot.saved {
+    background: #4caf50;
+  }
+  .status-dot.modified {
+    background: #ff9800;
+  }
+  .status-dot.default {
+    background: var(--gray-400);
+  }
+  .prompt-description {
+    background: var(--gray-50);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+  }
+  .save-feedback {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  }
+  .save-feedback.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+  }
+  .save-feedback.error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2>LLM Prompts</h2>
+      <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 4px;">
+        Customize how the AI responds. Changes apply immediately after saving.
+      </p>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Prompt Type Tabs -->
+    <div class="prompt-tabs">
+      {% set prompt_keys = prompts | map(attribute='prompt_key') | unique | list %}
+      {% for key in prompt_keys %}
+      <button class="prompt-tab {% if loop.first %}active{% endif %}" onclick="switchPromptType('{{ key }}')">
+        {% if key == 'rag_answer' %}
+        RAG Answer Generation
+        {% elif key == 'validator' %}
+        Conversation Validator
+        {% else %}
+        {{ key | replace('_', ' ') | title }}
+        {% endif %}
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Prompt Panels -->
+    {% for key in prompt_keys %}
+    <div class="prompt-panel {% if loop.first %}active{% endif %}" id="panel-{{ key }}">
+      <!-- Language Tabs -->
+      <div class="language-tabs">
+        {% set key_prompts = prompts | selectattr('prompt_key', 'equalto', key) | list %}
+        {% for p in key_prompts %}
+        <button class="language-tab {% if loop.first %}active{% endif %}"
+                onclick="switchLanguage('{{ key }}', '{{ p.language }}')">
+          {{ p.language | upper }}
+          {% if p.is_custom %}<span style="margin-left: 4px;">*</span>{% endif %}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Language Editors -->
+      {% for p in key_prompts %}
+      <div class="prompt-editor {% if loop.first %}active{% endif %}" id="editor-{{ key }}-{{ p.language }}">
+        <div class="prompt-description">
+          {{ p.description or 'Configure how the AI generates responses for this use case.' }}
+        </div>
+
+        <div class="editor-header">
+          <div class="editor-title">{{ p.name }}</div>
+          <div class="editor-meta">
+            {% if p.is_custom %}
+            Custom prompt {% if p.updated_at %}(updated {{ p.updated_at.strftime('%Y-%m-%d') }}){% endif %}
+            {% else %}
+            Using default template
+            {% endif %}
+          </div>
+        </div>
+
+        <textarea
+          class="prompt-textarea"
+          id="textarea-{{ key }}-{{ p.language }}"
+          data-key="{{ key }}"
+          data-language="{{ p.language }}"
+          data-original="{{ p.system_prompt | e }}"
+          {% if not can_edit %}disabled{% endif %}
+          onkeydown="handleKeyDown(event, '{{ key }}', '{{ p.language }}')"
+          oninput="markModified('{{ key }}', '{{ p.language }}')"
+        >{{ p.system_prompt }}</textarea>
+
+        <div class="editor-actions">
+          <div class="status-indicator">
+            <span class="status-dot {% if p.is_custom %}saved{% else %}default{% endif %}" id="status-{{ key }}-{{ p.language }}"></span>
+            <span id="status-text-{{ key }}-{{ p.language }}">
+              {% if p.is_custom %}Saved{% else %}Default{% endif %}
+            </span>
+          </div>
+
+          {% if can_edit %}
+          <div class="btn-group">
+            {% if p.is_custom %}
+            <button type="button" class="btn btn-secondary btn-sm" onclick="resetPrompt('{{ key }}', '{{ p.language }}')">
+              Reset to Default
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-primary btn-sm" id="save-btn-{{ key }}-{{ p.language }}" onclick="savePrompt('{{ key }}', '{{ p.language }}')">
+              Save Changes
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tips Card -->
+<div class="card">
+  <div class="card-header">
+    <h2>Prompt Tips</h2>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; font-size: 0.85rem;">
+      <div>
+        <h4 style="font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Avoid Markdown Formatting</h4>
+        <p style="color: var(--gray-600); line-height: 1.6;">
+          Add "Answer in plain text without markdown formatting (no **, no ##)" to prevent bold/header formatting in responses.
+        </p>
+      </div>
+      <div>
+        <h4 style="font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Use Numbered Lists</h4>
+        <p style="color: var(--gray-600); line-height: 1.6;">
+          Specify "Use numbered lists (1. 2. 3.) for steps" instead of bullet points for cleaner output.
+        </p>
+      </div>
+      <div>
+        <h4 style="font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Keyboard Shortcut</h4>
+        <p style="color: var(--gray-600); line-height: 1.6;">
+          Press <kbd style="background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Cmd/Ctrl + S</kbd> to save the current prompt.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="save-feedback" class="save-feedback" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchPromptType(key) {
+    // Update tabs
+    document.querySelectorAll('.prompt-tab').forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Update panels
+    document.querySelectorAll('.prompt-panel').forEach(panel => panel.classList.remove('active'));
+    document.getElementById('panel-' + key).classList.add('active');
+  }
+
+  function switchLanguage(key, language) {
+    // Update language tabs within this panel
+    const panel = document.getElementById('panel-' + key);
+    panel.querySelectorAll('.language-tab').forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Update editors within this panel
+    panel.querySelectorAll('.prompt-editor').forEach(editor => editor.classList.remove('active'));
+    document.getElementById('editor-' + key + '-' + language).classList.add('active');
+  }
+
+  function markModified(key, language) {
+    const dot = document.getElementById('status-' + key + '-' + language);
+    const text = document.getElementById('status-text-' + key + '-' + language);
+    dot.className = 'status-dot modified';
+    text.textContent = 'Modified';
+  }
+
+  function handleKeyDown(event, key, language) {
+    // Cmd/Ctrl + S to save
+    if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+      event.preventDefault();
+      savePrompt(key, language);
+    }
+  }
+
+  async function savePrompt(promptKey, language) {
+    const textarea = document.getElementById('textarea-' + promptKey + '-' + language);
+    const systemPrompt = textarea.value;
+    const saveBtn = document.getElementById('save-btn-' + promptKey + '-' + language);
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const response = await fetch('/admin/prompts/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt_key: promptKey,
+          language: language,
+          system_prompt: systemPrompt,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showFeedback('Prompt saved successfully', 'success');
+        // Update status
+        const dot = document.getElementById('status-' + promptKey + '-' + language);
+        const text = document.getElementById('status-text-' + promptKey + '-' + language);
+        dot.className = 'status-dot saved';
+        text.textContent = 'Saved';
+        // Update original value
+        textarea.dataset.original = systemPrompt;
+      } else {
+        showFeedback(data.error || 'Failed to save', 'error');
+      }
+    } catch (error) {
+      showFeedback('Error: ' + error.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+    }
+  }
+
+  async function resetPrompt(promptKey, language) {
+    if (!confirm('Reset this prompt to the default? Your custom changes will be lost.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/admin/prompts/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt_key: promptKey,
+          language: language,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showFeedback('Prompt reset to default', 'success');
+        // Reload to get default prompt
+        setTimeout(() => location.reload(), 500);
+      } else {
+        showFeedback(data.error || 'Failed to reset', 'error');
+      }
+    } catch (error) {
+      showFeedback('Error: ' + error.message, 'error');
+    }
+  }
+
+  function showFeedback(message, type) {
+    const el = document.getElementById('save-feedback');
+    el.textContent = message;
+    el.className = 'save-feedback ' + type;
+    el.style.display = 'block';
+
+    setTimeout(() => {
+      el.style.display = 'none';
+    }, 3000);
+  }
+</script>
+{% endblock %}

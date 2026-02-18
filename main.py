@@ -28,6 +28,16 @@ try:
 except ImportError as e:
     print(f"⚠ Authentication routes not available: {e}")
 
+# Register passkey/WebAuthn routes
+try:
+    from app.api.passkey_routes import passkey_bp
+    app.register_blueprint(passkey_bp)
+    print("✓ Passkey routes registered (/api/auth/passkey/*)")
+except Exception as e:
+    print(f"⚠ Passkey routes not available: {e}")
+    import traceback
+    traceback.print_exc()
+
 # Register company management routes
 try:
     from app.api.company_routes import company_bp
@@ -95,6 +105,15 @@ try:
     print("✓ Configuration test routes registered")
 except ImportError as e:
     print(f"⚠ Configuration test routes not available: {e}")
+
+# Register integration routes (cloud telephony webhooks)
+try:
+    from app.api.integration_routes import integration_bp, integration_admin_bp
+    app.register_blueprint(integration_bp)
+    app.register_blueprint(integration_admin_bp)
+    print("✓ Integration routes registered (/api/v1/integrations/*)")
+except ImportError as e:
+    print(f"⚠ Integration routes not available: {e}")
 
 # Setup WebSocket routes
 setup_websocket(sock)

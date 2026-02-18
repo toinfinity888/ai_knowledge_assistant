@@ -48,6 +48,12 @@ class Company(Base):
         cascade="all, delete-orphan",
         passive_deletes=True
     )
+    integration_configs = relationship(
+        "IntegrationConfig",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
     def __repr__(self):
         return f"<Company(slug='{self.slug}', name='{self.name}', plan='{self.plan}')>"

@@ -45,14 +45,39 @@ class EmbeddedChunk:
     def from_point(cls, point: ScoredPoint) -> TextChunkForMvp:
         payload = point.payload or {}
 
+        # Extract text content
+        # Support multiple field names for text content
         if "posts" in payload:
-            return TextChunkForMvp(text=str(payload["posts"]))
+            text = str(payload["posts"])
         elif "content" in payload:
-            return TextChunkForMvp(text=payload["content"])
+            text = payload["content"]
         elif "text" in payload:
-            return TextChunkForMvp(text=payload["text"])
+            text = payload["text"]
+        elif "abstract" in payload:
+            text = payload["abstract"]
         else:
-            return TextChunkForMvp(text="")
+            text = ""
+
+        # Extract metadata from payload
+        # Support both new format (file_name) and legacy format (title)
+        file_name = payload.get("file_name") or payload.get("title")
+        source = Path(payload["source"]) if payload.get("source") else None
+        page = payload.get("page")
+        chunk_id = payload.get("chunk_id")
+        file_type = payload.get("file_type")
+
+        # Get score from the ScoredPoint
+        score = point.score if hasattr(point, 'score') else None
+
+        return TextChunkForMvp(
+            text=text,
+            file_name=file_name,
+            source=source,
+            page=page,
+            chunk_id=chunk_id,
+            file_type=file_type,
+            score=score,
+        )
         
 @dataclass
 class EmbeddedQuery:

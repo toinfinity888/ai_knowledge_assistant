@@ -167,6 +167,7 @@ class Suggestion(Base):
 
     # Source information
     source_chunks = Column(JSON, default=list)  # Referenced knowledge base chunks
+    source_metadata = Column(JSON, default=list)  # File names, pages, scores for provenance
     query_used = Column(Text, nullable=True)  # The query that generated this suggestion
 
     # Relevance
