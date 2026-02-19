@@ -12,13 +12,14 @@ class EmbeddedChunk:
     id: str
     embedding: List[float]
     text: str
-    #file_name: str
     source: Path
-    # page: Optional[int]
-    # file_type: Optional[str]
-    # last_modified: Optional[datetime]
-    # text_hash: str
-    # score: Optional[float]
+    file_name: Optional[str] = None
+    page: Optional[int] = None
+    file_type: Optional[str] = None
+    last_modified: Optional[datetime] = None
+    text_hash: Optional[str] = None
+    company_id: Optional[int] = None  # Multi-tenant isolation
+    document_id: Optional[int] = None  # For document deletion support
 
     def qdrant_id(self) -> str:
         return str(uuid5(NAMESPACE_DNS, self.id))
@@ -35,6 +36,12 @@ class EmbeddedChunk:
             "last_modified": self.last_modified.isoformat() if self.last_modified else None,
             "text_hash": self.text_hash,
         }
+        # Add company_id if present (for multi-tenancy)
+        if self.company_id is not None:
+            payload["company_id"] = self.company_id
+        # Add document_id if present (for deletion support)
+        if self.document_id is not None:
+            payload["document_id"] = self.document_id
         return PointStruct(
             id=qdrant_id,
             vector=self.embedding,

@@ -281,25 +281,89 @@ def company_audit_logs():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-# ==================== Document Management (Placeholder) ====================
-# These endpoints will be implemented when document upload functionality is added
+# ==================== Document Management ====================
 
 @admin_bp.route('/documents', methods=['POST'])
 @require_auth
 @require_company_admin
 def upload_document():
     """
-    Upload a document to the company knowledge base.
+    Upload a PDF document to the company knowledge base.
 
-    This is a placeholder endpoint. Full implementation requires:
-    - File upload handling
-    - PDF/document parsing
-    - Vector store indexing with company_id
+    Request: multipart/form-data with 'file' field containing PDF
+
+    Response:
+    {
+        "document": {
+            "id": 1,
+            "filename": "manual.pdf",
+            "status": "pending",
+            ...
+        },
+        "message": "Document uploaded. Processing started."
+    }
     """
-    return jsonify({
-        'error': 'Not implemented',
-        'message': 'Document upload functionality coming soon'
-    }), 501
+    from app.services.document_service import get_document_service
+    from app.models.document import DocumentStatus
+
+    # Check for file in request
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename:
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'Only PDF files are supported'}), 400
+
+    # Check file size (max 50MB)
+    file_content = file.read()
+    max_size = 50 * 1024 * 1024  # 50MB
+    if len(file_content) > max_size:
+        return jsonify({'error': f'File too large. Maximum size is {max_size // (1024*1024)}MB'}), 400
+
+    context = g.tenant_context
+
+    # Determine company_id
+    if context.is_super_admin:
+        company_id = request.form.get('company_id', type=int)
+        if not company_id:
+            return jsonify({'error': 'company_id is required for SUPER_ADMIN'}), 400
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+
+        # Upload document
+        document = document_service.upload_document(
+            file_content=file_content,
+            original_filename=file.filename,
+            company_id=company_id,
+            user_id=context.user_id,
+            mime_type=file.content_type or 'application/pdf',
+        )
+
+        # Process document (parse, chunk, embed, store)
+        # This could be moved to a background task for large files
+        try:
+            document = document_service.process_document(document.id)
+        except Exception as e:
+            logger.error(f"Error processing document {document.id}: {e}")
+            # Document is already saved with FAILED status
+
+        return jsonify({
+            'document': document.to_dict(),
+            'message': 'Document uploaded and processed.' if document.status == DocumentStatus.COMPLETED else 'Document uploaded. Processing failed.',
+        }), 201 if document.status == DocumentStatus.COMPLETED else 202
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error uploading document: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @admin_bp.route('/documents', methods=['GET'])
@@ -309,12 +373,106 @@ def list_documents():
     """
     List documents in the company knowledge base.
 
-    This is a placeholder endpoint.
+    Query params:
+    - page: int (default: 1)
+    - per_page: int (default: 20, max: 100)
+    - status: string (optional: pending, processing, completed, failed)
+    - company_id: int (optional, SUPER_ADMIN only)
+
+    Response:
+    {
+        "documents": [...],
+        "total": 50,
+        "page": 1,
+        "per_page": 20,
+        "pages": 3
+    }
     """
-    return jsonify({
-        'error': 'Not implemented',
-        'message': 'Document listing functionality coming soon'
-    }), 501
+    from app.services.document_service import get_document_service
+    from app.models.document import DocumentStatus
+
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
+    status_str = request.args.get('status')
+
+    # Parse status if provided
+    status = None
+    if status_str:
+        try:
+            status = DocumentStatus(status_str)
+        except ValueError:
+            return jsonify({'error': f'Invalid status. Must be one of: pending, processing, completed, failed'}), 400
+
+    context = g.tenant_context
+
+    # Determine company_id
+    if context.is_super_admin:
+        company_id = request.args.get('company_id', type=int)
+        if not company_id:
+            return jsonify({'error': 'company_id is required for SUPER_ADMIN'}), 400
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+        documents, total = document_service.get_documents(
+            company_id=company_id,
+            page=page,
+            per_page=per_page,
+            status=status,
+        )
+
+        pages = (total + per_page - 1) // per_page  # Ceiling division
+
+        return jsonify({
+            'documents': [doc.to_dict() for doc in documents],
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pages,
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing documents: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@admin_bp.route('/documents/<int:document_id>', methods=['GET'])
+@require_auth
+@require_company_admin
+def get_document(document_id: int):
+    """
+    Get details of a specific document.
+
+    Response:
+    {
+        "document": {...}
+    }
+    """
+    from app.services.document_service import get_document_service
+
+    context = g.tenant_context
+
+    # Determine company_id
+    if context.is_super_admin:
+        company_id = request.args.get('company_id', type=int)
+        if not company_id:
+            return jsonify({'error': 'company_id is required for SUPER_ADMIN'}), 400
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+        document = document_service.get_document(document_id, company_id)
+
+        if not document:
+            return jsonify({'error': 'Document not found'}), 404
+
+        return jsonify({'document': document.to_dict()})
+
+    except Exception as e:
+        logger.error(f"Error getting document {document_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @admin_bp.route('/documents/<int:document_id>', methods=['DELETE'])
@@ -324,9 +482,101 @@ def delete_document(document_id: int):
     """
     Delete a document from the company knowledge base.
 
-    This is a placeholder endpoint.
+    This removes:
+    - The document file from disk
+    - The document record from the database
+    - All associated vectors from Qdrant
+
+    Response:
+    {
+        "message": "Document deleted",
+        "document_id": 123
+    }
     """
-    return jsonify({
-        'error': 'Not implemented',
-        'message': 'Document deletion functionality coming soon'
-    }), 501
+    from app.services.document_service import get_document_service
+
+    context = g.tenant_context
+    metadata = get_request_metadata()
+
+    # Determine company_id
+    if context.is_super_admin:
+        company_id = request.args.get('company_id', type=int)
+        if not company_id:
+            return jsonify({'error': 'company_id is required for SUPER_ADMIN'}), 400
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+        deleted = document_service.delete_document(document_id, company_id)
+
+        if not deleted:
+            return jsonify({'error': 'Document not found'}), 404
+
+        # Log the deletion
+        try:
+            with get_db_session() as db:
+                audit_service = get_audit_service()
+                audit_service.log_action(
+                    action_type='document_deleted',
+                    actor_user_id=context.user_id,
+                    company_id=company_id,
+                    target_type='document',
+                    target_id=document_id,
+                    ip_address=metadata['ip_address'],
+                    db=db,
+                )
+                db.commit()
+        except Exception as e:
+            logger.warning(f"Failed to log document deletion: {e}")
+
+        return jsonify({
+            'message': 'Document deleted',
+            'document_id': document_id,
+        })
+
+    except Exception as e:
+        logger.error(f"Error deleting document {document_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@admin_bp.route('/documents/<int:document_id>/reprocess', methods=['POST'])
+@require_auth
+@require_company_admin
+def reprocess_document(document_id: int):
+    """
+    Reprocess a failed document.
+
+    Response:
+    {
+        "document": {...},
+        "message": "Document reprocessing started"
+    }
+    """
+    from app.services.document_service import get_document_service
+    from app.models.document import DocumentStatus
+
+    context = g.tenant_context
+
+    # Determine company_id
+    if context.is_super_admin:
+        company_id = request.args.get('company_id', type=int)
+        if not company_id:
+            return jsonify({'error': 'company_id is required for SUPER_ADMIN'}), 400
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+        document = document_service.reprocess_document(document_id, company_id)
+
+        return jsonify({
+            'document': document.to_dict(),
+            'message': 'Document reprocessed successfully' if document.status == DocumentStatus.COMPLETED else 'Document reprocessing failed',
+        })
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error reprocessing document {document_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

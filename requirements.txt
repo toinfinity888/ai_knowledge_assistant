@@ -28,3 +28,6 @@ twilio  # For Twilio Flex ACD integration and two-way calling
 pyannote.audio  # For speaker diarization
 deepgram-sdk  # For Deepgram Nova-3 real-time transcription
 groq  # Groq API client for Llama 8B inference (Intelligence Gatekeeper)
+
+# Document processing
+unstructured[pdf]>=0.12.0  # Advanced PDF parsing with table support

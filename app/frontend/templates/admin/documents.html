@@ -1,0 +1,512 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Documents - Knowledge Base{% endblock %}
+{% block page_title %}Documents{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .upload-zone {
+    border: 2px dashed var(--gray-300);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    background: var(--gray-50);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--primary);
+    background: rgba(36, 35, 165, 0.05);
+  }
+
+  .upload-zone-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .upload-zone h3 {
+    font-size: 1.1rem;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+  }
+
+  .upload-zone p {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 16px;
+  }
+
+  .upload-zone input[type="file"] {
+    display: none;
+  }
+
+  .upload-progress {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .upload-progress.active {
+    display: block;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  .progress-text {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    text-align: center;
+  }
+
+  .status-pending {
+    background: rgba(221, 122, 1, 0.1);
+    color: var(--warning);
+  }
+
+  .status-processing {
+    background: rgba(36, 35, 165, 0.1);
+    color: var(--primary);
+  }
+
+  .status-completed {
+    background: rgba(46, 132, 74, 0.1);
+    color: var(--success);
+  }
+
+  .status-failed {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--danger);
+  }
+
+  .file-size {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+  }
+
+  .chunk-count {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+  }
+
+  .error-message {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--danger);
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-row select {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 2px solid var(--gray-200);
+    font-size: 0.9rem;
+    background: #fff;
+    min-width: 150px;
+  }
+
+  .filter-row select:focus {
+    border-color: var(--primary);
+    outline: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set role = session.get('role', 'viewer') %}
+{% set is_super = role == 'super_admin' %}
+
+<!-- Success/Error messages from query params -->
+{% if request.args.get('success') %}
+<div class="alert alert-success">{{ request.args.get('success').replace('+', ' ') }}</div>
+{% endif %}
+{% if request.args.get('error') %}
+<div class="alert alert-error">{{ request.args.get('error').replace('+', ' ') }}</div>
+{% endif %}
+
+<!-- Upload Zone -->
+<div class="card">
+  <div class="card-header">
+    <h2>Upload Document</h2>
+  </div>
+  <div class="card-body">
+    <form id="uploadForm" enctype="multipart/form-data">
+      {% if is_super and companies %}
+      <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+        <label for="companySelect">Company</label>
+        <select name="company_id" id="companySelect" required>
+          <option value="">Select a company...</option>
+          {% for company in companies %}
+          <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>
+            {{ company.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-zone-icon">&#x1F4C4;</div>
+        <h3>Drag & drop your PDF here</h3>
+        <p>or click to browse files (max 50MB)</p>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+          Select File
+        </button>
+        <input type="file" id="fileInput" name="file" accept=".pdf" />
+      </div>
+
+      <div class="upload-progress" id="uploadProgress">
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Uploading...</div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Documents List -->
+<div class="card">
+  <div class="card-header">
+    <h2>Documents ({{ total }})</h2>
+  </div>
+  <div class="card-body">
+    <!-- Filters -->
+    <div class="filter-row">
+      {% if is_super and companies %}
+      <select id="filterCompany" onchange="applyFilters()">
+        <option value="">All Companies</option>
+        {% for company in companies %}
+        <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>
+          {{ company.name }}
+        </option>
+        {% endfor %}
+      </select>
+      {% endif %}
+
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+      </select>
+    </div>
+
+    {% if documents %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Status</th>
+            <th>Chunks</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+          <tr>
+            <td>
+              <strong>{{ doc.original_filename }}</strong>
+            </td>
+            <td>
+              <span class="file-size">{{ (doc.file_size / 1024 / 1024)|round(2) }} MB</span>
+            </td>
+            <td>
+              <span class="badge status-{{ doc.status.value }}">{{ doc.status.value }}</span>
+              {% if doc.error_message %}
+              <div class="error-message" title="{{ doc.error_message }}">{{ doc.error_message }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="chunk-count">{{ doc.chunk_count }} chunks</span>
+            </td>
+            <td>
+              {{ doc.created_at.strftime('%Y-%m-%d %H:%M') if doc.created_at else '-' }}
+            </td>
+            <td>
+              <div class="btn-group">
+                {% if doc.status.value == 'failed' %}
+                <button class="btn btn-sm btn-secondary" onclick="reprocessDocument({{ doc.id }})">
+                  Retry
+                </button>
+                {% endif %}
+                <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ doc.id }}, '{{ doc.original_filename }}')">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pages > 1 %}
+    <div class="pagination">
+      <div class="pagination-info">
+        Showing {{ (page - 1) * per_page + 1 }} - {{ min(page * per_page, total) }} of {{ total }}
+      </div>
+      <div class="pagination-buttons">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if selected_company_id %}&company_id={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        {% if page < pages %}
+        <a href="?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if selected_company_id %}&company_id={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F4C2;</div>
+      <h3>No documents yet</h3>
+      <p>Upload your first PDF to get started with your knowledge base.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Delete Document</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete "<strong id="deleteFilename"></strong>"?</p>
+      <p style="color: var(--danger); margin-top: 12px; font-size: 0.9rem;">
+        This will permanently remove the document and all its vectors from the knowledge base.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <form id="deleteForm" method="POST" style="display: inline;">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const uploadForm = document.getElementById('uploadForm');
+  const uploadProgress = document.getElementById('uploadProgress');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+
+  // Drag and drop
+  uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+  });
+
+  uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+  });
+
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  // File input change
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleFile(e.target.files[0]);
+    }
+  });
+
+  function handleFile(file) {
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Only PDF files are supported');
+      return;
+    }
+
+    // Validate file size (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 50MB.');
+      return;
+    }
+
+    {% if is_super %}
+    // Check company selection for super admin
+    const companySelect = document.getElementById('companySelect');
+    if (companySelect && !companySelect.value) {
+      alert('Please select a company first');
+      return;
+    }
+    {% endif %}
+
+    uploadFile(file);
+  }
+
+  function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    {% if is_super %}
+    const companyId = document.getElementById('companySelect')?.value;
+    if (companyId) {
+      formData.append('company_id', companyId);
+    }
+    {% endif %}
+
+    // Show progress
+    uploadProgress.classList.add('active');
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Uploading...';
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        progressFill.style.width = percent + '%';
+        progressText.textContent = `Uploading... ${percent}%`;
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 201 || xhr.status === 202) {
+        progressFill.style.width = '100%';
+        progressText.textContent = 'Processing document...';
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          alert('Upload failed: ' + (response.error || 'Unknown error'));
+        } catch {
+          alert('Upload failed');
+        }
+        uploadProgress.classList.remove('active');
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      alert('Upload failed. Please try again.');
+      uploadProgress.classList.remove('active');
+    });
+
+    xhr.open('POST', '/api/v1/admin/documents');
+    xhr.send(formData);
+  }
+
+  function applyFilters() {
+    const status = document.getElementById('filterStatus').value;
+    {% if is_super %}
+    const companyId = document.getElementById('filterCompany')?.value || '';
+    {% else %}
+    const companyId = '';
+    {% endif %}
+
+    let url = '/admin/documents?page=1';
+    if (status) url += '&status=' + status;
+    if (companyId) url += '&company_id=' + companyId;
+
+    window.location.href = url;
+  }
+
+  function confirmDelete(docId, filename) {
+    document.getElementById('deleteFilename').textContent = filename;
+    document.getElementById('deleteForm').action = '/api/v1/admin/documents/' + docId + '?_method=DELETE';
+    document.getElementById('deleteModal').classList.add('active');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+  }
+
+  // Handle delete form submission via fetch (since we need DELETE method)
+  document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const action = e.target.action;
+    const docId = action.split('/').pop().split('?')[0];
+
+    try {
+      const response = await fetch('/api/v1/admin/documents/' + docId{% if is_super %}{% if selected_company_id %} + '?company_id={{ selected_company_id }}'{% endif %}{% endif %}, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        window.location.href = '/admin/documents?success=Document+deleted';
+      } else {
+        const data = await response.json();
+        alert('Delete failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Delete failed: ' + error.message);
+    }
+
+    closeDeleteModal();
+  });
+
+  async function reprocessDocument(docId) {
+    if (!confirm('Retry processing this document?')) return;
+
+    try {
+      const response = await fetch('/api/v1/admin/documents/' + docId + '/reprocess{% if is_super %}{% if selected_company_id %}?company_id={{ selected_company_id }}{% endif %}{% endif %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        alert('Reprocess failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Reprocess failed: ' + error.message);
+    }
+  }
+</script>
+{% endblock %}

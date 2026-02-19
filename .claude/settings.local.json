@@ -22,7 +22,8 @@
       "Bash(lsof:*)",
       "Bash(for commit in 35267d6 bed0dfb 6cc7654 7290ead)",
       "Bash(do echo '=== $commit ===' git show $commit:app/frontend/templates/demo/technician_support.html)",
-      "Bash(node -c:*)"
+      "Bash(node -c:*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

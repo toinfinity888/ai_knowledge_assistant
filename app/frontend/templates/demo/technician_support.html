@@ -409,11 +409,11 @@
             50% { opacity: 0.5; }
         }
 
-        /* Console layout - 2 columns: 1/3 left, 2/3 right */
+        /* Console layout - 3 columns: Left (transcription), Center (analysis), Right (results) */
         .console-container {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 1fr 1fr 2fr;
             gap: 16px;
             padding: 16px;
             min-height: 0;
@@ -439,21 +439,26 @@
             min-height: 200px;
         }
 
-        /* Right column: Results (2/3) + Analysis (1/3) */
-        .console-column.right-column .results-section {
-            flex: 2;
+        /* Center column: Analysis (full height) */
+        .console-column.center-column {
             min-height: 0;
         }
 
-        .console-column.right-column .analysis-section {
+        .console-column.center-column .analysis-section {
             flex: 1;
-            min-height: 250px;
+            min-height: 0;
         }
 
-        /* Analysis Section - Two Panel Layout (side by side) */
+        /* Right column: Results (full height) */
+        .console-column.right-column .results-section {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Analysis Section - Vertical Layout (Actions at top, Fields below) */
         .analysis-panels {
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             height: 100%;
             gap: 12px;
         }
@@ -465,7 +470,7 @@
         }
 
         .analysis-panel.controls-panel {
-            flex: 0 0 40%;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: column;
         }
@@ -1418,8 +1423,12 @@
         }
 
         /* Responsive */
+        @media (max-width: 1400px) {
+            .console-container { grid-template-columns: 1fr 1fr 1.5fr; }
+        }
+
         @media (max-width: 1200px) {
-            .console-container { grid-template-columns: 1fr 1.5fr; }
+            .console-container { grid-template-columns: 1fr 1fr 1fr; }
         }
 
         @media (max-width: 1024px) {
@@ -1430,6 +1439,17 @@
             .menu-toggle { display: block; }
             .sidebar-overlay.active { display: block; }
             .sidebar-toggle { display: none; }
+            /* Stack center and right columns */
+            .console-container { grid-template-columns: 1fr 1.5fr; }
+            .console-column.center-column { display: none; }
+            .console-column.right-column {
+                display: flex;
+                flex-direction: column;
+            }
+            /* Show analysis in right column on tablet */
+            .console-column.right-column::before {
+                content: '';
+            }
         }
 
         @media (max-width: 768px) {
@@ -1439,7 +1459,8 @@
                 overflow-y: auto;
             }
             .card { min-height: 350px; }
-            .console-column:last-child { display: flex; }
+            .console-column { display: flex; }
+            .console-column.center-column { display: flex; }
         }
     </style>
 </head>
@@ -1640,27 +1661,8 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN (2/3): Results + Analysis -->
-            <div class="console-column right-column">
-                <!-- Search Results (Top 2/3) -->
-                <div class="card results-section">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="card-title-icon">&#x1F4DA;</span>
-                            Knowledge Base Results
-                        </div>
-                        <span id="resultsCount" style="font-size: 0.8rem; color: var(--gray-500);"></span>
-                    </div>
-                    <div class="card-body no-padding" id="solutionContent">
-                        <div class="solutions-empty">
-                            <div class="solutions-empty-icon">&#x1F50D;</div>
-                            <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
-                            <div style="font-size: 0.85rem;">Click "Analyze Context" then "Search" to query the knowledge base</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Context Analysis (Bottom 1/3) -->
+            <!-- CENTER COLUMN: Context Analysis (full height) -->
+            <div class="console-column center-column">
                 <div class="card analysis-section">
                     <div class="card-header">
                         <div class="card-title">
@@ -1670,7 +1672,7 @@
                     </div>
                     <div class="card-body" style="padding: 12px; overflow-y: auto;">
                         <div class="analysis-panels">
-                            <!-- Panel 1: Controls (buttons, notifications, domain) -->
+                            <!-- Panel 1: Actions (buttons, domain indicator) -->
                             <div class="analysis-panel controls-panel">
                                 <div class="panel-header">
                                     <span class="panel-title">Actions</span>
@@ -1706,6 +1708,26 @@
                                     <!-- Fields will be populated by JavaScript -->
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Results (full height) -->
+            <div class="console-column right-column">
+                <div class="card results-section">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span class="card-title-icon">&#x1F4DA;</span>
+                            Knowledge Base Results
+                        </div>
+                        <span id="resultsCount" style="font-size: 0.8rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="card-body no-padding" id="solutionContent">
+                        <div class="solutions-empty">
+                            <div class="solutions-empty-icon">&#x1F50D;</div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">No results yet</div>
+                            <div style="font-size: 0.85rem;">Click "Analyze Context" then "Search" to query the knowledge base</div>
                         </div>
                     </div>
                 </div>

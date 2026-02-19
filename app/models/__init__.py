@@ -34,6 +34,9 @@ from app.models.call_session import (
 # Domain schema registry
 from app.models.domain_schema import DomainSchema, DomainSchemaField
 
+# Document management
+from app.models.document import Document, DocumentStatus
+
 # Query logging
 from app.models.query_logs import QueryLogs
 
@@ -71,6 +74,9 @@ __all__ = [
     # Domain schema registry
     'DomainSchema',
     'DomainSchemaField',
+    # Document management
+    'Document',
+    'DocumentStatus',
     # Query logs
     'QueryLogs',
     # Data models

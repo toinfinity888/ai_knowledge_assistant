@@ -21,6 +21,7 @@ def get_token_from_request() -> Optional[str]:
     Checks in order:
     1. Authorization header (Bearer token)
     2. Query parameter 'token' (for WebSocket connections)
+    3. Cookie 'access_token' (for web UI requests)
 
     Returns:
         Token string or None
@@ -35,15 +36,23 @@ def get_token_from_request() -> Optional[str]:
     if token:
         return token
 
+    # Check cookie (for web UI requests from login)
+    token = request.cookies.get('access_token')
+    if token:
+        return token
+
     return None
 
 
 def require_auth(f: Callable) -> Callable:
     """
-    Decorator that requires valid JWT authentication.
+    Decorator that requires valid authentication.
 
-    Sets up the tenant context with user and company information
-    from the JWT token.
+    Supports two authentication methods:
+    1. JWT token (via Authorization header or query param) - for API clients
+    2. Flask session (via cookies) - for admin panel web UI
+
+    Sets up the tenant context with user and company information.
 
     Usage:
         @app.route('/api/protected')
@@ -54,32 +63,52 @@ def require_auth(f: Callable) -> Callable:
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = get_token_from_request()
+        from flask import session
 
-        if not token:
+        context = None
+
+        # First, try JWT token authentication
+        token = get_token_from_request()
+        if token:
+            auth_service = get_auth_service()
+            payload = auth_service.verify_access_token(token)
+
+            if payload:
+                # Create context from JWT payload
+                context = TenantContext(
+                    user_id=int(payload['sub']),
+                    email=payload['email'],
+                    company_id=payload.get('company_id'),  # None for SUPER_ADMIN
+                    company_slug=payload.get('company_slug'),
+                    role=payload['role'],
+                    is_super_admin=payload.get('is_super_admin', False),
+                )
+
+        # If no valid JWT, try Flask session authentication
+        if not context and session.get('user_id'):
+            user_id = session.get('user_id')
+            email = session.get('user_email', '')
+            company_id = session.get('company_id')
+            company_slug = session.get('company_slug')
+            role = session.get('role', 'viewer')
+            is_super_admin = role == 'super_admin'
+
+            context = TenantContext(
+                user_id=user_id,
+                email=email,
+                company_id=company_id,
+                company_slug=company_slug,
+                role=role,
+                is_super_admin=is_super_admin,
+            )
+
+        # If still no valid authentication, return error
+        if not context:
             return jsonify({
                 'error': 'Authentication required',
-                'message': 'Missing authentication token'
+                'message': 'Missing or invalid authentication'
             }), 401
 
-        auth_service = get_auth_service()
-        payload = auth_service.verify_access_token(token)
-
-        if not payload:
-            return jsonify({
-                'error': 'Invalid token',
-                'message': 'Token is invalid or expired'
-            }), 401
-
-        # Create and set tenant context
-        context = TenantContext(
-            user_id=int(payload['sub']),
-            email=payload['email'],
-            company_id=payload.get('company_id'),  # None for SUPER_ADMIN
-            company_slug=payload.get('company_slug'),
-            role=payload['role'],
-            is_super_admin=payload.get('is_super_admin', False),
-        )
         set_tenant_context(context)
 
         # Also store in Flask's g for easy access
@@ -163,8 +192,9 @@ def optional_auth(f: Callable) -> Callable:
     """
     Decorator that optionally authenticates the user.
 
-    Sets up tenant context if a valid token is provided,
-    but allows the request to proceed without authentication.
+    Sets up tenant context if valid authentication is provided
+    (JWT token or Flask session), but allows the request to proceed
+    without authentication.
 
     Useful for endpoints that behave differently for authenticated
     vs unauthenticated users.
@@ -180,8 +210,12 @@ def optional_auth(f: Callable) -> Callable:
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = get_token_from_request()
+        from flask import session
 
+        context = None
+
+        # First, try JWT token authentication
+        token = get_token_from_request()
         if token:
             auth_service = get_auth_service()
             payload = auth_service.verify_access_token(token)
@@ -195,8 +229,28 @@ def optional_auth(f: Callable) -> Callable:
                     role=payload['role'],
                     is_super_admin=payload.get('is_super_admin', False),
                 )
-                set_tenant_context(context)
-                g.tenant_context = context
+
+        # If no valid JWT, try Flask session authentication
+        if not context and session.get('user_id'):
+            user_id = session.get('user_id')
+            email = session.get('user_email', '')
+            company_id = session.get('company_id')
+            company_slug = session.get('company_slug')
+            role = session.get('role', 'viewer')
+            is_super_admin = role == 'super_admin'
+
+            context = TenantContext(
+                user_id=user_id,
+                email=email,
+                company_id=company_id,
+                company_slug=company_slug,
+                role=role,
+                is_super_admin=is_super_admin,
+            )
+
+        if context:
+            set_tenant_context(context)
+            g.tenant_context = context
 
         try:
             return f(*args, **kwargs)

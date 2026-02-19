@@ -1357,3 +1357,73 @@ def seed_default_schemas():
         return redirect(url_for('admin_panel.domain_schemas') + f'?error={str(e)}')
 
     return redirect(url_for('admin_panel.domain_schemas') + f'?success=Seeded+{len(schemas)}+default+schemas')
+
+
+# ==================== Documents (Knowledge Base) ====================
+
+@admin_panel_bp.route('/documents')
+@admin_required
+def documents():
+    """List documents in the knowledge base."""
+    from app.services.document_service import get_document_service
+    from app.models.document import DocumentStatus
+
+    role = session.get('role', '')
+    is_super = role == 'super_admin'
+    company_id = session.get('company_id')
+
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
+    status_filter = request.args.get('status', '')
+
+    # SUPER_ADMIN can filter by company
+    selected_company_id = None
+    companies_list = []
+    if is_super:
+        selected_company_id = request.args.get('company_id', type=int)
+        try:
+            with get_db_session() as db:
+                companies_list = db.query(Company).filter(Company.is_active == True).all()
+        except Exception as e:
+            logger.error(f"Error loading companies: {e}")
+
+    documents_list = []
+    total = 0
+    pages = 0
+
+    # Parse status filter
+    status = None
+    if status_filter:
+        try:
+            status = DocumentStatus(status_filter)
+        except ValueError:
+            pass
+
+    try:
+        document_service = get_document_service()
+        target_company_id = selected_company_id if is_super and selected_company_id else company_id
+
+        if target_company_id:
+            documents_list, total = document_service.get_documents(
+                company_id=target_company_id,
+                page=page,
+                per_page=per_page,
+                status=status,
+            )
+            pages = (total + per_page - 1) // per_page
+
+    except Exception as e:
+        logger.error(f"Error listing documents: {e}")
+
+    return render_template(
+        'admin/documents.html',
+        active_page='documents',
+        documents=documents_list,
+        companies=companies_list,
+        selected_company_id=selected_company_id,
+        status_filter=status_filter,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages,
+    )
