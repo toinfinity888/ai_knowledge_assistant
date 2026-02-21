@@ -1,0 +1,697 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .analytics-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-group label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+  }
+
+  .filter-group select {
+    padding: 8px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .filter-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .period-buttons {
+    display: flex;
+    gap: 4px;
+    background: var(--gray-100);
+    padding: 4px;
+    border-radius: 8px;
+  }
+
+  .period-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .period-btn:hover {
+    color: var(--gray-800);
+  }
+
+  .period-btn.active {
+    background: #fff;
+    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .stats-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 1200px) {
+    .stats-grid-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .stats-grid-4 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stat-card-mini {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-card-mini .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .stat-card-mini .stat-icon.blue { background: rgba(36, 35, 165, 0.1); color: var(--primary); }
+  .stat-card-mini .stat-icon.green { background: rgba(46, 132, 74, 0.1); color: var(--success); }
+  .stat-card-mini .stat-icon.orange { background: rgba(221, 122, 1, 0.1); color: var(--warning); }
+  .stat-card-mini .stat-icon.purple { background: rgba(128, 90, 213, 0.1); color: #805ad5; }
+  .stat-card-mini .stat-icon.red { background: rgba(220, 53, 69, 0.1); color: var(--danger); }
+  .stat-card-mini .stat-icon.cyan { background: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+
+  .stat-card-mini .stat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-card-mini .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .stat-card-mini .stat-label {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    white-space: nowrap;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 1024px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .chart-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .chart-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chart-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+
+  .chart-body {
+    padding: 20px;
+    position: relative;
+    min-height: 280px;
+  }
+
+  .chart-body canvas {
+    max-height: 260px;
+  }
+
+  .user-table-container {
+    margin-bottom: 24px;
+  }
+
+  .user-table th {
+    font-size: 0.75rem;
+  }
+
+  .user-table td {
+    font-size: 0.875rem;
+  }
+
+  .rating-stars {
+    color: #fbbf24;
+    letter-spacing: -2px;
+  }
+
+  .rating-value {
+    margin-left: 8px;
+    color: var(--gray-600);
+    font-size: 0.85rem;
+  }
+
+  .progress-bar-mini {
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+    width: 60px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  .progress-bar-mini .fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  .progress-bar-mini .fill.green { background: var(--success); }
+  .progress-bar-mini .fill.blue { background: var(--primary); }
+  .progress-bar-mini .fill.orange { background: var(--warning); }
+
+  .field-edit-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .field-edit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .field-edit-item:last-child {
+    border-bottom: none;
+  }
+
+  .field-edit-name {
+    font-size: 0.9rem;
+    color: var(--gray-700);
+  }
+
+  .field-edit-count {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-900);
+  }
+
+  .field-edit-bar {
+    flex: 1;
+    max-width: 120px;
+    margin: 0 16px;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .field-edit-bar .fill {
+    height: 100%;
+    background: var(--warning);
+    border-radius: 4px;
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+  }
+
+  .no-data-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .duration-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-filters">
+  <div class="period-buttons">
+    <button class="period-btn {% if period == 'day' %}active{% endif %}" onclick="setPeriod('day')">Today</button>
+    <button class="period-btn {% if period == 'week' %}active{% endif %}" onclick="setPeriod('week')">Week</button>
+    <button class="period-btn {% if period == 'month' %}active{% endif %}" onclick="setPeriod('month')">Month</button>
+    <button class="period-btn {% if period == 'year' %}active{% endif %}" onclick="setPeriod('year')">Year</button>
+  </div>
+
+  {% if companies %}
+  <div class="filter-group">
+    <label>Company:</label>
+    <select id="companyFilter" onchange="filterByCompany()">
+      <option value="">All Companies</option>
+      {% for company in companies %}
+      <option value="{{ company.id }}" {% if selected_company_id == company.id %}selected{% endif %}>
+        {{ company.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Summary Stats -->
+{% set summary = analytics.get('summary', {}) %}
+<div class="stats-grid-4">
+  <div class="stat-card-mini">
+    <div class="stat-icon blue">&#x1F4DE;</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ summary.get('total_sessions', 0) }}</div>
+      <div class="stat-label">Total Sessions</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon green">
+      {% if summary.get('avg_solution_rating') %}
+        &#x2B50;
+      {% else %}
+        &#x2606;
+      {% endif %}
+    </div>
+    <div class="stat-content">
+      <div class="stat-value">{{ summary.get('avg_solution_rating') or '-' }}{% if summary.get('avg_solution_rating') %}/5{% endif %}</div>
+      <div class="stat-label">Avg Rating</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon purple">&#x1F50D;</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ summary.get('total_searches', 0) }}</div>
+      <div class="stat-label">Total Searches</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon cyan">&#x2705;</div>
+    <div class="stat-content">
+      <div class="stat-value">{% if summary.get('issue_resolved_rate') is not none %}{{ (summary.get('issue_resolved_rate') * 100)|round|int }}%{% else %}-{% endif %}</div>
+      <div class="stat-label">Resolved Rate</div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid-4">
+  <div class="stat-card-mini">
+    <div class="stat-icon orange">&#x23F1;</div>
+    <div class="stat-content">
+      <div class="stat-value">{% if summary.get('avg_session_duration_seconds') %}{{ (summary.get('avg_session_duration_seconds') / 60)|round(1) }}m{% else %}-{% endif %}</div>
+      <div class="stat-label">Avg Duration</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon blue">&#x26A1;</div>
+    <div class="stat-content">
+      <div class="stat-value">{% if summary.get('avg_response_time_ms') %}{{ (summary.get('avg_response_time_ms') / 1000)|round(1) }}s{% else %}-{% endif %}</div>
+      <div class="stat-label">Avg Response</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon red">&#x274C;</div>
+    <div class="stat-content">
+      <div class="stat-value">{% if summary.get('zero_result_rate') is not none %}{{ (summary.get('zero_result_rate') * 100)|round|int }}%{% else %}-{% endif %}</div>
+      <div class="stat-label">Zero Results</div>
+    </div>
+  </div>
+
+  <div class="stat-card-mini">
+    <div class="stat-icon green">&#x1F4DD;</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ summary.get('total_field_edits', 0) }}</div>
+      <div class="stat-label">Field Edits</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Sessions & Searches Trend</h3>
+    </div>
+    <div class="chart-body">
+      <canvas id="trendsChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Most Edited Fields</h3>
+    </div>
+    <div class="chart-body" style="padding: 16px;">
+      {% if analytics.top_edited_fields %}
+      <ul class="field-edit-list">
+        {% set max_edits = analytics.top_edited_fields[0].edit_count if analytics.top_edited_fields else 1 %}
+        {% for field in analytics.top_edited_fields[:6] %}
+        <li class="field-edit-item">
+          <span class="field-edit-name">{{ field.field_name }}</span>
+          <div class="field-edit-bar">
+            <div class="fill" style="width: {{ (field.edit_count / max_edits * 100)|round }}%"></div>
+          </div>
+          <span class="field-edit-count">{{ field.edit_count }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="no-data">
+        <div class="no-data-icon">&#x1F4DD;</div>
+        <p>No field edits recorded yet</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Agent Leaderboard -->
+<div class="card user-table-container">
+  <div class="card-header">
+    <h2>Agent Performance</h2>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-container">
+      {% if analytics.by_user %}
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Sessions</th>
+            <th>Searches</th>
+            <th>Avg Rating</th>
+            <th>Resolved Rate</th>
+            <th>Field Edits</th>
+            <th>Avg Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in analytics.by_user %}
+          <tr>
+            <td>
+              <strong>{{ user.user_name }}</strong>
+            </td>
+            <td>{{ user.sessions }}</td>
+            <td>{{ user.searches }}</td>
+            <td>
+              {% if user.avg_rating %}
+              <span class="rating-stars">&#9733;</span>
+              <span class="rating-value">{{ user.avg_rating }}/5</span>
+              {% else %}
+              <span style="color: var(--gray-400);">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user.resolved_rate is not none %}
+              <div class="progress-bar-mini">
+                <div class="fill green" style="width: {{ (user.resolved_rate * 100)|round }}%"></div>
+              </div>
+              {{ (user.resolved_rate * 100)|round }}%
+              {% else %}
+              <span style="color: var(--gray-400);">-</span>
+              {% endif %}
+            </td>
+            <td>{{ user.field_edits }}</td>
+            <td>
+              {% if user.avg_duration_seconds %}
+              <span class="duration-badge">
+                &#x23F1; {{ (user.avg_duration_seconds / 60)|round(1) }}m
+              </span>
+              {% else %}
+              <span style="color: var(--gray-400);">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="no-data">
+        <div class="no-data-icon">&#x1F465;</div>
+        <p>No agent data available for this period</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Suggestion Stats Card -->
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Rating Trend</h3>
+    </div>
+    <div class="chart-body">
+      <canvas id="ratingChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Suggestion Performance</h3>
+    </div>
+    <div class="chart-body">
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 8px 0;">
+        <div class="stat-card-mini" style="box-shadow: none; padding: 12px; background: var(--gray-50);">
+          <div class="stat-icon blue" style="width: 40px; height: 40px; font-size: 1rem;">&#x1F4A1;</div>
+          <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.25rem;">{{ summary.get('suggestions_shown', 0) }}</div>
+            <div class="stat-label">Suggestions Shown</div>
+          </div>
+        </div>
+        <div class="stat-card-mini" style="box-shadow: none; padding: 12px; background: var(--gray-50);">
+          <div class="stat-icon green" style="width: 40px; height: 40px; font-size: 1rem;">&#x1F446;</div>
+          <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.25rem;">{{ summary.get('suggestions_clicked', 0) }}</div>
+            <div class="stat-label">Suggestions Clicked</div>
+          </div>
+        </div>
+        <div class="stat-card-mini" style="box-shadow: none; padding: 12px; background: var(--gray-50);">
+          <div class="stat-icon purple" style="width: 40px; height: 40px; font-size: 1rem;">&#x1F4C8;</div>
+          <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.25rem;">{% if summary.get('suggestion_click_rate') is not none %}{{ (summary.get('suggestion_click_rate') * 100)|round|int }}%{% else %}-{% endif %}</div>
+            <div class="stat-label">Click-Through Rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Period filter
+  function setPeriod(period) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('period', period);
+    window.location.href = url.toString();
+  }
+
+  // Company filter
+  function filterByCompany() {
+    const companyId = document.getElementById('companyFilter')?.value;
+    const url = new URL(window.location.href);
+    if (companyId) {
+      url.searchParams.set('company_id', companyId);
+    } else {
+      url.searchParams.delete('company_id');
+    }
+    window.location.href = url.toString();
+  }
+
+  // Chart data from server
+  const trendsData = {{ analytics.trends | tojson | safe }};
+
+  // Sessions & Searches Chart
+  const trendsCtx = document.getElementById('trendsChart')?.getContext('2d');
+  if (trendsCtx && trendsData.dates && trendsData.dates.length > 0) {
+    new Chart(trendsCtx, {
+      type: 'line',
+      data: {
+        labels: trendsData.dates.map(d => {
+          const date = new Date(d);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }),
+        datasets: [
+          {
+            label: 'Sessions',
+            data: trendsData.sessions,
+            borderColor: '#2423a5',
+            backgroundColor: 'rgba(36, 35, 165, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+          {
+            label: 'Searches',
+            data: trendsData.searches,
+            borderColor: '#805ad5',
+            backgroundColor: 'rgba(128, 90, 213, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+            }
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+            }
+          },
+          x: {
+            grid: {
+              display: false,
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Rating Trend Chart
+  const ratingCtx = document.getElementById('ratingChart')?.getContext('2d');
+  if (ratingCtx && trendsData.dates && trendsData.dates.length > 0) {
+    // Filter out null values for rating
+    const ratingData = trendsData.solution_rating_avg.map(v => v === null ? NaN : v);
+
+    new Chart(ratingCtx, {
+      type: 'line',
+      data: {
+        labels: trendsData.dates.map(d => {
+          const date = new Date(d);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }),
+        datasets: [
+          {
+            label: 'Avg Rating',
+            data: ratingData,
+            borderColor: '#fbbf24',
+            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#fbbf24',
+            spanGaps: true,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 5,
+            ticks: {
+              stepSize: 1,
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+            }
+          },
+          x: {
+            grid: {
+              display: false,
+            }
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

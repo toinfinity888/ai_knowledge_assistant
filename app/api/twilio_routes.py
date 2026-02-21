@@ -150,8 +150,11 @@ def voice_webhook():
         # Get session_id passed from frontend (CRITICAL for WebSocket matching)
         session_id = request.form.get('session_id', request.values.get('session_id'))
 
+        # Get language passed from frontend for transcription
+        language = request.form.get('language', request.values.get('language', 'en'))
+
         logger.info(f"📞 Browser calling {to_number} from {from_number}")
-        logger.info(f"📋 Session ID from frontend: {session_id}")
+        logger.info(f"📋 Session ID from frontend: {session_id}, language: {language}")
 
         # CRITICAL: If session_id is None, log a clear warning
         if not session_id:
@@ -170,11 +173,12 @@ def voice_webhook():
         start = response.start()
         stream = start.stream(url=stream_url, track='both_tracks')
 
-        # Pass session_id as custom parameter to the media stream WebSocket
+        # Pass session_id and language as custom parameters to the media stream WebSocket
         # This allows the WebSocket handler to use the same session_id as the frontend
         if session_id:
             stream.parameter(name='session_id', value=session_id)
-            logger.info(f"📋 Passing session_id={session_id} to media stream")
+            stream.parameter(name='language', value=language)
+            logger.info(f"📋 Passing session_id={session_id}, language={language} to media stream")
 
         # Dial the number
         dial = Dial(caller_id=settings.phone_number)
@@ -493,15 +497,16 @@ def register_websocket_routes(sock):
                     logger.info(f"Event type: {event_type}")
 
                     if event_type == 'start':
-                        # Extract session_id from custom parameters
+                        # Extract session_id and language from custom parameters
                         stream_sid = data['start']['streamSid']
                         custom_params = data['start'].get('customParameters', {})
                         session_id = custom_params.get('session_id', stream_sid)
+                        stream_language = custom_params.get('language', 'en')
 
                         # CRITICAL DEBUG with print()
                         print(f"🔥 START EVENT - stream_sid: {stream_sid}")
                         print(f"🔥 START EVENT - customParameters: {custom_params}")
-                        print(f"🔥 START EVENT - session_id extracted: {session_id}")
+                        print(f"🔥 START EVENT - session_id extracted: {session_id}, language: {stream_language}")
                         print(f"🔥 START EVENT - twilio_service id: {id(twilio_service)}")
 
                         # Check what's already in active_streams
@@ -540,6 +545,7 @@ def register_websocket_routes(sock):
                         twilio_service.active_streams[session_id] = {
                             'websocket': ws,
                             'stream_sid': stream_sid,
+                            'language': stream_language,
                             'started_at': datetime.utcnow(),
                             'audio_buffer': [],
                             'technician': {
@@ -663,7 +669,7 @@ def register_websocket_routes(sock):
 
                         phone_technician_deepgram = deepgram_bridge.create_customer_stream(
                             session_id=session_id,
-                            language='en',  # TESTING: Changed from 'fr' to 'en' to diagnose empty transcripts
+                            language=stream_language,
                             on_transcript=on_phone_technician_transcript
                         )
 
@@ -844,6 +850,11 @@ def register_websocket_routes(sock):
         import struct
         import uuid
         import time
+        from flask import request
+
+        # Get language from query parameter (default to 'en')
+        language = request.args.get('language', 'en')
+        logger.info(f"[{session_id}] Agent audio stream language: {language}")
 
         # Utterance tracking for technician
         current_utterance_ids = {}
@@ -858,7 +869,7 @@ def register_websocket_routes(sock):
         PAUSE_THRESHOLD_MS = 2000
 
         try:
-            logger.info(f"Agent audio stream WebSocket connected for session {session_id}")
+            logger.info(f"Agent audio stream WebSocket connected for session {session_id} (language: {language})")
 
             # Get services
             twilio_service = get_twilio_service()
@@ -978,7 +989,7 @@ def register_websocket_routes(sock):
 
             agent_deepgram = deepgram_bridge.create_technician_stream(
                 session_id=session_id,
-                language='en',  # TESTING: Changed from 'fr' to 'en' to diagnose empty transcripts
+                language=language,
                 on_transcript=on_agent_transcript
             )
 

@@ -1361,6 +1361,67 @@ def seed_default_schemas():
 
 # ==================== Documents (Knowledge Base) ====================
 
+# ==================== Analytics ====================
+
+@admin_panel_bp.route('/analytics')
+@admin_required
+def analytics():
+    """Analytics dashboard with metrics and charts."""
+    from app.services.analytics_service import get_analytics_service
+
+    role = session.get('role', '')
+    is_super = role == 'super_admin'
+    company_id = session.get('company_id')
+
+    # Get period from query params
+    period = request.args.get('period', 'week')
+    if period not in ['day', 'week', 'month', 'year']:
+        period = 'week'
+
+    # SUPER_ADMIN can filter by company
+    selected_company_id = None
+    companies_list = []
+    if is_super:
+        selected_company_id = request.args.get('company_id', type=int)
+        try:
+            with get_db_session() as db:
+                companies_list = db.query(Company).filter(Company.is_active == True).all()
+        except Exception as e:
+            logger.error(f"Error loading companies: {e}")
+
+    analytics_data = {
+        'summary': {},
+        'trends': {'dates': [], 'sessions': [], 'searches': [], 'solution_rating_avg': []},
+        'by_user': [],
+        'top_edited_fields': [],
+        'top_sources': [],
+    }
+
+    try:
+        analytics_service = get_analytics_service()
+        target_company_id = selected_company_id if is_super and selected_company_id else company_id
+
+        if target_company_id:
+            analytics_data = analytics_service.get_dashboard_data(
+                company_id=target_company_id,
+                period=period,
+            )
+
+    except Exception as e:
+        logger.error(f"Error loading analytics: {e}")
+
+    return render_template(
+        'admin/analytics.html',
+        active_page='analytics',
+        analytics=analytics_data,
+        period=period,
+        companies=companies_list,
+        selected_company_id=selected_company_id,
+    )
+
+
+# ==================== Documents (Knowledge Base) ====================
+
 @admin_panel_bp.route('/documents')
 @admin_required
 def documents():

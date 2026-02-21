@@ -11,8 +11,9 @@
         html, body { height: 100%; overflow: hidden; }
 
         :root {
-            --primary: #2423a5;
-            --primary-dark: #4e9ee3;
+            --primary: #66a9a2;
+            --primary-dark: #4d8a84;
+            --primary-darker: #3d7a74;
             --success: #2e844a;
             --success-light: #d1e7dd;
             --warning: #dd7a01;
@@ -31,8 +32,8 @@
             --gray-900: #212529;
             --text: #212529;
             --sidebar-width: 260px;
-            --sidebar-bg: #09092a;
-            --sidebar-text: #a0aec0;
+            --sidebar-bg: #66a9a2;
+            --sidebar-text: rgba(255, 255, 255, 0.85);
             --topbar-height: 60px;
             --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
             --border-radius: 12px;
@@ -163,8 +164,8 @@
         }
 
         .sidebar-toggle:hover {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: var(--primary-darker);
+            border-color: var(--primary-darker);
         }
 
         .sidebar.collapsed .sidebar-toggle {
@@ -173,7 +174,7 @@
 
         .sidebar-header {
             padding: 20px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .sidebar-brand {
@@ -228,22 +229,25 @@
             align-items: center;
             gap: 12px;
             padding: 12px 16px;
+            margin-left: -12px;
+            margin-right: -12px;
+            padding-left: 28px;
             color: var(--sidebar-text);
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 0.9rem;
             font-weight: 500;
             transition: all 0.2s;
-            margin-bottom: 4px;
+            margin-bottom: 0;
         }
 
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary-darker);
             color: #fff;
         }
 
@@ -255,7 +259,7 @@
 
         .sidebar-footer {
             padding: 16px 12px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .user-info {
@@ -263,7 +267,7 @@
             align-items: center;
             gap: 12px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             margin-bottom: 12px;
         }
@@ -271,7 +275,7 @@
         .user-avatar {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary-dark);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -577,7 +581,7 @@
         .field-value-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(36, 35, 165, 0.1);
+            box-shadow: 0 0 0 3px rgba(102, 169, 162, 0.15);
         }
 
         .field-value-input.edited {
@@ -662,7 +666,7 @@
         .card-title-icon {
             width: 28px;
             height: 28px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -694,7 +698,7 @@
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: #fff;
             display: flex;
             align-items: center;
@@ -771,13 +775,13 @@
         .input-field:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 169, 162, 0.15);
         }
 
         .call-btn {
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, var(--success) 0%, #236b3b 100%);
+            background: var(--success);
             color: #fff;
             border: none;
             border-radius: 50%;
@@ -792,6 +796,7 @@
 
         .call-btn:hover {
             transform: scale(1.05);
+            background: #236b3b;
             box-shadow: 0 4px 12px rgba(46, 132, 74, 0.4);
         }
 
@@ -802,7 +807,11 @@
         }
 
         .call-btn.end-call {
-            background: linear-gradient(135deg, var(--danger) 0%, #a71d2a 100%);
+            background: var(--danger);
+        }
+
+        .call-btn.end-call:hover {
+            background: #a71d2a;
         }
 
         .call-status-text {
@@ -932,7 +941,7 @@
         }
 
         .chat-message.bot .message-avatar {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: #fff;
         }
 
@@ -964,12 +973,12 @@
         .chat-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 169, 162, 0.15);
         }
 
         .chat-send-btn {
             padding: 10px 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -981,7 +990,8 @@
 
         .chat-send-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(36, 35, 165, 0.35);
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(102, 169, 162, 0.35);
         }
 
         /* Gatekeeper */
@@ -994,7 +1004,7 @@
         .analyze-btn {
             flex: 1;
             padding: 12px 16px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -1004,10 +1014,20 @@
             transition: all 0.2s;
         }
         .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .analyze-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(36, 35, 165, 0.35); }
+        .analyze-btn:hover:not(:disabled) { transform: translateY(-1px); background: var(--primary-dark); box-shadow: 0 4px 12px rgba(102, 169, 162, 0.35); }
         .analyze-btn.loading { pointer-events: none; }
         @keyframes analyzePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
         .analyze-btn.loading { animation: analyzePulse 1.5s infinite; }
+
+        /* Toast animations */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
 
         .search-btn {
             flex: 1;
@@ -1336,7 +1356,7 @@
         .caller-avatar {
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: var(--primary);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -1362,6 +1382,58 @@
             gap: 10px;
             justify-content: center;
             flex-wrap: wrap;
+        }
+
+        /* Language selector */
+        .language-selector-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .language-selector-row label {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .language-select {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: #fff;
+            color: var(--gray-800);
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+
+        .language-select:hover {
+            border-color: var(--gray-300);
+        }
+
+        .language-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 169, 162, 0.15);
+        }
+
+        .language-select:disabled {
+            background-color: var(--gray-100);
+            color: var(--gray-500);
+            cursor: not-allowed;
+        }
+
+        .language-flag {
+            font-size: 1.1rem;
         }
 
         .call-action-btn {
@@ -1461,6 +1533,162 @@
             .card { min-height: 350px; }
             .console-column { display: flex; }
             .console-column.center-column { display: flex; }
+        }
+
+        /* Feedback Modal Styles */
+        .feedback-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .feedback-modal-overlay.active {
+            display: flex;
+        }
+        .feedback-modal {
+            background: white;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .feedback-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .feedback-modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        .feedback-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+            line-height: 1;
+        }
+        .feedback-modal-close:hover {
+            color: var(--gray-700);
+        }
+        .feedback-modal-body {
+            padding: 24px;
+        }
+        .feedback-intro {
+            color: var(--gray-600);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .rating-group {
+            margin-bottom: 20px;
+        }
+        .rating-group label {
+            display: block;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .star-rating {
+            display: flex;
+            gap: 4px;
+        }
+        .star-rating .star {
+            font-size: 1.8rem;
+            color: var(--gray-300);
+            cursor: pointer;
+            transition: color 0.15s, transform 0.15s;
+        }
+        .star-rating .star:hover {
+            transform: scale(1.1);
+        }
+        .star-rating .star.active {
+            color: #ffc107;
+        }
+        .star-rating .star.hover {
+            color: #ffdb58;
+        }
+        .outcome-group {
+            margin-bottom: 12px;
+        }
+        .outcome-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+        .outcome-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .feedback-comments {
+            margin-top: 16px;
+        }
+        .feedback-comments label {
+            display: block;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .feedback-comments textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .feedback-comments textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .feedback-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .feedback-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .feedback-btn-skip {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+        }
+        .feedback-btn-skip:hover {
+            background: var(--gray-200);
+        }
+        .feedback-btn-submit {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+        .feedback-btn-submit:hover {
+            background: var(--primary-dark);
         }
     </style>
 </head>
@@ -1623,6 +1851,17 @@
                                     <div class="caller-phone" id="callerPhone">-</div>
                                 </div>
                                 <div class="call-timer" id="callTimerDisplay">00:00</div>
+                            </div>
+
+                            <!-- Language Selector -->
+                            <div class="language-selector-row">
+                                <label for="languageSelect">
+                                    <span class="language-flag">&#x1F310;</span> Language:
+                                </label>
+                                <select id="languageSelect" class="language-select" onchange="changeLanguage(this.value)">
+                                    <option value="en">&#x1F1EC;&#x1F1E7; English</option>
+                                    <option value="fr">&#x1F1EB;&#x1F1F7; French</option>
+                                </select>
                             </div>
 
                             <!-- Phone Input -->
@@ -1840,6 +2079,63 @@
             console.log('[State] Cleared localStorage');
         }
 
+        // ========== Language Selection ==========
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            console.log('[Language] Changed to:', lang);
+
+            // Update the dropdown if called programmatically
+            const select = document.getElementById('languageSelect');
+            if (select && select.value !== lang) {
+                select.value = lang;
+            }
+
+            // Save state immediately
+            saveStateToStorage();
+
+            // Show feedback to user
+            const langNames = { 'en': 'English', 'fr': 'French' };
+            showToast(`Language set to ${langNames[lang] || lang}`, 'info');
+        }
+
+        function initializeLanguageSelector() {
+            const select = document.getElementById('languageSelect');
+            if (select) {
+                select.value = currentLanguage;
+            }
+        }
+
+        // Simple toast notification
+        function showToast(message, type = 'info') {
+            // Remove existing toast if any
+            const existingToast = document.querySelector('.toast-notification');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                background: ${type === 'info' ? 'var(--primary)' : type === 'success' ? 'var(--success)' : 'var(--warning)'};
+                color: white;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                font-weight: 500;
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
         function startNewSession() {
             if (isCallActive) {
                 if (!confirm('A call is active. End the call and start a new session?')) {
@@ -1957,6 +2253,9 @@
             if (savedState && savedState.sessionId) {
                 console.log('[State] Found saved state, restoring session:', savedState.sessionId);
                 restoreFromLocalStorage(savedState);
+            } else {
+                // Initialize language selector with default
+                initializeLanguageSelector();
             }
 
             if (typeof Twilio === 'undefined') {
@@ -1976,10 +2275,13 @@
         function restoreFromLocalStorage(state) {
             // Restore session ID
             sessionId = state.sessionId;
-            currentLanguage = state.currentLanguage || 'fr';
+            currentLanguage = state.currentLanguage || 'en';
             lastValidationResult = state.lastValidationResult;
             lastSuggestions = state.lastSuggestions || [];
             transcriptionMessages = state.transcriptionMessages || [];
+
+            // Restore language selector
+            initializeLanguageSelector();
 
             console.log('[State] Restoring UI from localStorage...');
 
@@ -2165,7 +2467,7 @@
                 if (!twilioDevice || twilioDevice.state !== 'registered') throw new Error('Twilio not ready');
 
                 await connectTranscriptionWebSockets();
-                const call = await twilioDevice.connect({ params: { To: phone, session_id: sessionId } });
+                const call = await twilioDevice.connect({ params: { To: phone, session_id: sessionId, language: currentLanguage } });
                 activeConnection = call;
                 isCallActive = true;
 
@@ -2240,11 +2542,17 @@
             const phoneRow = document.getElementById('phoneInputRow');
             const callerInfo = document.getElementById('callerInfo');
             const phone = document.getElementById('technicianPhone');
+            const languageSelect = document.getElementById('languageSelect');
 
             dialBtn.disabled = active;
             muteBtn.disabled = !active;
             holdBtn.disabled = !active;
             endBtn.disabled = !active;
+
+            // Disable language change during call
+            if (languageSelect) {
+                languageSelect.disabled = active;
+            }
 
             phoneRow.style.display = active ? 'none' : 'flex';
             callerInfo.style.display = active ? 'flex' : 'none';
@@ -2308,6 +2616,11 @@
             showCallStatus('Call ended', 'progress');
             resetCallControlsUI();
             saveStateToStorage();
+
+            // Show feedback modal after call ends
+            setTimeout(() => {
+                showFeedbackModal();
+            }, 500);
         }
 
         // ========== Intelligence Gatekeeper ==========
@@ -2720,8 +3033,8 @@
                 const ws = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 console.log(`Connecting WebSockets for session: ${sessionId}`);
 
-                technicianTranscriptionWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}`);
-                agentAudioWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}`);
+                technicianTranscriptionWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/technician-transcription/${sessionId}?language=${currentLanguage}`);
+                agentAudioWebSocket = new WebSocket(`${ws}//${window.location.host}/twilio/agent-audio-stream/${sessionId}?language=${currentLanguage}`);
 
                 let t = false, a = false;
                 const check = () => { if (t && a) resolve(); };
@@ -2919,6 +3232,233 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ========== Feedback Modal ==========
+
+        let feedbackData = {
+            solutionRating: null,
+            speechRating: null,
+            solutionFound: false,
+            issueResolved: false,
+            comments: ''
+        };
+
+        function showFeedbackModal() {
+            document.getElementById('feedbackModal').classList.add('active');
+            initStarRatings();
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').classList.remove('active');
+            resetFeedbackForm();
+        }
+
+        function resetFeedbackForm() {
+            feedbackData = {
+                solutionRating: null,
+                speechRating: null,
+                solutionFound: false,
+                issueResolved: false,
+                comments: ''
+            };
+            // Reset stars
+            document.querySelectorAll('.star-rating .star').forEach(s => s.classList.remove('active'));
+            // Reset checkboxes
+            document.getElementById('solutionFound').checked = false;
+            document.getElementById('issueResolved').checked = false;
+            // Reset comments
+            document.getElementById('feedbackComments').value = '';
+        }
+
+        function initStarRatings() {
+            ['solutionRating', 'speechRating'].forEach(ratingId => {
+                const container = document.getElementById(ratingId);
+                if (!container) return;
+
+                const stars = container.querySelectorAll('.star');
+
+                stars.forEach(star => {
+                    star.onclick = () => {
+                        const value = parseInt(star.dataset.value);
+                        setRating(ratingId, value);
+                    };
+                    star.onmouseover = () => {
+                        highlightStars(ratingId, parseInt(star.dataset.value), true);
+                    };
+                });
+
+                container.onmouseleave = () => {
+                    highlightStars(ratingId, feedbackData[ratingId] || 0, false);
+                };
+            });
+        }
+
+        function setRating(ratingId, value) {
+            feedbackData[ratingId] = value;
+            highlightStars(ratingId, value, false);
+        }
+
+        function highlightStars(ratingId, value, isHover) {
+            const stars = document.querySelectorAll(`#${ratingId} .star`);
+            stars.forEach(star => {
+                const starValue = parseInt(star.dataset.value);
+                star.classList.remove('active', 'hover');
+                if (starValue <= value) {
+                    star.classList.add(isHover ? 'hover' : 'active');
+                }
+            });
+        }
+
+        async function submitFeedback() {
+            feedbackData.solutionFound = document.getElementById('solutionFound').checked;
+            feedbackData.issueResolved = document.getElementById('issueResolved').checked;
+            feedbackData.comments = document.getElementById('feedbackComments').value.trim();
+
+            // Submit field edits first
+            await submitFieldEdits();
+
+            // Skip if no ratings provided
+            const hasData = feedbackData.solutionRating || feedbackData.speechRating ||
+                           feedbackData.solutionFound || feedbackData.issueResolved ||
+                           feedbackData.comments;
+
+            if (hasData && sessionId) {
+                try {
+                    const response = await fetch(`/api/v1/analytics/sessions/${sessionId}/feedback`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            solution_rating: feedbackData.solutionRating,
+                            speech_recognition_rating: feedbackData.speechRating,
+                            solution_found: feedbackData.solutionFound,
+                            issue_resolved: feedbackData.issueResolved,
+                            comments: feedbackData.comments || null
+                        })
+                    });
+                    if (response.ok) {
+                        console.log('Feedback submitted successfully');
+                        showToast('Feedback submitted!', 'success');
+                    } else {
+                        const error = await response.json();
+                        console.error('Feedback submission failed:', error);
+                    }
+                } catch (e) {
+                    console.error('Error submitting feedback:', e);
+                }
+            }
+
+            closeFeedbackModal();
+        }
+
+        async function submitFieldEdits() {
+            // Check if there are any edited fields to submit
+            if (!sessionId || Object.keys(editedFields).length === 0) {
+                return;
+            }
+
+            // Build edits array from editedFields object
+            const edits = [];
+            const fieldInputs = document.querySelectorAll('.field-value-input.edited, .field-empty-input.edited');
+
+            fieldInputs.forEach(input => {
+                const slug = input.dataset.slug;
+                if (editedFields[slug] !== undefined) {
+                    const fieldItem = input.closest('.field-item');
+                    const fieldName = fieldItem?.querySelector('.field-name')?.textContent || slug;
+
+                    edits.push({
+                        field_slug: slug,
+                        field_name: fieldName,
+                        original_value: input.dataset.original || '',
+                        edited_value: editedFields[slug]
+                    });
+                }
+            });
+
+            if (edits.length === 0) {
+                return;
+            }
+
+            try {
+                await fetch(`/api/v1/analytics/sessions/${sessionId}/field-edits`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ edits })
+                });
+                console.log(`Submitted ${edits.length} field edits`);
+            } catch (e) {
+                console.error('Error submitting field edits:', e);
+            }
+        }
+
+        async function skipFeedback() {
+            // Still submit field edits even if feedback is skipped
+            await submitFieldEdits();
+            closeFeedbackModal();
+        }
     </script>
+
+    <!-- Feedback Modal -->
+    <div class="feedback-modal-overlay" id="feedbackModal">
+        <div class="feedback-modal">
+            <div class="feedback-modal-header">
+                <h3>Session Feedback</h3>
+                <button class="feedback-modal-close" onclick="closeFeedbackModal()">&times;</button>
+            </div>
+            <div class="feedback-modal-body">
+                <p class="feedback-intro">Help us improve! Rate your experience (optional).</p>
+
+                <!-- Solution Rating -->
+                <div class="rating-group">
+                    <label>Solution Relevance</label>
+                    <div class="star-rating" id="solutionRating">
+                        <span class="star" data-value="1">&#9733;</span>
+                        <span class="star" data-value="2">&#9733;</span>
+                        <span class="star" data-value="3">&#9733;</span>
+                        <span class="star" data-value="4">&#9733;</span>
+                        <span class="star" data-value="5">&#9733;</span>
+                    </div>
+                </div>
+
+                <!-- Speech Recognition Rating -->
+                <div class="rating-group">
+                    <label>Speech Recognition Quality</label>
+                    <div class="star-rating" id="speechRating">
+                        <span class="star" data-value="1">&#9733;</span>
+                        <span class="star" data-value="2">&#9733;</span>
+                        <span class="star" data-value="3">&#9733;</span>
+                        <span class="star" data-value="4">&#9733;</span>
+                        <span class="star" data-value="5">&#9733;</span>
+                    </div>
+                </div>
+
+                <!-- Outcome questions -->
+                <div class="outcome-group">
+                    <label>
+                        <input type="checkbox" id="solutionFound">
+                        Found the correct solution
+                    </label>
+                </div>
+                <div class="outcome-group">
+                    <label>
+                        <input type="checkbox" id="issueResolved">
+                        Issue was resolved
+                    </label>
+                </div>
+
+                <!-- Optional comments -->
+                <div class="feedback-comments">
+                    <label>Additional Comments (optional)</label>
+                    <textarea id="feedbackComments" rows="2" placeholder="Any additional feedback..."></textarea>
+                </div>
+            </div>
+            <div class="feedback-modal-footer">
+                <button class="feedback-btn feedback-btn-skip" onclick="skipFeedback()">Skip</button>
+                <button class="feedback-btn feedback-btn-submit" onclick="submitFeedback()">Submit</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

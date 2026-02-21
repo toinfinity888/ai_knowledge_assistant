@@ -40,6 +40,21 @@ class QueryLogs(Base):
     # User tracking
     user_id = Column(String, default='anonymous')
 
+    # Session tracking (for analytics)
+    session_id = Column(
+        Integer,
+        ForeignKey('call_sessions.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True
+    )
+    agent_user_id = Column(
+        Integer,
+        ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True
+    )
+    search_type = Column(String(50), nullable=True)  # 'manual', 'automatic', 'force_search'
+
     # Timestamp
     timestamp = Column(DateTime, default=datetime.utcnow)
     

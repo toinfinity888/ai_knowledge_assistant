@@ -2,7 +2,7 @@
 Web-based Demo Routes
 Simple web interface for testing the system with microphone
 """
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session as flask_session
 import asyncio
 import time
 import json
@@ -42,6 +42,14 @@ def agent_ui():
 @demo_bp.route('/technician')
 def technician_support():
     """Technician support interface with 3-column layout"""
+    # Ensure demo user session is set up for analytics API calls
+    if not flask_session.get('user_id'):
+        flask_session['user_id'] = 1  # Demo admin user
+        flask_session['user_email'] = 'admin@example.com'
+        flask_session['company_id'] = 1
+        flask_session['company_slug'] = 'demo'
+        flask_session['role'] = 'admin'
+        logger.info("Demo session initialized for technician support")
     return render_template('demo/technician_support.html')
 
 

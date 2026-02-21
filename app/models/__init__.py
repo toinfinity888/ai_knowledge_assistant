@@ -40,6 +40,11 @@ from app.models.document import Document, DocumentStatus
 # Query logging
 from app.models.query_logs import QueryLogs
 
+# Analytics models
+from app.models.session_feedback import SessionFeedback
+from app.models.field_edit_log import FieldEditLog
+from app.models.analytics_summary import AnalyticsDailySummary
+
 # Data models (dataclasses, not ORM)
 from app.models.query import Query
 from app.models.text_chunk import TextChunk
@@ -79,6 +84,10 @@ __all__ = [
     'DocumentStatus',
     # Query logs
     'QueryLogs',
+    # Analytics
+    'SessionFeedback',
+    'FieldEditLog',
+    'AnalyticsDailySummary',
     # Data models
     'Query',
     'TextChunk',

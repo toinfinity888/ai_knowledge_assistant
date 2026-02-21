@@ -70,6 +70,14 @@ try:
 except ImportError as e:
     print(f"⚠ Admin panel routes not available: {e}")
 
+# Register analytics routes
+try:
+    from app.api.analytics_routes import analytics_bp
+    app.register_blueprint(analytics_bp)
+    print("✓ Analytics routes registered (/api/v1/analytics/*)")
+except ImportError as e:
+    print(f"⚠ Analytics routes not available: {e}")
+
 # Register real-time API routes
 app.register_blueprint(realtime_bp)
 

@@ -81,6 +81,10 @@ class CallSession(Base):
     agent_actions = relationship("AgentAction", back_populates="session", cascade="all, delete-orphan")
     suggestions = relationship("Suggestion", back_populates="session", cascade="all, delete-orphan")
 
+    # Analytics relationships
+    feedback = relationship("SessionFeedback", back_populates="session", uselist=False, cascade="all, delete-orphan")
+    field_edits = relationship("FieldEditLog", back_populates="session", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<CallSession(call_id='{self.call_id}', status='{self.status}', agent='{self.agent_name}')>"
 
