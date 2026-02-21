@@ -3199,6 +3199,7 @@
             sols.forEach(s => {
                 const card = document.createElement('div');
                 card.className = 'solution-card';
+                card.dataset.suggestionId = s.id;
 
                 // Build sources HTML if available
                 let sourcesHTML = '';
@@ -3219,11 +3220,29 @@
                     <p class="solution-content">${escapeHtml(s.content)}</p>
                     ${sourcesHTML}
                 `;
+
+                // Track click on solution card
+                card.addEventListener('click', () => trackSuggestionClick(s.id));
+
                 c.insertBefore(card, c.firstChild);
             });
 
             // Save to state
             saveStateToStorage();
+        }
+
+        // Track when a suggestion is clicked/expanded
+        function trackSuggestionClick(suggestionId) {
+            if (!currentSessionId || !suggestionId) return;
+
+            fetch(`/api/v1/integration/sessions/${currentSessionId}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    suggestion_id: suggestionId,
+                    clicked: true
+                })
+            }).catch(err => console.log('Could not track suggestion click:', err));
         }
 
         function escapeHtml(text) {

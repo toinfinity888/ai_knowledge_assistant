@@ -13,6 +13,7 @@ from app.services.validator_service import ValidatorService
 from app.core.rag_engine import RAGEngine
 from app.services.call_session_manager import CallSessionManager
 from app.services.pii_detector import get_pii_detector
+from app.logging.logging_service import user_query_logging
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,7 @@ class GatekeeperOrchestrator:
     ) -> list:
         """Execute RAG search and store suggestions."""
         suggestions = []
+        search_start = time.time()
 
         try:
             rag_result = self.rag_engine.ask(
@@ -231,6 +233,40 @@ class GatekeeperOrchestrator:
                 language=language,
                 company_id=company_id,
             )
+
+            # Calculate response time
+            response_time_ms = int((time.time() - search_start) * 1000)
+
+            # Get session DB ID for logging
+            session_db_id = None
+            agent_user_id = None
+            try:
+                session_obj = self.session_manager.get_session(session_id)
+                if session_obj:
+                    session_db_id = session_obj.id
+                    agent_user_id = session_obj.agent_user_id
+            except Exception as e:
+                logger.warning(f"Could not get session info for logging: {e}")
+
+            # Log the query to QueryLogs for analytics
+            has_response = bool(rag_result.get("answer"))
+            try:
+                user_query_logging(
+                    query_text=query,
+                    response_text=rag_result.get("answer", ""),
+                    has_response=has_response,
+                    response_status='OK' if has_response else 'NO_RESPONSE',
+                    response_time_ms=response_time_ms,
+                    retriever_used=self.rag_engine.get_search_engine_name() if hasattr(self.rag_engine, 'get_search_engine_name') else 'rag_engine',
+                    llm_model_used=self.rag_engine.get_llm_model_name() if hasattr(self.rag_engine, 'get_llm_model_name') else 'unknown',
+                    retrieved_context=rag_result.get("context_chunks", []),
+                    company_id=company_id,
+                    session_id=session_db_id,
+                    agent_user_id=agent_user_id,
+                    search_type='manual',
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log query: {e}")
 
             if rag_result.get("answer"):
                 source_metadata = rag_result.get("source_metadata", [])
@@ -246,6 +282,10 @@ class GatekeeperOrchestrator:
                     confidence_score=0.85,
                     relevance_score=0.8,
                 )
+
+                # Mark suggestion as shown (it's displayed immediately to agent)
+                if suggestion:
+                    self.session_manager.mark_suggestion_shown(suggestion.id)
 
                 suggestions.append({
                     "id": suggestion.id,

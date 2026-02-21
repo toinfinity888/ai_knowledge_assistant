@@ -103,13 +103,19 @@ def start_demo_call():
     customer_name = data.get('customer_name', 'Demo Customer')
     agent_name = data.get('agent_name', 'Demo Agent')
 
+    # Get company_id and user_id from session for analytics tracking
+    company_id = flask_session.get('company_id', 1)
+    agent_user_id = flask_session.get('user_id')
+
     transcription_service = get_transcription_service()
 
     # Run async function in sync context
     result = run_async(transcription_service.handle_call_start(
         call_id=call_id,
         agent_id="demo-agent-1",
+        company_id=company_id,
         agent_name=agent_name,
+        agent_user_id=agent_user_id,
         customer_id="demo-customer-1",
         customer_name=customer_name,
         acd_metadata={"type": "demo", "source": "web"},
