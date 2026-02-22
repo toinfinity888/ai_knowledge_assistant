@@ -410,7 +410,8 @@ def system_status():
         "deepgram": {"configured": true},
         "openai": {"configured": true},
         "twilio": {"configured": true},
-        "groq": {"configured": true}
+        "groq": {"configured": true},
+        "qdrant": {"configured": true}
     }
     """
     import os
@@ -430,5 +431,8 @@ def system_status():
         },
         'groq': {
             'configured': bool(os.environ.get('GROQ_API_KEY'))
+        },
+        'qdrant': {
+            'configured': bool(os.environ.get('QDRANT_URL') or os.environ.get('QDRANT_HOST'))
         }
     })
