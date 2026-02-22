@@ -226,12 +226,14 @@ def incoming_call_webhook():
         try:
             transcription_service = get_transcription_service()
             company_id = session.get('company_id', 1)
+            agent_user_id = session.get('user_id')
 
             run_async(transcription_service.handle_call_start(
                 call_id=session_id,
                 agent_id="agent-1",
                 company_id=company_id,
                 agent_name="Support Agent",
+                agent_user_id=agent_user_id,
                 customer_id=from_number,
                 customer_phone=from_number,
                 customer_name=from_number,
@@ -259,6 +261,7 @@ def incoming_call_webhook():
         stream.parameter(name='session_id', value=session_id)
         stream.parameter(name='direction', value='inbound')
         stream.parameter(name='caller', value=from_number)
+        stream.parameter(name='language', value='fr')  # Default to French for incoming calls
 
         # Dial to the browser client
         # The 'client' parameter connects to browsers with Twilio Device
@@ -266,7 +269,9 @@ def incoming_call_webhook():
 
         # Connect to the browser client identity (support-agent)
         # This must match the identity used when generating the access token
-        dial.client('support-agent')
+        # Pass the server-generated session_id so browser can use the same ID
+        client = dial.client('support-agent')
+        client.parameter(name='server_session_id', value=session_id)
 
         response.append(dial)
 
@@ -497,16 +502,17 @@ def register_websocket_routes(sock):
                     logger.info(f"Event type: {event_type}")
 
                     if event_type == 'start':
-                        # Extract session_id and language from custom parameters
+                        # Extract session_id, language, and direction from custom parameters
                         stream_sid = data['start']['streamSid']
                         custom_params = data['start'].get('customParameters', {})
                         session_id = custom_params.get('session_id', stream_sid)
                         stream_language = custom_params.get('language', 'en')
+                        stream_direction = custom_params.get('direction', 'outbound')  # 'inbound' for incoming calls
 
                         # CRITICAL DEBUG with print()
                         print(f"🔥 START EVENT - stream_sid: {stream_sid}")
                         print(f"🔥 START EVENT - customParameters: {custom_params}")
-                        print(f"🔥 START EVENT - session_id extracted: {session_id}, language: {stream_language}")
+                        print(f"🔥 START EVENT - session_id extracted: {session_id}, language: {stream_language}, direction: {stream_direction}")
                         print(f"🔥 START EVENT - twilio_service id: {id(twilio_service)}")
 
                         # Check what's already in active_streams
@@ -546,6 +552,7 @@ def register_websocket_routes(sock):
                             'websocket': ws,
                             'stream_sid': stream_sid,
                             'language': stream_language,
+                            'direction': stream_direction,  # 'inbound' for incoming calls, 'outbound' for outgoing
                             'started_at': datetime.utcnow(),
                             'audio_buffer': [],
                             'technician': {
@@ -682,12 +689,18 @@ def register_websocket_routes(sock):
                         # Audio data received - process it synchronously
                         if session_id:
                             # IMPORTANT: Filter by track to avoid mixing audio sources
-                            # With track='both_tracks' in browser-initiated calls to phone:
+                            # For OUTGOING calls (browser → phone):
                             #   - 'inbound' track: audio FROM the browser/agent (the caller)
                             #   - 'outbound' track: audio FROM the phone/customer (the callee)
-                            # We only want to transcribe the OUTBOUND track (phone customer's voice)
-                            # Browser audio is already captured directly via browser MediaRecorder
+                            #   - We want 'outbound' (phone person's voice)
+                            # For INCOMING calls (phone → browser):
+                            #   - 'inbound' track: audio FROM the phone/caller (the technician)
+                            #   - 'outbound' track: audio TO the phone (browser agent's voice)
+                            #   - We want 'inbound' (phone person's voice)
                             track = data['media'].get('track', 'unknown')
+
+                            # Get the call direction from custom parameters
+                            call_direction = twilio_service.active_streams.get(session_id, {}).get('direction', 'outbound')
 
                             # Log ALL tracks received for debugging
                             audio_buffer.append(track)  # Store track names
@@ -696,7 +709,7 @@ def register_websocket_routes(sock):
                                 inbound_count = audio_buffer.count('inbound')
                                 outbound_count = audio_buffer.count('outbound')
                                 other_count = len(audio_buffer) - inbound_count - outbound_count
-                                logger.info(f"[{session_id}] Twilio media #{len(audio_buffer)}: track='{track}' (inbound:{inbound_count}, outbound:{outbound_count}, other:{other_count})")
+                                logger.info(f"[{session_id}] Twilio media #{len(audio_buffer)}: track='{track}', direction={call_direction} (inbound:{inbound_count}, outbound:{outbound_count}, other:{other_count})")
 
                                 # DEBUG: Log tech_ws availability periodically
                                 if session_id in twilio_service.active_streams:
@@ -705,10 +718,17 @@ def register_websocket_routes(sock):
                                 else:
                                     logger.warning(f"[{session_id}] 🔍 DEBUG: session_id NOT in active_streams!")
 
-                            # Only process OUTBOUND track (phone customer's voice)
-                            if track != 'outbound':
-                                # Skip inbound track - browser audio is already captured via browser WebSocket
-                                continue
+                            # Determine which track contains the PHONE person's voice
+                            # - For outgoing calls: 'outbound' has phone audio
+                            # - For incoming calls: 'inbound' has phone audio
+                            if call_direction == 'inbound':
+                                # Incoming call - phone caller's voice is on 'inbound' track
+                                if track != 'inbound':
+                                    continue
+                            else:
+                                # Outgoing call - phone callee's voice is on 'outbound' track
+                                if track != 'outbound':
+                                    continue
 
                             payload = data['media']['payload']
 

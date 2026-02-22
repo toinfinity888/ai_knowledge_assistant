@@ -14,7 +14,7 @@
 
       body {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #2423a5 0%, #4e9ee3 100%);
+        background: linear-gradient(135deg, #4d8a84 0%, #66a9a2 50%, #8fc4bd 100%);
         min-height: 100vh;
         display: flex;
         align-items: center;
@@ -37,10 +37,10 @@
       }
 
       .logo-img {
-        width: 64px;
-        height: 64px;
+        width: 80px;
+        height: 80px;
         margin: 0 auto 16px;
-        border-radius: 12px;
+        object-fit: contain;
       }
 
       .logo h1 {
@@ -79,8 +79,8 @@
       }
 
       .form-group input:focus {
-        border-color: #2423a5;
-        box-shadow: 0 0 0 4px rgba(36, 35, 165, 0.1);
+        border-color: #66a9a2;
+        box-shadow: 0 0 0 4px rgba(102, 169, 162, 0.15);
       }
 
       .form-group input::placeholder {
@@ -127,7 +127,7 @@
       .btn {
         width: 100%;
         padding: 14px 24px;
-        background: linear-gradient(135deg, #2423a5 0%, #4e9ee3 100%);
+        background: linear-gradient(135deg, #4d8a84 0%, #66a9a2 100%);
         color: white;
         border: none;
         border-radius: 10px;
@@ -140,7 +140,7 @@
 
       .btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(36, 35, 165, 0.4);
+        box-shadow: 0 10px 30px rgba(102, 169, 162, 0.4);
       }
 
       .btn:active {
@@ -172,8 +172,8 @@
       }
 
       .btn-passkey:hover {
-        border-color: #2423a5;
-        background: #f8f9ff;
+        border-color: #66a9a2;
+        background: #f5fafa;
       }
 
       .btn-passkey:disabled {
@@ -222,7 +222,7 @@
       }
 
       .footer-links a {
-        color: #2423a5;
+        color: #4d8a84;
         text-decoration: none;
         font-size: 0.9rem;
         font-weight: 500;

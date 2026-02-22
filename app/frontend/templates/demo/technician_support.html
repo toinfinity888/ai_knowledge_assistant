@@ -1710,7 +1710,7 @@
         </button>
         <div class="sidebar-header">
             <a href="/" class="sidebar-brand">
-                <span class="sidebar-brand-icon"><img src="/static/img/logo.png" alt="Logo"></span>
+                <span class="sidebar-brand-icon"><img src="/static/img/logo-white.png" alt="Logo"></span>
                 <span>Apertool AI</span>
             </a>
         </div>
@@ -2393,19 +2393,28 @@
                 const call = window.incomingConnection;
 
                 try {
-                    // CRITICAL: For incoming calls, we must use the same session_id that the server generated
-                    // The server creates session_id as: `incoming-{call_sid[:12]}`
-                    // We extract CallSid from the incoming call and generate the matching session_id
-                    const callSid = call.parameters.CallSid;
-                    if (callSid) {
-                        // Use the same format as server: incoming-{first 12 chars of CallSid}
-                        sessionId = `incoming-${callSid.substring(0, 12)}`;
-                        console.log(`[Incoming Call] Using server-matching session_id: ${sessionId} (CallSid: ${callSid})`);
-                        // Save the new session_id to localStorage
-                        saveStateToStorage();
+                    // CRITICAL: Use the server-provided session_id from TwiML parameters
+                    // The server passes 'server_session_id' which matches the media stream session
+                    // This is necessary because the browser sees a different CallSid (the client leg)
+                    // than what the server used for the incoming call leg
+                    const serverSessionId = call.customParameters?.get('server_session_id') ||
+                                           call.parameters?.server_session_id;
+
+                    if (serverSessionId) {
+                        sessionId = serverSessionId;
+                        console.log(`[Incoming Call] Using server-provided session_id: ${sessionId}`);
                     } else {
-                        console.warn('[Incoming Call] No CallSid found, using existing session_id');
+                        // Fallback: try to generate from CallSid (may not match)
+                        const callSid = call.parameters.CallSid;
+                        if (callSid) {
+                            sessionId = `incoming-${callSid.substring(0, 12)}`;
+                            console.warn(`[Incoming Call] No server_session_id, falling back to CallSid: ${sessionId}`);
+                        } else {
+                            console.warn('[Incoming Call] No session_id available, using existing');
+                        }
                     }
+                    // Save the new session_id to localStorage
+                    saveStateToStorage();
 
                     // Disable buttons to prevent double-click
                     const statusEl = document.getElementById('callStatus');
