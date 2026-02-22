@@ -878,6 +878,17 @@
         </div>
         {% endif %}
 
+        <!-- Super Admin Only -->
+        {% if is_super %}
+        <div class="nav-section">
+          <div class="nav-section-title">Super Admin</div>
+          <a href="/admin/system-config" class="nav-item {% if active_page == 'system_config' %}active{% endif %}">
+            <span class="nav-item-icon">&#x1F527;</span>
+            <span>System Config</span>
+          </a>
+        </div>
+        {% endif %}
+
         <!-- Settings -->
         <div class="nav-section">
           <div class="nav-section-title">Settings</div>

@@ -1,0 +1,691 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}System Configuration - Super Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .config-section {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-color);
+    }
+
+    .config-section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .config-section-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .config-section-icon.transcription { background: rgba(102, 169, 162, 0.15); }
+    .config-section-icon.api { background: rgba(59, 130, 246, 0.15); }
+    .config-section-icon.storage { background: rgba(168, 85, 247, 0.15); }
+    .config-section-icon.security { background: rgba(239, 68, 68, 0.15); }
+
+    .config-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .config-section-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .config-item {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+    }
+
+    .config-item-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .config-item-description {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        line-height: 1.4;
+    }
+
+    .config-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+    }
+
+    .config-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .config-select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .config-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 48px;
+        height: 26px;
+        background: var(--border-color);
+        border-radius: 13px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+        background: var(--primary-color);
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+
+    .toggle-switch.active::after {
+        transform: translateX(22px);
+    }
+
+    .toggle-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .config-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-save {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: opacity 0.2s;
+    }
+
+    .btn-save:hover {
+        opacity: 0.9;
+    }
+
+    .btn-reset {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-reset:hover {
+        border-color: var(--text-secondary);
+        color: var(--text-primary);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .status-badge.warning {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .status-badge.error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .api-key-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .api-key-value {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        background: var(--bg-secondary);
+        padding: 8px 12px;
+        border-radius: 6px;
+        flex: 1;
+    }
+
+    .btn-icon {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .test-panel {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+    }
+
+    .test-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .test-panel-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .test-result {
+        font-family: monospace;
+        font-size: 0.8rem;
+        background: var(--card-bg);
+        padding: 12px;
+        border-radius: 6px;
+        max-height: 150px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        color: var(--text-secondary);
+    }
+
+    .service-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    .service-status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+
+    .service-status-dot.online { background: #10b981; }
+    .service-status-dot.offline { background: #ef4444; }
+    .service-status-dot.unknown { background: #f59e0b; }
+
+    .config-info-box {
+        background: rgba(102, 169, 162, 0.1);
+        border: 1px solid rgba(102, 169, 162, 0.3);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .config-info-box-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .env-var-tag {
+        display: inline-block;
+        font-family: monospace;
+        font-size: 0.75rem;
+        background: var(--bg-secondary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <div class="page-header" style="margin-bottom: 24px;">
+        <h1 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">System Configuration</h1>
+        <p style="color: var(--text-secondary); margin-top: 4px;">Super Admin only - Platform-wide settings</p>
+    </div>
+
+    <!-- Transcription Settings -->
+    <div class="config-section">
+        <div class="config-section-header">
+            <div class="config-section-icon transcription">&#x1F3A4;</div>
+            <div>
+                <div class="config-section-title">Transcription Settings</div>
+                <div class="config-section-subtitle">Deepgram Nova-2 real-time speech recognition</div>
+            </div>
+            <div style="margin-left: auto;">
+                <span class="status-badge success" id="deepgramStatus">
+                    <span style="width: 6px; height: 6px; background: currentColor; border-radius: 50%;"></span>
+                    Connected
+                </span>
+            </div>
+        </div>
+
+        <div class="config-info-box">
+            <span class="config-info-box-icon">&#x2139;&#xFE0F;</span>
+            <div>
+                Using <strong>Deepgram Nova-2</strong> streaming transcription with real-time interim results.
+                API key is configured via environment variable <span class="env-var-tag">DEEPGRAM_API_KEY</span>
+            </div>
+        </div>
+
+        <div class="config-grid">
+            <div class="config-item">
+                <div class="config-item-label">
+                    &#x1F310; Default Language
+                </div>
+                <div class="config-item-description">
+                    Primary language for speech recognition. Affects accuracy for specific languages.
+                </div>
+                <select class="config-select" id="transcription_language">
+                    <option value="fr">French (fr)</option>
+                    <option value="en">English (en)</option>
+                    <option value="es">Spanish (es)</option>
+                    <option value="de">German (de)</option>
+                    <option value="it">Italian (it)</option>
+                    <option value="pt">Portuguese (pt)</option>
+                    <option value="nl">Dutch (nl)</option>
+                    <option value="ru">Russian (ru)</option>
+                    <option value="zh">Chinese (zh)</option>
+                    <option value="ja">Japanese (ja)</option>
+                    <option value="ko">Korean (ko)</option>
+                    <option value="ar">Arabic (ar)</option>
+                </select>
+            </div>
+
+            <div class="config-item">
+                <div class="config-item-label">
+                    &#x1F4AC; Show Interim Results
+                </div>
+                <div class="config-item-description">
+                    Display real-time partial transcriptions while speaking. More responsive but may show corrections.
+                </div>
+                <div class="config-toggle">
+                    <div class="toggle-switch active" id="deepgram_show_interim" onclick="toggleSwitch(this)"></div>
+                    <span class="toggle-label">Enabled</span>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <div class="config-item-label">
+                    &#x1F504; Transcription Backend
+                </div>
+                <div class="config-item-description">
+                    Speech recognition service. Deepgram provides real-time streaming with high accuracy.
+                </div>
+                <select class="config-select" id="transcription_backend" disabled>
+                    <option value="deepgram" selected>Deepgram Nova-2 (Streaming)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <div class="test-panel-header">
+                <span class="test-panel-title">&#x1F9EA; Test Microphone</span>
+                <button class="btn-icon" id="testMicBtn" onclick="testMicrophone()" title="Test microphone">
+                    &#x1F3A4;
+                </button>
+            </div>
+            <div class="test-result" id="testResult">Click the microphone button to test transcription...</div>
+        </div>
+    </div>
+
+    <!-- API Keys Status -->
+    <div class="config-section">
+        <div class="config-section-header">
+            <div class="config-section-icon api">&#x1F511;</div>
+            <div>
+                <div class="config-section-title">API Keys Status</div>
+                <div class="config-section-subtitle">External service connections</div>
+            </div>
+        </div>
+
+        <div class="service-status">
+            <span class="service-status-dot" id="deepgramDot"></span>
+            <span style="font-weight: 500;">Deepgram</span>
+            <span style="color: var(--text-secondary); margin-left: auto;" id="deepgramKeyStatus">Checking...</span>
+        </div>
+
+        <div class="service-status">
+            <span class="service-status-dot" id="openaiDot"></span>
+            <span style="font-weight: 500;">OpenAI / Azure OpenAI</span>
+            <span style="color: var(--text-secondary); margin-left: auto;" id="openaiKeyStatus">Checking...</span>
+        </div>
+
+        <div class="service-status">
+            <span class="service-status-dot" id="twilioDot"></span>
+            <span style="font-weight: 500;">Twilio</span>
+            <span style="color: var(--text-secondary); margin-left: auto;" id="twilioKeyStatus">Checking...</span>
+        </div>
+
+        <div class="service-status">
+            <span class="service-status-dot" id="groqDot"></span>
+            <span style="font-weight: 500;">Groq</span>
+            <span style="color: var(--text-secondary); margin-left: auto;" id="groqKeyStatus">Checking...</span>
+        </div>
+    </div>
+
+    <!-- Storage Settings -->
+    <div class="config-section">
+        <div class="config-section-header">
+            <div class="config-section-icon storage">&#x1F4BE;</div>
+            <div>
+                <div class="config-section-title">Storage Settings</div>
+                <div class="config-section-subtitle">File storage and database configuration</div>
+            </div>
+        </div>
+
+        <div class="config-grid">
+            <div class="config-item">
+                <div class="config-item-label">
+                    &#x1F4C1; Audio Recordings Path
+                </div>
+                <div class="config-item-description">
+                    Directory where call recordings are stored.
+                </div>
+                <input type="text" class="config-input" id="audio_recordings_path" value="audio_recordings/" readonly>
+            </div>
+
+            <div class="config-item">
+                <div class="config-item-label">
+                    &#x1F5C4;&#xFE0F; Vector Store
+                </div>
+                <div class="config-item-description">
+                    Vector database for document embeddings.
+                </div>
+                <select class="config-select" id="vector_store" disabled>
+                    <option value="qdrant" selected>Qdrant</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="config-actions">
+        <button class="btn-save" onclick="saveConfig()">
+            <span>&#x1F4BE;</span> Save Changes
+        </button>
+        <button class="btn-reset" onclick="resetConfig()">
+            Reset to Defaults
+        </button>
+        <span id="saveStatus" style="margin-left: auto; color: var(--text-secondary); font-size: 0.85rem;"></span>
+    </div>
+</div>
+
+<script>
+    let currentConfig = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadConfig();
+        checkApiKeys();
+    });
+
+    async function loadConfig() {
+        try {
+            const response = await fetch('/api/config/transcription');
+            const data = await response.json();
+            if (data.success) {
+                currentConfig = data.config;
+                updateUI(data.config);
+            }
+        } catch (error) {
+            console.error('Error loading config:', error);
+        }
+    }
+
+    function updateUI(config) {
+        // Language
+        const langSelect = document.getElementById('transcription_language');
+        if (langSelect && config.transcription_language) {
+            langSelect.value = config.transcription_language;
+        }
+
+        // Show interim
+        const interimToggle = document.getElementById('deepgram_show_interim');
+        if (interimToggle) {
+            if (config.deepgram_show_interim) {
+                interimToggle.classList.add('active');
+                interimToggle.nextElementSibling.textContent = 'Enabled';
+            } else {
+                interimToggle.classList.remove('active');
+                interimToggle.nextElementSibling.textContent = 'Disabled';
+            }
+        }
+    }
+
+    function toggleSwitch(el) {
+        el.classList.toggle('active');
+        const label = el.nextElementSibling;
+        label.textContent = el.classList.contains('active') ? 'Enabled' : 'Disabled';
+    }
+
+    async function saveConfig() {
+        const config = {
+            transcription_language: document.getElementById('transcription_language').value,
+            deepgram_show_interim: document.getElementById('deepgram_show_interim').classList.contains('active'),
+            transcription_backend: 'deepgram'
+        };
+
+        try {
+            const response = await fetch('/api/config/transcription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('saveStatus').textContent = 'Saved successfully';
+                document.getElementById('saveStatus').style.color = '#10b981';
+                setTimeout(() => {
+                    document.getElementById('saveStatus').textContent = '';
+                }, 3000);
+            }
+        } catch (error) {
+            document.getElementById('saveStatus').textContent = 'Error saving';
+            document.getElementById('saveStatus').style.color = '#ef4444';
+        }
+    }
+
+    async function resetConfig() {
+        if (!confirm('Reset all settings to defaults?')) return;
+
+        try {
+            const response = await fetch('/api/config/transcription/reset', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                currentConfig = data.config;
+                updateUI(data.config);
+                document.getElementById('saveStatus').textContent = 'Reset to defaults';
+                document.getElementById('saveStatus').style.color = '#10b981';
+                setTimeout(() => {
+                    document.getElementById('saveStatus').textContent = '';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error resetting config:', error);
+        }
+    }
+
+    async function checkApiKeys() {
+        try {
+            const response = await fetch('/api/v1/super/system/status');
+            const data = await response.json();
+
+            updateKeyStatus('deepgram', data.deepgram);
+            updateKeyStatus('openai', data.openai);
+            updateKeyStatus('twilio', data.twilio);
+            updateKeyStatus('groq', data.groq);
+        } catch (error) {
+            // Set all to unknown if can't check
+            ['deepgram', 'openai', 'twilio', 'groq'].forEach(service => {
+                updateKeyStatus(service, { configured: false });
+            });
+        }
+    }
+
+    function updateKeyStatus(service, status) {
+        const dot = document.getElementById(service + 'Dot');
+        const text = document.getElementById(service + 'KeyStatus');
+
+        if (status && status.configured) {
+            dot.className = 'service-status-dot online';
+            text.textContent = 'Configured';
+            text.style.color = '#10b981';
+        } else {
+            dot.className = 'service-status-dot offline';
+            text.textContent = 'Not configured';
+            text.style.color = '#ef4444';
+        }
+    }
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    async function testMicrophone() {
+        const resultEl = document.getElementById('testResult');
+        const btn = document.getElementById('testMicBtn');
+
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            btn.innerHTML = '&#x1F3A4;';
+            return;
+        }
+
+        try {
+            resultEl.textContent = 'Requesting microphone access...';
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            resultEl.textContent = 'Microphone access granted. Recording for 3 seconds...';
+            btn.innerHTML = '&#x23F9;';
+
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(track => track.stop());
+                resultEl.textContent = 'Processing audio...';
+
+                // For now just confirm mic works
+                resultEl.textContent = 'Microphone test successful! Audio captured: ' +
+                    audioChunks.reduce((acc, chunk) => acc + chunk.size, 0) + ' bytes\n\n' +
+                    'To test full transcription, use the Technician Support page.';
+            };
+
+            mediaRecorder.start();
+
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    btn.innerHTML = '&#x1F3A4;';
+                }
+            }, 3000);
+
+        } catch (error) {
+            resultEl.textContent = 'Error: ' + error.message;
+            btn.innerHTML = '&#x1F3A4;';
+        }
+    }
+</script>
+{% endblock %}

@@ -394,3 +394,41 @@ def global_audit_logs():
     except Exception as e:
         logger.error(f"Error getting global audit logs: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+# ==================== System Status ====================
+
+@super_bp.route('/system/status', methods=['GET'])
+@require_auth
+@require_super_admin
+def system_status():
+    """
+    Get system status including API key configuration.
+
+    Response:
+    {
+        "deepgram": {"configured": true},
+        "openai": {"configured": true},
+        "twilio": {"configured": true},
+        "groq": {"configured": true}
+    }
+    """
+    import os
+
+    return jsonify({
+        'deepgram': {
+            'configured': bool(os.environ.get('DEEPGRAM_API_KEY'))
+        },
+        'openai': {
+            'configured': bool(os.environ.get('OPENAI_API_KEY') or os.environ.get('AZURE_OPENAI_API_KEY'))
+        },
+        'twilio': {
+            'configured': bool(
+                os.environ.get('TWILIO_ACCOUNT_SID') and
+                os.environ.get('TWILIO_AUTH_TOKEN')
+            )
+        },
+        'groq': {
+            'configured': bool(os.environ.get('GROQ_API_KEY'))
+        }
+    })

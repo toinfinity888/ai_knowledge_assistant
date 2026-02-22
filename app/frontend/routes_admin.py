@@ -164,6 +164,18 @@ def dashboard():
     )
 
 
+# ==================== System Configuration (SUPER_ADMIN only) ====================
+
+@admin_panel_bp.route('/system-config')
+@super_admin_required
+def system_config():
+    """System configuration page for super admin."""
+    return render_template(
+        'admin/system_config.html',
+        active_page='system_config'
+    )
+
+
 # ==================== Companies (SUPER_ADMIN only) ====================
 
 @admin_panel_bp.route('/companies')
