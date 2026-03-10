@@ -15,6 +15,7 @@ class TextChunkForMvp:
     file_type: Optional[str] = None             # 'pdf', 'json', etr.
     text_hash: str = field(init=False)
     score: Optional[float] = None
+    document_id: Optional[int] = None   # Database document ID for source linking
 
     def __post_init__(self):
         self.text_hash = hashlib.sha256(self.text.encode()).hexdigest()

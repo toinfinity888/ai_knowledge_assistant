@@ -72,6 +72,7 @@ class EmbeddedChunk:
         page = payload.get("page")
         chunk_id = payload.get("chunk_id")
         file_type = payload.get("file_type")
+        document_id = payload.get("document_id")  # Database document ID for source linking
 
         # Get score from the ScoredPoint
         score = point.score if hasattr(point, 'score') else None
@@ -84,6 +85,7 @@ class EmbeddedChunk:
             chunk_id=chunk_id,
             file_type=file_type,
             score=score,
+            document_id=document_id,
         )
         
 @dataclass

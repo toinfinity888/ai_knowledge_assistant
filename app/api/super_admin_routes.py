@@ -11,6 +11,7 @@ from app.middleware.auth_middleware import (
 )
 from app.services.company_service import get_company_service, CompanyError, CompanyNotFoundError, CompanySlugExistsError
 from app.services.audit_service import get_audit_service
+from app.services.limits_service import get_limits_service
 from app.database.postgresql_session import get_db_session
 from app.logging.logger import logger
 
@@ -436,3 +437,95 @@ def system_status():
             'configured': bool(os.environ.get('QDRANT_URL') or os.environ.get('QDRANT_HOST'))
         }
     })
+
+
+# ==================== System Limits ====================
+
+@super_bp.route('/limits', methods=['GET'])
+@require_auth
+@require_super_admin
+def get_limits():
+    """
+    Get all system limits.
+
+    Response:
+    {
+        "limits": {
+            "openai_tokens": {"value": {...}, "description": "..."},
+            ...
+        }
+    }
+    """
+    try:
+        with get_db_session() as db:
+            limits_service = get_limits_service()
+            limits = limits_service.get_all_limits(db)
+            return jsonify({'limits': limits})
+    except Exception as e:
+        logger.error(f"Error getting limits: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@super_bp.route('/limits', methods=['POST'])
+@require_auth
+@require_super_admin
+def update_limits():
+    """
+    Update system limits.
+
+    Request body:
+    {
+        "openai_tokens": {"daily": 100000, "weekly": 500000, "monthly": 2000000, "enabled": true},
+        ...
+    }
+
+    Response:
+    {
+        "success": true,
+        "limits": {...}
+    }
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    context = g.tenant_context
+
+    try:
+        with get_db_session() as db:
+            limits_service = get_limits_service()
+            result = limits_service.update_all_limits(db, data, user_id=context.user_id)
+            return jsonify({
+                'success': True,
+                'limits': result
+            })
+    except Exception as e:
+        logger.error(f"Error updating limits: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@super_bp.route('/limits/reset', methods=['POST'])
+@require_auth
+@require_super_admin
+def reset_limits():
+    """
+    Reset all limits to defaults.
+
+    Response:
+    {
+        "success": true,
+        "limits": {...}
+    }
+    """
+    try:
+        with get_db_session() as db:
+            limits_service = get_limits_service()
+            limits = limits_service.reset_to_defaults(db)
+            return jsonify({
+                'success': True,
+                'limits': limits
+            })
+    except Exception as e:
+        logger.error(f"Error resetting limits: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

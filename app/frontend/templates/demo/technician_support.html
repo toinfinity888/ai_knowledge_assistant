@@ -1290,10 +1290,20 @@
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
         }
 
         .source-tag:hover {
-            background: var(--gray-200);
+            background: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .source-tag .source-icon {
+            margin-right: 4px;
+            font-size: 0.7rem;
         }
 
         /* Badge */
@@ -2760,8 +2770,23 @@
                 }
 
                 // Update validation display if provided
+                // But preserve the field values that were used for this search
                 if (result.validation) {
+                    const savedFieldValues = { ...allFieldValues };
                     displayValidationResult(result);
+
+                    // Restore edited field values after displayValidationResult rebuilds the UI
+                    Object.entries(savedFieldValues).forEach(([slug, value]) => {
+                        const input = document.querySelector(`#fieldsList input[data-slug="${slug}"]`);
+                        if (input) {
+                            const original = input.dataset.original || '';
+                            if (value !== original) {
+                                input.value = value;
+                                input.classList.add('edited');
+                                editedFields[slug] = value;
+                            }
+                        }
+                    });
                 }
 
                 // Display search results
@@ -3213,10 +3238,13 @@
                 // Build sources HTML if available
                 let sourcesHTML = '';
                 if (s.source_metadata && s.source_metadata.length > 0) {
-                    const sourceItems = s.source_metadata.slice(0, 5).map(src => {
+                    const sourceItems = s.source_metadata.slice(0, 5).map((src, idx) => {
                         const name = src.display_name || src.file_name || src.title || 'Source';
-                        const page = src.page_number ? ` (p.${src.page_number})` : '';
-                        return `<span class="source-tag">${escapeHtml(name)}${page}</span>`;
+                        const page = src.page || src.page_number;
+                        const pageText = page ? ` (p.${page})` : '';
+                        const icon = src.file_type === 'pdf' ? '📄' : (src.source && src.source.includes('.') ? '🌐' : '📋');
+                        const dataAttrs = `data-source-idx="${idx}" data-document-id="${src.document_id || ''}" data-page="${page || ''}" data-source-url="${escapeHtml(src.source || '')}" data-file-type="${src.file_type || ''}"`;
+                        return `<span class="source-tag" ${dataAttrs}><span class="source-icon">${icon}</span>${escapeHtml(name)}${pageText}</span>`;
                     }).join('');
                     sourcesHTML = `<div class="solution-sources"><span class="sources-label">Sources:</span>${sourceItems}</div>`;
                 }
@@ -3231,13 +3259,53 @@
                 `;
 
                 // Track click on solution card
-                card.addEventListener('click', () => trackSuggestionClick(s.id));
+                card.addEventListener('click', (e) => {
+                    // Don't track if clicking on a source tag
+                    if (!e.target.closest('.source-tag')) {
+                        trackSuggestionClick(s.id);
+                    }
+                });
+
+                // Add click handlers to source tags
+                card.querySelectorAll('.source-tag').forEach(tag => {
+                    tag.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent card click
+                        openSourceDocument(tag);
+                    });
+                });
 
                 c.insertBefore(card, c.firstChild);
             });
 
             // Save to state
             saveStateToStorage();
+        }
+
+        // Open source document in new tab
+        function openSourceDocument(tagElement) {
+            const documentId = tagElement.dataset.documentId;
+            const page = tagElement.dataset.page;
+            const sourceUrl = tagElement.dataset.sourceUrl;
+            const fileType = tagElement.dataset.fileType;
+
+            // If it's a PDF with document_id, open via our endpoint
+            if (documentId && documentId !== '' && documentId !== 'null' && documentId !== 'undefined') {
+                let url = `/demo/source/${documentId}`;
+                if (page && page !== '' && page !== 'null') {
+                    url += `?page=${page}`;
+                }
+                window.open(url, '_blank');
+                return;
+            }
+
+            // If it's an external URL (web source), open directly
+            if (sourceUrl && (sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://'))) {
+                window.open(sourceUrl, '_blank');
+                return;
+            }
+
+            // Fallback: show tooltip that source is not available for viewing
+            showCallStatus('Source file not available for preview', 'warning');
         }
 
         // Track when a suggestion is clicked/expanded

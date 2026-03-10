@@ -85,6 +85,8 @@ class RAGEngine:
                 "page": chunk.page,
                 "score": round(chunk.score, 3) if chunk.score else None,
                 "chunk_id": chunk.chunk_id,
+                "document_id": chunk.document_id,  # Database document ID for source viewing
+                "file_type": chunk.file_type,  # 'pdf', 'json', etc.
             }
             source_metadata.append(source_info)
 

@@ -45,6 +45,9 @@ from app.models.session_feedback import SessionFeedback
 from app.models.field_edit_log import FieldEditLog
 from app.models.analytics_summary import AnalyticsDailySummary
 
+# System configuration
+from app.models.system_limits import SystemLimits
+
 # Data models (dataclasses, not ORM)
 from app.models.query import Query
 from app.models.text_chunk import TextChunk
@@ -88,6 +91,8 @@ __all__ = [
     'SessionFeedback',
     'FieldEditLog',
     'AnalyticsDailySummary',
+    # System configuration
+    'SystemLimits',
     # Data models
     'Query',
     'TextChunk',

@@ -4,142 +4,343 @@
 {% block page_title %}System Configuration{% endblock %}
 
 {% block content %}
-<!-- Transcription Card -->
-<div class="card">
-  <div class="card-header">
-    <h2>Transcription</h2>
+<!-- Tabs -->
+<div class="tabs-container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('general')">General</button>
+    <button class="tab" onclick="switchTab('limits')">Limits</button>
+    <button class="tab" onclick="switchTab('services')">Services</button>
   </div>
-  <div class="card-body">
-    <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--gray-50); border-radius: 8px; margin-bottom: 20px;">
-      <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #66a9a2 0%, #4d8a84 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem;">
-        &#x1F3A4;
-      </div>
-      <div>
-        <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">Deepgram Nova-2</h3>
-        <p style="font-size: 0.875rem; color: var(--gray-600);">Real-time streaming transcription</p>
-      </div>
-      <span id="transcriptionBadge" class="badge" style="margin-left: auto; background: #dcfce7; color: #166534;">Active</span>
+</div>
+
+<!-- General Tab -->
+<div id="tab-general" class="tab-content active">
+  <!-- Transcription Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Transcription</h2>
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="transcription_language">Language</label>
-        <select id="transcription_language" class="form-control">
-          <option value="fr">French</option>
-          <option value="en">English</option>
-          <option value="es">Spanish</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="ru">Russian</option>
-        </select>
+    <div class="card-body">
+      <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--gray-50); border-radius: 8px; margin-bottom: 20px;">
+        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #66a9a2 0%, #4d8a84 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem;">
+          &#x1F3A4;
+        </div>
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">Deepgram Nova-2</h3>
+          <p style="font-size: 0.875rem; color: var(--gray-600);">Real-time streaming transcription</p>
+        </div>
+        <span class="badge" style="margin-left: auto; background: #dcfce7; color: #166534;">Active</span>
       </div>
 
-      <div class="form-group">
-        <label for="interim_toggle">Interim Results</label>
-        <div style="display: flex; align-items: center; gap: 12px; height: 42px;">
-          <label class="toggle-switch">
-            <input type="checkbox" id="interim_toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span style="font-size: 0.875rem; color: var(--gray-600);" id="interim_label">Show real-time partial results</span>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="transcription_language">Language</label>
+          <select id="transcription_language" class="form-control">
+            <option value="fr">French</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Interim Results</label>
+          <div style="display: flex; align-items: center; gap: 12px; height: 42px;">
+            <label class="toggle-switch">
+              <input type="checkbox" id="interim_toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size: 0.875rem; color: var(--gray-600);">Show real-time partial results</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="btn-group">
-      <button type="button" class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
-      <button type="button" class="btn btn-secondary" onclick="resetConfig()">Reset</button>
-      <span id="saveStatus" style="margin-left: 12px; font-size: 0.875rem;"></span>
+      <div class="btn-group">
+        <button type="button" class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
+        <span id="saveStatus" style="margin-left: 12px; font-size: 0.875rem;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Microphone Test Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Microphone Test</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 16px;">
+        Test your microphone to ensure audio capture works correctly.
+      </p>
+      <div style="background: var(--gray-50); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <pre id="testResult" style="margin: 0; font-size: 0.8rem; color: var(--gray-600); white-space: pre-wrap;">Click the button to start testing...</pre>
+      </div>
+      <button type="button" class="btn btn-secondary" id="testMicBtn" onclick="testMicrophone()">
+        &#x1F3A4; Test Microphone
+      </button>
     </div>
   </div>
 </div>
 
-<!-- API Services Card -->
-<div class="card">
-  <div class="card-header">
-    <h2>API Services</h2>
+<!-- Limits Tab -->
+<div id="tab-limits" class="tab-content">
+  <!-- OpenAI Limits -->
+  <div class="card">
+    <div class="card-header">
+      <h2>OpenAI Limits</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 20px;">
+        Set usage limits for OpenAI API to control costs.
+      </p>
+
+      <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Token Usage</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Daily Limit</label>
+          <input type="number" id="openai_tokens_daily" class="form-control" placeholder="100000">
+        </div>
+        <div class="form-group">
+          <label>Weekly Limit</label>
+          <input type="number" id="openai_tokens_weekly" class="form-control" placeholder="500000">
+        </div>
+        <div class="form-group">
+          <label>Monthly Limit</label>
+          <input type="number" id="openai_tokens_monthly" class="form-control" placeholder="2000000">
+        </div>
+      </div>
+
+      <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--gray-700); margin: 20px 0 12px;">Request Count</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Daily Limit</label>
+          <input type="number" id="openai_requests_daily" class="form-control" placeholder="1000">
+        </div>
+        <div class="form-group">
+          <label>Weekly Limit</label>
+          <input type="number" id="openai_requests_weekly" class="form-control" placeholder="5000">
+        </div>
+        <div class="form-group">
+          <label>Monthly Limit</label>
+          <input type="number" id="openai_requests_monthly" class="form-control" placeholder="20000">
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-    <div id="servicesList">
-      <div class="service-item">
-        <div class="service-info">
-          <span class="service-icon" style="background: rgba(102, 169, 162, 0.15);">&#x1F3A4;</span>
-          <div>
-            <div class="service-name">Deepgram</div>
-            <div class="service-desc">Speech-to-text</div>
-          </div>
+
+  <!-- Twilio Limits -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Twilio Limits</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 20px;">
+        Set usage limits for Twilio voice calls.
+      </p>
+
+      <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Call Minutes</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Daily Limit</label>
+          <input type="number" id="twilio_minutes_daily" class="form-control" placeholder="60">
         </div>
-        <span id="deepgramStatus" class="service-status checking">Checking...</span>
+        <div class="form-group">
+          <label>Weekly Limit</label>
+          <input type="number" id="twilio_minutes_weekly" class="form-control" placeholder="300">
+        </div>
+        <div class="form-group">
+          <label>Monthly Limit</label>
+          <input type="number" id="twilio_minutes_monthly" class="form-control" placeholder="1000">
+        </div>
       </div>
 
-      <div class="service-item">
-        <div class="service-info">
-          <span class="service-icon" style="background: rgba(16, 163, 127, 0.15);">&#x1F916;</span>
-          <div>
-            <div class="service-name">OpenAI</div>
-            <div class="service-desc">AI responses</div>
-          </div>
+      <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--gray-700); margin: 20px 0 12px;">Call Count</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Daily Limit</label>
+          <input type="number" id="twilio_calls_daily" class="form-control" placeholder="50">
         </div>
-        <span id="openaiStatus" class="service-status checking">Checking...</span>
+        <div class="form-group">
+          <label>Weekly Limit</label>
+          <input type="number" id="twilio_calls_weekly" class="form-control" placeholder="250">
+        </div>
+        <div class="form-group">
+          <label>Monthly Limit</label>
+          <input type="number" id="twilio_calls_monthly" class="form-control" placeholder="1000">
+        </div>
       </div>
+    </div>
+  </div>
 
-      <div class="service-item">
-        <div class="service-info">
-          <span class="service-icon" style="background: rgba(241, 85, 83, 0.15);">&#x1F4DE;</span>
-          <div>
-            <div class="service-name">Twilio</div>
-            <div class="service-desc">Voice calls</div>
-          </div>
+  <!-- Deepgram Limits -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Deepgram Limits</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 20px;">
+        Set transcription minutes limits for Deepgram.
+      </p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Daily Minutes</label>
+          <input type="number" id="deepgram_minutes_daily" class="form-control" placeholder="120">
         </div>
-        <span id="twilioStatus" class="service-status checking">Checking...</span>
+        <div class="form-group">
+          <label>Weekly Minutes</label>
+          <input type="number" id="deepgram_minutes_weekly" class="form-control" placeholder="600">
+        </div>
+        <div class="form-group">
+          <label>Monthly Minutes</label>
+          <input type="number" id="deepgram_minutes_monthly" class="form-control" placeholder="2000">
+        </div>
       </div>
+    </div>
+  </div>
 
-      <div class="service-item">
-        <div class="service-info">
-          <span class="service-icon" style="background: rgba(245, 158, 11, 0.15);">&#x26A1;</span>
-          <div>
-            <div class="service-name">Groq</div>
-            <div class="service-desc">Fast inference</div>
-          </div>
+  <!-- Company Limits -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Company Limits</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 20px;">
+        Set limits for company resources.
+      </p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Max Users per Company</label>
+          <input type="number" id="users_per_company_max" class="form-control" placeholder="50">
+          <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 6px;">Maximum number of users a company admin can create</p>
         </div>
-        <span id="groqStatus" class="service-status checking">Checking...</span>
       </div>
+    </div>
+  </div>
 
-      <div class="service-item">
-        <div class="service-info">
-          <span class="service-icon" style="background: rgba(139, 92, 246, 0.15);">&#x1F50D;</span>
-          <div>
-            <div class="service-name">Qdrant</div>
-            <div class="service-desc">Vector search</div>
-          </div>
-        </div>
-        <span id="qdrantStatus" class="service-status checking">Checking...</span>
+  <!-- Save Limits -->
+  <div class="card">
+    <div class="card-body">
+      <div class="btn-group">
+        <button type="button" class="btn btn-primary" onclick="saveLimits()">Save Limits</button>
+        <button type="button" class="btn btn-secondary" onclick="resetLimits()">Reset to Defaults</button>
+        <span id="limitsStatus" style="margin-left: 12px; font-size: 0.875rem;"></span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Microphone Test Card -->
-<div class="card">
-  <div class="card-header">
-    <h2>Microphone Test</h2>
-  </div>
-  <div class="card-body">
-    <p style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 16px;">
-      Test your microphone to ensure audio capture works correctly.
-    </p>
-    <div style="background: var(--gray-50); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-      <pre id="testResult" style="margin: 0; font-size: 0.8rem; color: var(--gray-600); white-space: pre-wrap;">Click the button below to start testing...</pre>
+<!-- Services Tab -->
+<div id="tab-services" class="tab-content">
+  <div class="card">
+    <div class="card-header">
+      <h2>API Services</h2>
     </div>
-    <button type="button" class="btn btn-secondary" id="testMicBtn" onclick="testMicrophone()">
-      &#x1F3A4; Test Microphone
-    </button>
+    <div class="card-body">
+      <div id="servicesList">
+        <div class="service-item">
+          <div class="service-info">
+            <span class="service-icon" style="background: rgba(102, 169, 162, 0.15);">&#x1F3A4;</span>
+            <div>
+              <div class="service-name">Deepgram</div>
+              <div class="service-desc">Speech-to-text</div>
+            </div>
+          </div>
+          <span id="deepgramStatus" class="service-status checking">Checking...</span>
+        </div>
+
+        <div class="service-item">
+          <div class="service-info">
+            <span class="service-icon" style="background: rgba(16, 163, 127, 0.15);">&#x1F916;</span>
+            <div>
+              <div class="service-name">OpenAI</div>
+              <div class="service-desc">AI responses</div>
+            </div>
+          </div>
+          <span id="openaiStatus" class="service-status checking">Checking...</span>
+        </div>
+
+        <div class="service-item">
+          <div class="service-info">
+            <span class="service-icon" style="background: rgba(241, 85, 83, 0.15);">&#x1F4DE;</span>
+            <div>
+              <div class="service-name">Twilio</div>
+              <div class="service-desc">Voice calls</div>
+            </div>
+          </div>
+          <span id="twilioStatus" class="service-status checking">Checking...</span>
+        </div>
+
+        <div class="service-item">
+          <div class="service-info">
+            <span class="service-icon" style="background: rgba(245, 158, 11, 0.15);">&#x26A1;</span>
+            <div>
+              <div class="service-name">Groq</div>
+              <div class="service-desc">Fast inference</div>
+            </div>
+          </div>
+          <span id="groqStatus" class="service-status checking">Checking...</span>
+        </div>
+
+        <div class="service-item">
+          <div class="service-info">
+            <span class="service-icon" style="background: rgba(139, 92, 246, 0.15);">&#x1F50D;</span>
+            <div>
+              <div class="service-name">Qdrant</div>
+              <div class="service-desc">Vector search</div>
+            </div>
+          </div>
+          <span id="qdrantStatus" class="service-status checking">Checking...</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <style>
+  .tabs-container {
+    margin-bottom: 24px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab:hover {
+    color: var(--gray-800);
+  }
+
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
   .toggle-switch {
     position: relative;
     display: inline-block;
@@ -248,14 +449,34 @@
     background: #fee2e2;
     color: #991b1b;
   }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
 </style>
 
 <script>
+  // Tab switching
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+
+    // Load data for the tab
+    if (tabName === 'limits') loadLimits();
+    if (tabName === 'services') checkApiStatus();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     loadConfig();
     checkApiStatus();
   });
 
+  // ===== General Config =====
   async function loadConfig() {
     try {
       const res = await fetch('/api/config/transcription');
@@ -282,37 +503,129 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
       });
-      const data = await res.json();
-      if (data.success) {
-        showStatus('Saved', 'success');
-      }
+      if ((await res.json()).success) showStatus('saveStatus', 'Saved', 'success');
     } catch (e) {
-      showStatus('Error', 'error');
+      showStatus('saveStatus', 'Error', 'error');
     }
   }
 
-  async function resetConfig() {
-    if (!confirm('Reset to defaults?')) return;
+  // ===== Limits =====
+  async function loadLimits() {
     try {
-      const res = await fetch('/api/config/transcription/reset', { method: 'POST' });
+      const res = await fetch('/api/v1/super/limits');
       const data = await res.json();
-      if (data.success) {
-        document.getElementById('transcription_language').value = data.config.transcription_language || 'fr';
-        document.getElementById('interim_toggle').checked = data.config.deepgram_show_interim !== false;
-        showStatus('Reset done', 'success');
+      if (data.limits) {
+        const l = data.limits;
+
+        // OpenAI tokens
+        if (l.openai_tokens) {
+          document.getElementById('openai_tokens_daily').value = l.openai_tokens.value.daily || '';
+          document.getElementById('openai_tokens_weekly').value = l.openai_tokens.value.weekly || '';
+          document.getElementById('openai_tokens_monthly').value = l.openai_tokens.value.monthly || '';
+        }
+
+        // OpenAI requests
+        if (l.openai_requests) {
+          document.getElementById('openai_requests_daily').value = l.openai_requests.value.daily || '';
+          document.getElementById('openai_requests_weekly').value = l.openai_requests.value.weekly || '';
+          document.getElementById('openai_requests_monthly').value = l.openai_requests.value.monthly || '';
+        }
+
+        // Twilio minutes
+        if (l.twilio_minutes) {
+          document.getElementById('twilio_minutes_daily').value = l.twilio_minutes.value.daily || '';
+          document.getElementById('twilio_minutes_weekly').value = l.twilio_minutes.value.weekly || '';
+          document.getElementById('twilio_minutes_monthly').value = l.twilio_minutes.value.monthly || '';
+        }
+
+        // Twilio calls
+        if (l.twilio_calls) {
+          document.getElementById('twilio_calls_daily').value = l.twilio_calls.value.daily || '';
+          document.getElementById('twilio_calls_weekly').value = l.twilio_calls.value.weekly || '';
+          document.getElementById('twilio_calls_monthly').value = l.twilio_calls.value.monthly || '';
+        }
+
+        // Deepgram minutes
+        if (l.deepgram_minutes) {
+          document.getElementById('deepgram_minutes_daily').value = l.deepgram_minutes.value.daily || '';
+          document.getElementById('deepgram_minutes_weekly').value = l.deepgram_minutes.value.weekly || '';
+          document.getElementById('deepgram_minutes_monthly').value = l.deepgram_minutes.value.monthly || '';
+        }
+
+        // Users per company
+        if (l.users_per_company) {
+          document.getElementById('users_per_company_max').value = l.users_per_company.value.max || '';
+        }
       }
     } catch (e) {
-      showStatus('Error', 'error');
+      console.error('Error loading limits:', e);
     }
   }
 
-  function showStatus(msg, type) {
-    const el = document.getElementById('saveStatus');
-    el.textContent = msg;
-    el.style.color = type === 'success' ? '#166534' : '#991b1b';
-    setTimeout(() => el.textContent = '', 3000);
+  async function saveLimits() {
+    const limits = {
+      openai_tokens: {
+        daily: parseInt(document.getElementById('openai_tokens_daily').value) || 100000,
+        weekly: parseInt(document.getElementById('openai_tokens_weekly').value) || 500000,
+        monthly: parseInt(document.getElementById('openai_tokens_monthly').value) || 2000000,
+        enabled: true
+      },
+      openai_requests: {
+        daily: parseInt(document.getElementById('openai_requests_daily').value) || 1000,
+        weekly: parseInt(document.getElementById('openai_requests_weekly').value) || 5000,
+        monthly: parseInt(document.getElementById('openai_requests_monthly').value) || 20000,
+        enabled: true
+      },
+      twilio_minutes: {
+        daily: parseInt(document.getElementById('twilio_minutes_daily').value) || 60,
+        weekly: parseInt(document.getElementById('twilio_minutes_weekly').value) || 300,
+        monthly: parseInt(document.getElementById('twilio_minutes_monthly').value) || 1000,
+        enabled: true
+      },
+      twilio_calls: {
+        daily: parseInt(document.getElementById('twilio_calls_daily').value) || 50,
+        weekly: parseInt(document.getElementById('twilio_calls_weekly').value) || 250,
+        monthly: parseInt(document.getElementById('twilio_calls_monthly').value) || 1000,
+        enabled: true
+      },
+      deepgram_minutes: {
+        daily: parseInt(document.getElementById('deepgram_minutes_daily').value) || 120,
+        weekly: parseInt(document.getElementById('deepgram_minutes_weekly').value) || 600,
+        monthly: parseInt(document.getElementById('deepgram_minutes_monthly').value) || 2000,
+        enabled: true
+      },
+      users_per_company: {
+        max: parseInt(document.getElementById('users_per_company_max').value) || 50,
+        enabled: true
+      }
+    };
+
+    try {
+      const res = await fetch('/api/v1/super/limits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(limits)
+      });
+      if ((await res.json()).success) showStatus('limitsStatus', 'Saved', 'success');
+    } catch (e) {
+      showStatus('limitsStatus', 'Error', 'error');
+    }
   }
 
+  async function resetLimits() {
+    if (!confirm('Reset all limits to defaults?')) return;
+    try {
+      const res = await fetch('/api/v1/super/limits/reset', { method: 'POST' });
+      if ((await res.json()).success) {
+        loadLimits();
+        showStatus('limitsStatus', 'Reset done', 'success');
+      }
+    } catch (e) {
+      showStatus('limitsStatus', 'Error', 'error');
+    }
+  }
+
+  // ===== Services Status =====
   async function checkApiStatus() {
     try {
       const res = await fetch('/api/v1/super/system/status');
@@ -342,8 +655,15 @@
     }
   }
 
-  let mediaRecorder = null;
+  // ===== Helpers =====
+  function showStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.color = type === 'success' ? '#166534' : '#991b1b';
+    setTimeout(() => el.textContent = '', 3000);
+  }
 
+  let mediaRecorder = null;
   async function testMicrophone() {
     const result = document.getElementById('testResult');
     const btn = document.getElementById('testMicBtn');
@@ -366,7 +686,7 @@
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
         const bytes = chunks.reduce((a, c) => a + c.size, 0);
-        result.textContent = `Success! Captured ${bytes.toLocaleString()} bytes.\n\nMicrophone is working correctly.`;
+        result.textContent = `Success! Captured ${bytes.toLocaleString()} bytes.\nMicrophone is working correctly.`;
         btn.innerHTML = '&#x1F3A4; Test Microphone';
       };
 

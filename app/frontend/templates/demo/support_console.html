@@ -536,6 +536,18 @@
             background: var(--gray-200);
             color: var(--gray-600);
             border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .source-tag:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .source-tag .source-icon {
+            margin-right: 4px;
         }
 
         /* ===== Context Analysis ===== */
@@ -1364,20 +1376,34 @@
 
                 const card = document.createElement('div');
                 card.className = 'result-card';
+                const sourcesHtml = suggestion.source_metadata ? `
+                    <div class="result-sources">
+                        ${suggestion.source_metadata.slice(0, 3).map((src, idx) => {
+                            const name = src.display_name || src.file_name || 'Source';
+                            const page = src.page || src.page_number;
+                            const icon = src.file_type === 'pdf' ? '📄' : '🌐';
+                            return `<span class="source-tag" data-document-id="${src.document_id || ''}" data-page="${page || ''}" data-source-url="${escapeHtml(src.source || '')}" data-file-type="${src.file_type || ''}"><span class="source-icon">${icon}</span>${escapeHtml(name)}</span>`;
+                        }).join('')}
+                    </div>
+                ` : '';
+
                 card.innerHTML = `
                     <div class="result-header">
                         <div class="result-title">${escapeHtml(suggestion.title || 'Knowledge Article')}</div>
                         <div class="result-confidence">${confidence}%</div>
                     </div>
                     <div class="result-content">${escapeHtml(suggestion.content || suggestion.text || '')}</div>
-                    ${suggestion.source_metadata ? `
-                        <div class="result-sources">
-                            ${suggestion.source_metadata.slice(0, 3).map(src => `
-                                <span class="source-tag">${escapeHtml(src.display_name || src.file_name || 'Source')}</span>
-                            `).join('')}
-                        </div>
-                    ` : ''}
+                    ${sourcesHtml}
                 `;
+
+                // Add click handlers to source tags
+                card.querySelectorAll('.source-tag').forEach(tag => {
+                    tag.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openSourceDocument(tag);
+                    });
+                });
+
                 container.appendChild(card);
             });
         }
@@ -1478,6 +1504,33 @@
         }
 
         // ===== Utilities =====
+
+        // Open source document in new tab
+        function openSourceDocument(tagElement) {
+            const documentId = tagElement.dataset.documentId;
+            const page = tagElement.dataset.page;
+            const sourceUrl = tagElement.dataset.sourceUrl;
+
+            // If it's a PDF with document_id, open via our endpoint
+            if (documentId && documentId !== '' && documentId !== 'null' && documentId !== 'undefined') {
+                let url = `/demo/source/${documentId}`;
+                if (page && page !== '' && page !== 'null') {
+                    url += `?page=${page}`;
+                }
+                window.open(url, '_blank');
+                return;
+            }
+
+            // If it's an external URL (web source), open directly
+            if (sourceUrl && (sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://'))) {
+                window.open(sourceUrl, '_blank');
+                return;
+            }
+
+            // Fallback: show message that source is not available
+            console.log('Source not available for preview');
+        }
+
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');

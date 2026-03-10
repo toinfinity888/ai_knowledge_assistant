@@ -580,3 +580,66 @@ def reprocess_document(document_id: int):
     except Exception as e:
         logger.error(f"Error reprocessing document {document_id}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@admin_bp.route('/documents/<int:document_id>/view', methods=['GET'])
+@require_auth
+@require_company_admin
+def view_document(document_id: int):
+    """
+    Serve a document file for viewing in the browser.
+
+    Opens the PDF in the browser (inline display).
+    Optionally accepts a `page` query parameter for page navigation hints.
+
+    Query params:
+        page: Optional page number (for PDF.js viewer hints)
+
+    Response:
+        PDF file with Content-Disposition: inline
+    """
+    from flask import send_file, abort
+    from app.services.document_service import get_document_service
+
+    context = g.tenant_context
+
+    # Determine company_id
+    if context.is_super_admin:
+        # SUPER_ADMIN can view documents from any company
+        # First, try to get document to find its company_id
+        document_service = get_document_service()
+        with get_db_session() as db:
+            from app.models.document import Document
+            document = db.query(Document).filter(Document.id == document_id).first()
+            if not document:
+                return jsonify({'error': 'Document not found'}), 404
+            company_id = document.company_id
+    else:
+        company_id = context.company_id
+
+    try:
+        document_service = get_document_service()
+        document = document_service.get_document(document_id, company_id)
+
+        if not document:
+            return jsonify({'error': 'Document not found'}), 404
+
+        # Build file path
+        file_path = document_service.upload_dir / str(company_id) / document.filename
+
+        if not file_path.exists():
+            logger.warning(f"[View Document] File not found: {file_path}")
+            return jsonify({'error': 'Document file not found'}), 404
+
+        logger.info(f"[View Document] Serving: {document.original_filename}")
+
+        return send_file(
+            file_path,
+            mimetype=document.mime_type or 'application/pdf',
+            as_attachment=False,
+            download_name=document.original_filename
+        )
+
+    except Exception as e:
+        logger.error(f"Error viewing document {document_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

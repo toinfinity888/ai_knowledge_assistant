@@ -225,7 +225,7 @@ def incoming_call_webhook():
         # Initialize session in database
         try:
             transcription_service = get_transcription_service()
-            company_id = session.get('company_id', 1)
+            company_id = session.get('company_id') or 1  # Super admin may have None
             agent_user_id = session.get('user_id')
 
             run_async(transcription_service.handle_call_start(
@@ -343,7 +343,10 @@ def start_session():
         agent_name = data.get('agent_name', 'Agent Support')
 
         # Get company_id from Flask session (required for multi-tenant)
-        company_id = session.get('company_id', 1)  # Default to 1 if not set
+        # Super admin may have company_id=None, so we need to handle that
+        company_id = session.get('company_id')
+        if not company_id:
+            company_id = 1  # Default to company 1 for super_admin or unset
         user_id = session.get('user_id')
 
         transcription_service = get_transcription_service()

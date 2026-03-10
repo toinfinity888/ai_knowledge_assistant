@@ -104,7 +104,8 @@ def start_demo_call():
     agent_name = data.get('agent_name', 'Demo Agent')
 
     # Get company_id and user_id from session for analytics tracking
-    company_id = flask_session.get('company_id', 1)
+    # Get company_id - super_admin may have None, so default to 1
+    company_id = flask_session.get('company_id') or 1
     agent_user_id = flask_session.get('user_id')
 
     transcription_service = get_transcription_service()
@@ -194,7 +195,7 @@ def demo_analyze():
             'status': 'error',
         }), 503
 
-    company_id = flask_session.get('company_id', 1)
+    company_id = flask_session.get('company_id') or 1
     logger.info(f"[Demo Analyze] Using company_id={company_id}")
 
     result = gatekeeper.analyze_and_search(
@@ -307,6 +308,109 @@ def end_demo_call():
     ))
 
     return jsonify(result), 200
+
+
+@demo_bp.route('/source/<int:document_id>', methods=['GET'])
+def view_source_document(document_id):
+    """
+    Serve a source document (PDF) for viewing.
+    Optionally opens at a specific page using PDF.js page parameter.
+
+    Query params:
+        page: Optional page number to open at
+    """
+    from flask import send_file, session as flask_session
+    from app.services.document_service import get_document_service
+    from pathlib import Path
+
+    page = request.args.get('page', type=int)
+    company_id = flask_session.get('company_id') or 1
+
+    document_service = get_document_service()
+    document = document_service.get_document(document_id, company_id)
+
+    if not document:
+        logger.warning(f"[View Source] Document not found: {document_id}")
+        return """
+        <html>
+        <head><title>Source Not Available</title></head>
+        <body style="font-family: system-ui, sans-serif; padding: 40px; text-align: center;">
+            <h2>Source Document Not Available</h2>
+            <p>The original source document is no longer available in the system.</p>
+            <p>The knowledge base content is still valid, but the source file cannot be viewed.</p>
+            <button onclick="window.close()" style="padding: 10px 20px; cursor: pointer;">Close</button>
+        </body>
+        </html>
+        """, 404
+
+    # Build file path
+    file_path = document_service.upload_dir / str(company_id) / document.filename
+
+    if not file_path.exists():
+        logger.warning(f"[View Source] File not found: {file_path}")
+        return """
+        <html>
+        <head><title>File Not Found</title></head>
+        <body style="font-family: system-ui, sans-serif; padding: 40px; text-align: center;">
+            <h2>Source File Not Found</h2>
+            <p>The source file has been moved or deleted from the server.</p>
+            <p>Please contact your administrator to re-upload the document.</p>
+            <button onclick="window.close()" style="padding: 10px 20px; cursor: pointer;">Close</button>
+        </body>
+        </html>
+        """, 404
+
+    logger.info(f"[View Source] Serving document: {document.original_filename}, page={page}")
+
+    # For PDF files, we can serve with Content-Disposition: inline to open in browser
+    # The page parameter will be handled by the frontend PDF viewer
+    return send_file(
+        file_path,
+        mimetype=document.mime_type or 'application/pdf',
+        as_attachment=False,
+        download_name=document.original_filename
+    )
+
+
+@demo_bp.route('/source-url', methods=['GET'])
+def get_source_url():
+    """
+    Get the URL for viewing a source document.
+    Returns a URL that can be opened in a new tab/window.
+
+    Query params:
+        document_id: Database document ID (for PDFs)
+        page: Optional page number
+        url: External URL (for web sources)
+    """
+    document_id = request.args.get('document_id', type=int)
+    page = request.args.get('page', type=int)
+    external_url = request.args.get('url')
+
+    # If it's an external URL, validate and return it
+    if external_url:
+        # Basic URL validation
+        if external_url.startswith(('http://', 'https://')):
+            return jsonify({
+                'type': 'external',
+                'url': external_url
+            }), 200
+        else:
+            return jsonify({'error': 'Invalid URL'}), 400
+
+    # For internal documents, build the view URL
+    if document_id:
+        view_url = f"/demo/source/{document_id}"
+        if page:
+            view_url += f"?page={page}"
+
+        return jsonify({
+            'type': 'document',
+            'url': view_url,
+            'page': page
+        }), 200
+
+    return jsonify({'error': 'Missing document_id or url parameter'}), 400
 
 
 def register_demo_websocket_routes(sock):

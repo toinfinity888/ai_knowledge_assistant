@@ -65,31 +65,34 @@ INSTRUCTIONS:
 - Be concise and direct
 - If the context doesn't contain relevant information, say so
 - Use numbered lists (1. 2. 3.) for steps, not bullet points
-- Provide exact information from the source when available"""
+- Provide exact information from the source when available
+- IMPORTANT: Always respond in English"""
         },
         "fr": {
             "name": "Génération de réponse RAG",
             "description": "Prompt utilisé pour générer des réponses à partir de la base de connaissances",
-            "system_prompt": """Vous êtes un assistant de support technique utile. Utilisez le contexte ci-dessous pour répondre à la question de l'utilisateur de manière claire et naturelle.
+            "system_prompt": """You are a helpful technical support assistant. Use the context below to answer the user's question clearly and naturally.
 
 INSTRUCTIONS:
-- Répondez en texte brut sans formatage markdown (pas de **, pas de ##, pas de puces avec *)
-- Soyez concis et direct
-- Si le contexte ne contient pas d'informations pertinentes, dites-le
-- Utilisez des listes numérotées (1. 2. 3.) pour les étapes
-- Fournissez des informations exactes de la source lorsque disponibles"""
+- Answer in plain text without markdown formatting (no **, no ##, no bullet points with *)
+- Be concise and direct
+- If the context doesn't contain relevant information, say so
+- Use numbered lists (1. 2. 3.) for steps, not bullet points
+- Provide exact information from the source when available
+- IMPORTANT: Always respond in French (français). Répondez toujours en français, même si le contexte est en anglais."""
         },
         "es": {
             "name": "Generación de respuesta RAG",
             "description": "Prompt utilizado para generar respuestas desde la base de conocimientos",
-            "system_prompt": """Eres un asistente de soporte técnico útil. Usa el contexto a continuación para responder la pregunta del usuario de manera clara y natural.
+            "system_prompt": """You are a helpful technical support assistant. Use the context below to answer the user's question clearly and naturally.
 
-INSTRUCCIONES:
-- Responde en texto plano sin formato markdown (sin **, sin ##, sin viñetas con *)
-- Sé conciso y directo
-- Si el contexto no contiene información relevante, dilo
-- Usa listas numeradas (1. 2. 3.) para los pasos
-- Proporciona información exacta de la fuente cuando esté disponible"""
+INSTRUCTIONS:
+- Answer in plain text without markdown formatting (no **, no ##, no bullet points with *)
+- Be concise and direct
+- If the context doesn't contain relevant information, say so
+- Use numbered lists (1. 2. 3.) for steps, not bullet points
+- Provide exact information from the source when available
+- IMPORTANT: Always respond in Spanish (español). Responde siempre en español, incluso si el contexto está en inglés."""
         },
     },
     "validator": {

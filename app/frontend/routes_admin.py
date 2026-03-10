@@ -825,7 +825,7 @@ def ai_decision_logs():
 # ==================== LLM Prompts ====================
 
 @admin_panel_bp.route('/prompts')
-@admin_required
+@super_admin_required
 def prompts():
     """View and edit LLM prompts."""
     from app.services.prompt_service import get_prompt_service
@@ -848,7 +848,7 @@ def prompts():
 
 
 @admin_panel_bp.route('/prompts/save', methods=['POST'])
-@admin_required
+@super_admin_required
 def save_prompt():
     """Save a custom prompt."""
     from flask import jsonify
@@ -912,7 +912,7 @@ def save_prompt():
 
 
 @admin_panel_bp.route('/prompts/reset', methods=['POST'])
-@admin_required
+@super_admin_required
 def reset_prompt():
     """Reset a prompt to default."""
     from flask import jsonify
